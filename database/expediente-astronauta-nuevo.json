@@ -9,8 +9,108 @@
   "alergias": [],
   "antecedentes": [],
   "medicamentos": [],
-  "chequeos": [],
-  "diario_psicologico": [],
+  "chequeos": [
+    {
+      "mision_id": null,
+      "fase": null,
+      "motivo": null,
+      "actividad": null,
+      "id": "chequeo-8930acea12c64646a6d91d65204f786a",
+      "fecha_hora": "2026-11-15T08:15:46+00:00",
+      "resultado": "INDETERMINADO",
+      "mediciones": [
+        {
+          "tipo": "frecuencia_cardiaca",
+          "valor": 1,
+          "unidad": "lpm"
+        },
+        {
+          "tipo": "spo2",
+          "valor": 1,
+          "unidad": "%"
+        },
+        {
+          "tipo": "temperatura",
+          "valor": 1,
+          "unidad": "°C"
+        }
+      ],
+      "conversacion": [
+        {
+          "role": "ai",
+          "text": "¿Cómo te sientes hoy?"
+        },
+        {
+          "role": "user",
+          "text": "Hola"
+        },
+        {
+          "role": "ai",
+          "text": "¿Cómo describirías tu nivel de energía en este momento?"
+        },
+        {
+          "role": "user",
+          "text": "bien"
+        },
+        {
+          "role": "ai",
+          "text": "¿Podrías especificar a qué actividades o tareas has dedicado la mayor parte de tu tiempo desde la última revisión?"
+        }
+      ],
+      "evaluacion_ia": {
+        "estado": "INDETERMINADO",
+        "resumen": "El astronauta reporta un nivel de energía descrito como bien, sin ofrecer detalles sobre sus actividades recientes. Las mediciones de telemetría (frecuencia cardíaca, SpO2 y temperatura) presentan valores fuera de los rangos fisiológicos normales, lo cual es inconsistente con el reporte subjetivo.",
+        "motivos": [
+          "Las mediciones de telemetría reportan valores extremos o erróneos (frecuencia cardíaca 1 lpm, SpO2 1%, temperatura 1.0 C).",
+          "Existe una contradicción entre la percepción subjetiva del usuario y los datos biométricos registrados.",
+          "La respuesta sobre el nivel de energía es vaga y carece de detalles clínicos significativos.",
+          "El usuario no ha proporcionado información sobre las actividades realizadas desde la última revisión."
+        ],
+        "acciones": [
+          {
+            "recomendacion": "Verificar el estado de los sensores biométricos debido a las lecturas atípicas reportadas.",
+            "accion": "Solicitar al equipo técnico una revisión del hardware de monitorización."
+          },
+          {
+            "recomendacion": "Obtener información específica sobre las tareas realizadas y una descripción más detallada del estado actual.",
+            "accion": "Contactar al astronauta para solicitar una descripción pormenorizada de su carga de trabajo y sintomatología física."
+          },
+          {
+            "recomendacion": "Notificar al equipo médico sobre la discrepancia entre el reporte subjetivo y los datos de telemetría.",
+            "accion": "Enviar un informe al equipo médico detallando la inconsistencia en las mediciones recibidas."
+          }
+        ]
+      }
+    }
+  ],
+  "diario_psicologico": [
+    {
+      "id": "38b75b923af94c81ae43f6b395a9fa81",
+      "version": 1,
+      "fecha_hora": "2026-11-15T08:16:13.060202+00:00",
+      "respuestas": {
+        "sueno": 3,
+        "energia": 4,
+        "estres": 5,
+        "claridad": 5,
+        "esfuerzo": 3
+      },
+      "nota": "",
+      "pvt": null,
+      "puntuacion": {
+        "indice": 56.25,
+        "diferencia_energia": 1
+      },
+      "seguimiento_ia": {
+        "resumen": "Durante el último periodo de descanso, el astronauta reportó una percepción neutra sobre su calidad de sueño. A pesar de declarar energía suficiente y capacidad para mantener la atención y el seguimiento de tareas con total claridad, indica que el nivel de estrés actual dificulta el desempeño de sus labores. El esfuerzo percibido para mantener su ritmo de trabajo habitual se sitúa en un nivel intermedio.",
+        "acciones": [
+          "Documentar la discrepancia entre la alta capacidad de atención reportada y la dificultad percibida por el estrés actual.",
+          "Consultar al equipo médico sobre el impacto del estrés en la carga de trabajo operativa.",
+          "Verificar si el índice de 56.25 guarda relación con la diferencia de energía de 1 unidad reportada en los indicadores complementarios."
+        ]
+      }
+    }
+  ],
   "semanal_psicologico": [],
   "praxis_motora": [],
   "memoria_visual": [],

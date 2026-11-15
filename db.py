@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from database.expedientes import SIGNOS, fecha_utc
-from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, VERSION_VOLT, estimulos, puntuar
+from volt import CAMPO_VOLT, avanzar
 
 
 class RegistroPrematuro(Exception):
@@ -100,53 +100,23 @@ def actualizar_volt(path, user_id, accion, identificador, respuestas, ahora):
         borrador = read_volt_draft(db, user_id)
         if expediente is None:
             raise ValueError("La cuenta no tiene un expediente activo.")
-        if accion == "iniciar":
-            if borrador is None:
-                db.execute("INSERT INTO volt_drafts VALUES (?, ?)", (user_id, json.dumps({
-                    "id": uuid4().hex, "fase": "aprendizaje", "inicio": ahora.isoformat(),
-                })))
-            return None
-
         registros = expediente.get(CAMPO_VOLT, [])
-        if accion == "diferido" and any(r["id"] == identificador for r in registros):
-            return identificador
-        if borrador is None or borrador["id"] != identificador:
-            raise ValueError("Esta prueba ya no está activa. Vuelve a la página de memoria visual.")
-        fase = borrador["fase"]
-        if accion == "cancelar":
-            db.execute("DELETE FROM volt_drafts WHERE user_id = ?", (user_id,))
-            return None
-
-        if accion == "inmediato":
-            if fase != "aprendizaje":
-                return None
-            if (ahora - fecha_utc(borrador["inicio"])).total_seconds() < FIGURAS * EXPOSICION:
-                raise ValueError("Completa primero la fase de aprendizaje.")
-            borrador.update(
-                fase="espera", inmediato=puntuar(respuestas, estimulos(identificador)[1]),
-                fin_inmediato=ahora.isoformat(),
-            )
-        elif accion == "abrir_diferido":
-            if fase == "diferido":
-                return None
-            if fase != "espera" or ahora < fecha_utc(borrador["fin_inmediato"]) + ESPERA:
-                raise ValueError("Aún no termina el intervalo de 15 minutos.")
-            borrador.update(fase="diferido", inicio_diferido=ahora.isoformat())
-        elif accion == "diferido" and fase == "diferido":
-            registro = {
-                "id": identificador, "version": VERSION_VOLT, "fecha_hora": ahora.isoformat(),
-                "intervalo_segundos": (fecha_utc(borrador["inicio_diferido"]) - fecha_utc(borrador["fin_inmediato"])).total_seconds(),
-                "inmediato": borrador["inmediato"], "diferido": puntuar(respuestas, estimulos(identificador)[2]),
-            }
+        siguiente, registro, completado = avanzar(borrador, registros, accion, identificador, respuestas, ahora)
+        if registro is not None:
             expediente[CAMPO_VOLT] = [*registros, registro]
-            db.execute("UPDATE expedientes SET contenido = ? WHERE user_id = ?", (json.dumps(expediente, ensure_ascii=False), user_id))
-            db.execute("DELETE FROM volt_drafts WHERE user_id = ?", (user_id,))
-            return identificador
-        else:
-            raise ValueError("La fase solicitada no está disponible.")
-
-        db.execute("UPDATE volt_drafts SET contenido = ? WHERE user_id = ?", (json.dumps(borrador), user_id))
-        return None
+            db.execute(
+                "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
+                (json.dumps(expediente, ensure_ascii=False), user_id),
+            )
+        if siguiente is None:
+            if borrador is not None:
+                db.execute("DELETE FROM volt_drafts WHERE user_id = ?", (user_id,))
+        elif siguiente is not borrador:
+            db.execute(
+                "INSERT INTO volt_drafts VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET contenido = excluded.contenido",
+                (user_id, json.dumps(siguiente)),
+            )
+        return completado
 
 
 def save_cognitive_report(path, user_id, campo, registro, campo_respuestas):
