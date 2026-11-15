@@ -77,6 +77,7 @@ body {
 /* Navegación superior de pasos (7 -> 8 -> 9) */
 .step-pills {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -174,3 +175,22 @@ body {
 .acciones-alerta li + li { margin-top: 0.75rem; }
 #archivo-local[hidden] { display: none; }
 .file-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.estadisticas-monitoreo { display: grid; gap: 16px; min-width: 0; }
+.estadisticas-monitoreo > p { color: var(--text-muted); }
+.estadisticas-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+}
+.estadisticas-resumen .info-card { justify-content: start; }
+.estadisticas-resumen dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.estadisticas-resumen dl > div:first-child { grid-column: 1 / -1; }
+.estadisticas-resumen dt { color: var(--text-muted); font-size: 0.8rem; }
+.estadisticas-resumen dd { margin-top: 4px; overflow-wrap: anywhere; }
+.estadisticas-ultima { font-size: 1.35rem; font-weight: 700; }
+.estadisticas-tabla { overflow-x: auto; }
+.estadisticas-tabla table { width: 100%; border-collapse: collapse; text-align: left; }
+.estadisticas-tabla th, .estadisticas-tabla td { padding: 9px; border-bottom: 1px solid var(--border-glow); }
+.estadisticas-tabla thead th, .estadisticas-tabla td { white-space: nowrap; }
+.estadisticas-tabla a { color: var(--text-main); }

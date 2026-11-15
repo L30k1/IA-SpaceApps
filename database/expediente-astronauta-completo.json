@@ -55,6 +55,66 @@
       "fase": null,
       "motivo": null,
       "actividad": null,
+      "id": "chequeo-4c5fb49516a24182ae0d0271cbcb89fb",
+      "fecha_hora": "2026-11-15T06:18:08+00:00",
+      "resultado": "ALERTA",
+      "mediciones": [
+        {
+          "tipo": "frecuencia_cardiaca",
+          "valor": 21,
+          "unidad": "lpm"
+        },
+        {
+          "tipo": "spo2",
+          "valor": 21,
+          "unidad": "%"
+        },
+        {
+          "tipo": "temperatura",
+          "valor": 21,
+          "unidad": "°C"
+        }
+      ],
+      "conversacion": [
+        {
+          "role": "ai",
+          "text": "¿Cómo se siente el día de hoy?"
+        },
+        {
+          "role": "user",
+          "text": "rw"
+        },
+        {
+          "role": "ai",
+          "text": "¿Podría explicar qué quiso decir con \"rw\" y cómo se siente físicamente en este momento?"
+        }
+      ],
+      "evaluacion_ia": {
+        "estado": "ALERTA",
+        "resumen": "Se han detectado parámetros biomédicos críticos que se encuentran significativamente fuera de los rangos operativos estándar, acompañados de una respuesta incoherente por parte del astronauta.",
+        "motivos": [
+          "La frecuencia cardíaca registrada es de 21 lpm, lo cual es extremadamente bajo.",
+          "El nivel de saturación de oxígeno (SpO2) es del 21%, lo cual indica una hipoxia severa.",
+          "La temperatura corporal reportada es de 21.0 grados Celsius, indicando una hipotermia grave.",
+          "La comunicación del usuario es ininteligible, lo que impide una autoevaluación física fiable."
+        ],
+        "acciones": [
+          {
+            "recomendacion": "Verificar de inmediato el estado de los sensores y la integridad de la telemetría enviada.",
+            "accion": "Contactar al equipo técnico de soporte médico para validar los datos recibidos."
+          },
+          {
+            "recomendacion": "Establecer contacto verbal directo y urgente con el astronauta.",
+            "accion": "Contactar al equipo médico de guardia para realizar una evaluación remota de emergencia."
+          }
+        ]
+      }
+    },
+    {
+      "mision_id": null,
+      "fase": null,
+      "motivo": null,
+      "actividad": null,
       "id": "chequeo-739f624a2dbb43dab98f05f03e6dbea4",
       "fecha_hora": "2026-11-15T04:34:08+00:00",
       "resultado": "ALERTA",

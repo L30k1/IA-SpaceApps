@@ -60,13 +60,16 @@
         <a class="step-pill{{ ' active' if view == 'alertas' else '' }}" href="{{ url_for('summary', vista='alertas', registro=latest.clave) }}">Seguimiento</a>
         {% endif %}
         <a class="step-pill{{ ' active' if view == 'historial' else '' }}" href="{{ url_for('summary', vista='historial') }}">Historial clínico</a>
+        <a class="step-pill{{ ' active' if view == 'estadisticas' else '' }}" href="{{ url_for('summary', vista='estadisticas') }}"{% if view == 'estadisticas' %} aria-current="page"{% endif %}>Estadísticas</a>
       </nav>
 
       <section class="view active">
         {% if view in ['historial', 'resultados'] %}
         {% include '_archivo_local.html' %}
         {% endif %}
-        {% if view == 'historial' %}
+        {% if view == 'estadisticas' %}
+        {% include '_estadisticas_monitoreo.html' %}
+        {% elif view == 'historial' %}
         <h2 class="history-heading">Historial clínico de {{ expediente.astronauta.nombre }}</h2>
         <a class="step-pill" href="{{ url_for('download_expediente') }}">Descargar expediente JSON</a>
         {% include '_datos_expediente.html' %}

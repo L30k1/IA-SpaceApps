@@ -1,0 +1,53 @@
+{% set nombres = {'frecuencia_cardiaca': 'Frecuencia cardíaca', 'spo2': 'Saturación de oxígeno (SpO₂)', 'temperatura': 'Temperatura'} %}
+<div class="estadisticas-monitoreo">
+  <h2>Estadísticas del monitoreo</h2>
+  {% if mediciones_historicas %}
+  <p>Mediciones de los chequeos guardados en tu expediente.</p>
+  {% else %}
+  <p>Cuando guardes un chequeo con mediciones, aquí aparecerán tus estadísticas.</p>
+  {% endif %}
+
+  <div class="estadisticas-resumen">
+    {% for tipo, (_, unidad) in signos.items() %}
+    {% set dato = estadisticas[tipo] %}
+    <section class="info-card" aria-labelledby="estadistica-{{ tipo }}">
+      <h3 id="estadistica-{{ tipo }}">{{ nombres[tipo] }}</h3>
+      {% if dato %}
+      <dl>
+        <div><dt>Última medición</dt><dd class="estadisticas-ultima">{{ dato.ultimo }} {{ unidad }}</dd></div>
+        <div><dt>Promedio</dt><dd>{{ dato.promedio | round(2) }} {{ unidad }}</dd></div>
+        <div><dt>Mínimo</dt><dd>{{ dato.minimo }} {{ unidad }}</dd></div>
+        <div><dt>Máximo</dt><dd>{{ dato.maximo }} {{ unidad }}</dd></div>
+        <div><dt>Mediciones</dt><dd>{{ dato.cantidad }}</dd></div>
+      </dl>
+      {% else %}
+      <p>Sin mediciones registradas.</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+
+  {% if mediciones_historicas %}
+  <section class="info-card" aria-labelledby="estadisticas-por-chequeo">
+    <h3 id="estadisticas-por-chequeo">Mediciones por chequeo</h3>
+    <div class="estadisticas-tabla" role="region" aria-labelledby="estadisticas-por-chequeo" tabindex="0">
+      <table aria-labelledby="estadisticas-por-chequeo">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            {% for etiqueta, unidad in signos.values() %}<th scope="col">{{ etiqueta }} ({{ unidad }})</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for registro in mediciones_historicas %}
+          <tr>
+            <th scope="row"><a href="{{ url_for('summary', registro=registro.clave) }}">{{ registro.fecha_hora | hora_utc }}</a></th>
+            {% for tipo in signos %}<td>{{ registro.mediciones[tipo] | join(', ') if tipo in registro.mediciones else '—' }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
