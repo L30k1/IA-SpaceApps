@@ -8,9 +8,10 @@ from pathlib import Path
 
 import click
 import httpx2
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 from google.genai.errors import APIError
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 import db
 from asistente import evaluar_chequeo, generar_pregunta
@@ -60,27 +61,32 @@ def configurar_acceso_json(database, archivo, correo, astronauta_id, password, *
         db.update_password(database, usuario["id"], generate_password_hash(password))
 
 
-def registros_clinicos(database, user_id, expediente):
-    registros = [
-        {**registro, "clave": f"json-{registro['id']}", "estado": registro.get("resultado_simulador"),
-         "evaluacion_ia": None}
-        for registro in expediente["chequeos"]
-    ]
+def historial_expediente(database, user_id, expediente):
+    chequeos = {registro["id"]: registro for registro in expediente["chequeos"]}
+    registros = []
     for row in db.history(database, user_id, expediente["_id"]):
         details = json.loads(row["details"] or "{}")
-        messages = json.loads(row["messages"])
-        registros.append({
-            **details,
-            "clave": f"app-{row['id']}",
-            "fecha_hora": row["finished_at"],
-            "estado": row["status"],
-            "mediciones": [
-                {"tipo": tipo, "valor": row[columna], "unidad": SIGNOS[tipo][1]}
-                for tipo, columna in zip(SIGNOS, ("hr", "spo2", "temp"))
-            ],
-            "conversacion": messages,
-        })
-    return sorted(registros, key=lambda r: fecha_utc(r["fecha_hora"]), reverse=True)
+        record_id = details.get("expediente_chequeo_id")
+        registro = chequeos.pop(record_id, None)
+        if registro is None:
+            record_id = record_id or f"chequeo-anterior-{row['id']}"
+            while record_id in chequeos:
+                record_id += "-local"
+            registro = db.checkup_record(
+                record_id, row["finished_at"], json.loads(row["messages"]),
+                (row["hr"], row["spo2"], row["temp"]), details, row["status"],
+            )
+        registros.append((f"app-{row['id']}", registro))
+    registros.extend((f"json-{record_id}", registro) for record_id, registro in chequeos.items())
+    return sorted(registros, key=lambda item: fecha_utc(item[1]["fecha_hora"]), reverse=True)
+
+
+def registros_clinicos(database, user_id, expediente):
+    return [
+        {**registro, "clave": clave, "estado": registro.get("resultado_simulador"),
+         "evaluacion_ia": registro.get("evaluacion_ia") if clave.startswith("app-") else None}
+        for clave, registro in historial_expediente(database, user_id, expediente)
+    ]
 
 
 def create_app(database=None):
@@ -125,7 +131,7 @@ def create_app(database=None):
 
     @app.after_request
     def proteger_paginas(response):
-        if request.endpoint in {"index", "profile", "checkup", "summary", "logout"}:
+        if request.endpoint in {"index", "profile", "checkup", "summary", "download_expediente", "logout"}:
             response.cache_control.no_store = True
         return response
 
@@ -143,6 +149,8 @@ def create_app(database=None):
     @app.before_request
     def validate_form():
         if request.method == "POST":
+            if request.endpoint == "index" and request.args.get("mode") in {"register", "login-json"}:
+                request.max_content_length = 8 * 1024 * 1024
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
@@ -295,6 +303,22 @@ def create_app(database=None):
         return render_template(
             "chequeo.html", messages=messages, vitals=vitals, draft=draft, answer=answer, error=error,
             expediente=expediente, details=details,
+        )
+
+    @app.get("/expediente.json")
+    def download_expediente():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        expediente["chequeos"] = [
+            registro for _, registro in historial_expediente(database, session["user_id"], expediente)
+        ]
+        identificador = secure_filename(expediente["_id"])[:80]
+        filename = f"expediente-{identificador}.json" if identificador else "expediente.json"
+        return Response(
+            json.dumps(expediente, indent=2, ensure_ascii=False) + "\n",
+            content_type="application/json; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
     @app.get("/resumen.html")

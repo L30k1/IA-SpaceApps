@@ -65,6 +65,7 @@
       <section class="view active">
         {% if view == 'historial' %}
         <h2 class="history-heading">Historial clínico de {{ expediente.astronauta.nombre }}</h2>
+        <a class="step-pill" href="{{ url_for('download_expediente') }}">Descargar expediente JSON</a>
         {% include '_datos_expediente.html' %}
         <h3>Chequeos</h3>
         {% for registro in records %}
