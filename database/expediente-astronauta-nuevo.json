@@ -1,0 +1,18 @@
+{
+  "_id": "astro-ariana-vega-001",
+  "tipo_datos": "ficticio",
+  "astronauta": {
+    "nombre": "Ariana Vega",
+    "rol": "Astronauta"
+  },
+  "misiones": [],
+  "alergias": [],
+  "antecedentes": [],
+  "medicamentos": [],
+  "chequeos": [],
+  "diario_psicologico": [],
+  "semanal_psicologico": [],
+  "praxis_motora": [],
+  "memoria_visual": [],
+  "orientacion_linea": []
+}
