@@ -57,6 +57,8 @@ MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](m
 
 La sección **Pruebas cognitivas** del perfil incluye Praxis Motora. Mide en el navegador el tiempo de respuesta a cada uno de los 20 objetivos consecutivos. Las rondas completas se guardan en el historial de la cuenta y en `praxis_motora` dentro del expediente JSON.
 
+Memoria visual presenta diez figuras tridimensionales durante cinco segundos cada una. Los reconocimientos inmediato y diferido contienen veinte figuras cada uno. Tras el reconocimiento inmediato, el servidor conserva la sesión y habilita el diferido a partir de los quince minutos. El expediente guarda ambas puntuaciones, los tiempos y el intervalo real en `memoria_visual`. Las figuras de MediSpace son propias. [Descripción del reconocimiento diferido en Cognitive Atlas](https://cognitiveatlas.org/task/id/trm_56a2a98785453/)
+
 ## Chat de apoyo
 
 El chat ofrece apoyo emocional por texto y orienta a la persona hacia el equipo de salud cuando corresponde. Para responder, el proveedor de IA recibe el mensaje y los turnos recientes. MediSpace guarda la conversación en la base de datos de la cuenta, fuera del expediente JSON descargable.
