@@ -67,16 +67,16 @@ def read_expediente(db, user_id):
     return json.loads(row[0]) if row else None
 
 
-def save_daily_report(path, user_id, registro):
+def save_psych_report(path, user_id, campo, registro):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         expediente = read_expediente(db, user_id)
         if expediente is None:
             return False
-        diario = expediente.setdefault("diario_psicologico", [])
-        if any(previo["id"] == registro["id"] for previo in diario):
+        registros = expediente.setdefault(campo, [])
+        if any(previo["id"] == registro["id"] for previo in registros):
             return False
-        diario.append(registro)
+        registros.append(registro)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
             (json.dumps(expediente, ensure_ascii=False), user_id),
@@ -84,13 +84,13 @@ def save_daily_report(path, user_id, registro):
         return True
 
 
-def save_daily_followup(path, user_id, registro_id, seguimiento):
+def save_psych_followup(path, user_id, campo, registro_id, seguimiento):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         expediente = read_expediente(db, user_id)
         if expediente is None:
             return False
-        for registro in expediente.get("diario_psicologico", []):
+        for registro in expediente.get(campo, []):
             if registro["id"] == registro_id and not registro.get("seguimiento_ia"):
                 registro["seguimiento_ia"] = seguimiento
                 db.execute(

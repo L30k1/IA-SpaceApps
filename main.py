@@ -17,7 +17,10 @@ from werkzeug.utils import secure_filename
 import db
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from database.expedientes import FASES, SIGNOS, fecha_utc, leer_expediente
-from psicologia import ESCALA, REACTIVOS, VERSION, leer_pvt, leer_respuestas, puntuar, seguimiento_diario, validar_diario
+from psicologia import (
+    MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, seguimiento_psicologico,
+    tramo_mision, validar_registros,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -36,7 +39,8 @@ def leer_expediente_subido():
     if not archivo or not archivo.filename.lower().endswith(".json"):
         raise ValueError("Selecciona tu expediente en formato JSON.")
     expediente = leer_expediente(archivo.read())
-    validar_diario(expediente)
+    for modulo in MODULOS:
+        validar_registros(expediente, modulo)
     return expediente
 
 
@@ -125,7 +129,7 @@ def create_app(database=None):
 
     @app.after_request
     def proteger_paginas(response):
-        if request.endpoint in {"index", "profile", "checkup", "summary", "diario", "download_expediente", "logout"}:
+        if request.endpoint in {"index", "profile", "checkup", "summary", "registro_psicologico", "download_expediente", "logout"}:
             response.cache_control.no_store = True
         return response
 
@@ -150,8 +154,8 @@ def create_app(database=None):
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
                 flash("El formulario caducó. Vuelve a completar el paso.")
-                if request.endpoint in {"checkup", "diario"} and expediente_actual():
-                    return redirect(url_for(request.endpoint), 303)
+                if request.endpoint in {"checkup", "registro_psicologico"} and expediente_actual():
+                    return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
 
@@ -231,18 +235,29 @@ def create_app(database=None):
     def expediente_local_script():
         return send_from_directory(ROOT / "static", "expediente-local.js")
 
-    @app.route("/psicologia/diario", methods=["GET", "POST"])
-    def diario():
+    @app.route("/psicologia/<modulo>", methods=["GET", "POST"])
+    def registro_psicologico(modulo):
+        if modulo not in MODULOS:
+            abort(404)
         expediente = expediente_actual()
         if expediente is None:
             return redirect(url_for("index"))
         try:
-            validar_diario(expediente)
+            validar_registros(expediente, modulo)
         except ValueError as exc:
             abort(422, description=str(exc))
         usuario = session["user_id"]
+        campo, reactivos, escala = MODULOS[modulo]
+        ahora = datetime.now(timezone.utc)
+        tramos = {
+            mision["id"]: tramo_mision(mision, ahora.date()) for mision in expediente["misiones"]
+        } if modulo == "semanal" else {}
+        en_curso = [id_mision for id_mision, tramo in tramos.items() if tramo is not None]
+        mision_elegida = request.form.get("mision_id", "") if request.method == "POST" else (
+            en_curso[0] if len(en_curso) == 1 else ""
+        )
         registros = sorted(
-            expediente.get("diario_psicologico", []),
+            expediente.get(campo, []),
             key=lambda registro: fecha_utc(registro["fecha_hora"]),
             reverse=True,
         )
@@ -264,42 +279,50 @@ def create_app(database=None):
                 if not re.fullmatch(r"[0-9a-f]{32}", registro_id):
                     abort(400)
                 if any(registro["id"] == registro_id for registro in registros):
-                    return redirect(url_for("diario", registro=registro_id), 303)
+                    return redirect(url_for("registro_psicologico", modulo=modulo, registro=registro_id), 303)
                 try:
-                    respuestas = leer_respuestas(request.form)
+                    respuestas = leer_respuestas(request.form, modulo)
                     pvt = leer_pvt(request.form)
                     nota = request.form.get("nota", "").strip()
                     if len(nota) > 600:
                         raise ValueError("La nota admite hasta 600 caracteres.")
+                    if modulo == "semanal" and mision_elegida and mision_elegida not in tramos:
+                        raise ValueError("Selecciona una misión de tu expediente.")
                 except ValueError as exc:
                     error = str(exc)
                 else:
                     registro = {
                         "id": registro_id, "version": VERSION,
-                        "fecha_hora": datetime.now(timezone.utc).isoformat(),
+                        "fecha_hora": ahora.isoformat(),
                         "respuestas": respuestas, "nota": nota, "pvt": pvt,
-                        "puntuacion": puntuar(respuestas), "seguimiento_ia": None,
+                        "puntuacion": puntuar(respuestas, modulo), "seguimiento_ia": None,
                     }
-                    if not db.save_daily_report(database, usuario, registro):
-                        return redirect(url_for("diario", registro=registro_id), 303)
+                    if modulo == "semanal":
+                        registro["mision_id"] = mision_elegida or None
+                        registro["tramo_mision"] = tramos.get(mision_elegida)
+                    if not db.save_psych_report(database, usuario, campo, registro):
+                        return redirect(url_for("registro_psicologico", modulo=modulo, registro=registro_id), 303)
             else:
                 abort(400)
             if error is None:
                 if accion in {"seguimiento", "guardar-ia"} and not registro.get("seguimiento_ia"):
                     if ia_disponible:
                         try:
-                            orientacion = seguimiento_diario(registro)
+                            orientacion = seguimiento_psicologico(registro, modulo)
                         except ERRORES_GEMINI:
                             flash("El registro se guardó. Puedes volver a solicitar el seguimiento de IA.")
                         else:
-                            db.save_daily_followup(database, usuario, registro["id"], orientacion)
+                            db.save_psych_followup(database, usuario, campo, registro["id"], orientacion)
                     else:
                         flash("El registro se guardó. La IA aún no está configurada.")
                 sincronizar_archivo_expediente(usuario)
-                return redirect(url_for("diario", registro=registro["id"], actualizar_archivo=1), 303)
+                return redirect(url_for(
+                    "registro_psicologico", modulo=modulo, registro=registro["id"], actualizar_archivo=1,
+                ), 303)
         return render_template(
             "diario.html", expediente=expediente, registros=registros, actual=actual,
-            reactivos=REACTIVOS, escala=ESCALA, registro_id=registro_id, error=error,
+            modulo=modulo, reactivos=reactivos, escala=escala, registro_id=registro_id, error=error,
+            tramos=tramos, mision_elegida=mision_elegida,
             ia_disponible=ia_disponible, formulario=request.form,
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
         )

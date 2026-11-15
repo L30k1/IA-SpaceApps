@@ -187,8 +187,10 @@
           throw new Error("El archivo seleccionado pertenece a otro expediente.");
         }
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
-        if ("diario_psicologico" in servidor || "diario_psicologico" in local) {
-          combinado.diario_psicologico = combinarRegistros(local, servidor, "diario_psicologico");
+        for (const campo of ["diario_psicologico", "semanal_psicologico"]) {
+          if (campo in servidor || campo in local) {
+            combinado[campo] = combinarRegistros(local, servidor, campo);
+          }
         }
         const actualizado = new TextEncoder().encode(JSON.stringify(combinado, null, 2) + "\n");
         const hash = await huella(actualizado);

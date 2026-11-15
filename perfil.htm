@@ -45,7 +45,7 @@
       </a>
       {% for tipo, nombre in modulos %}
       {% if tipo == 'psicologia' %}
-      <a class="nav-icon" href="{{ url_for('diario') }}" title="{{ nombre }}" aria-label="{{ nombre }}">
+      <a class="nav-icon" href="{{ url_for('registro_psicologico', modulo='diario') }}" title="{{ nombre }}" aria-label="{{ nombre }}">
         {{ icono_modulo(tipo, 20) }}
       </a>
       {% else %}
@@ -129,10 +129,10 @@
             <div class="module-actions">
               {% for tipo, nombre in modulos %}
               {% if tipo == 'psicologia' %}
-              <a class="action-tile" href="{{ url_for('diario') }}">
+              <a class="action-tile" href="{{ url_for('registro_psicologico', modulo='diario') }}">
                 {{ icono_modulo(tipo, 26) }}
                 <span>{{ nombre }}</span>
-                <small>Registro diario</small>
+                <small>Diario y semanal</small>
               </a>
               {% else %}
               <button class="action-tile" type="button" disabled>
