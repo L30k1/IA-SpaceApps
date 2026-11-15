@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='cognicion.css') }}">
+  <script src="{{ url_for('praxis_motora_script') }}" defer></script>
 </head>
 <body>
   <main class="app-frame">
@@ -17,88 +18,27 @@
         <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
       </header>
       <h1>Pruebas cognitivas</h1>
-      <p>Especificación de diseño. La aplicación de las pruebas y la generación de alertas quedan pendientes.</p>
-      <nav class="step-pills" aria-label="Contenido del protocolo">
-        <a class="step-pill" href="#ams">Encuesta previa</a>
-        <a class="step-pill" href="#bateria">Batería Cognition</a>
-        <a class="step-pill" href="#puntuacion">Puntuación</a>
-      </nav>
+      <section class="info-card" aria-labelledby="praxis-titulo">
+        <h2 id="praxis-titulo">Prueba de Praxis Motora (PM)</h2>
+        <p>Haz clic o toca cada cuadrado tan pronto como aparezca. Completa los 20 objetivos consecutivos. Cada cuadrado será más pequeño que el anterior y aparecerá en una posición aleatoria.</p>
+        <button class="step-pill" id="praxis-inicio" type="button" disabled>Iniciar prueba</button>
+        <noscript><p>Activa JavaScript para medir los tiempos de respuesta en el navegador.</p></noscript>
+        <p id="praxis-estado" role="status" hidden></p>
+        <div id="praxis-tablero" class="praxis-tablero" aria-label="Área de prueba" hidden>
+          <button id="praxis-objetivo" class="praxis-objetivo" type="button" tabindex="-1" aria-label="Cuadrado objetivo" hidden></button>
+        </div>
 
-      <section id="ams" class="info-card" aria-labelledby="ams-titulo">
-        <h2 id="ams-titulo">Encuesta de alerta y ánimo (AMS)</h2>
-        <p>Aplicar 18 ítems de autorreporte inmediatamente antes de iniciar la sesión cognitiva. Usar escalas visuales de 0 a 100 o escalas Likert con extremos definidos y registrar las horas de sueño en horas.</p>
-        <ul>
-          <li>Alerta y somnolencia actual, con una escala de tipo Karolinska.</li>
-          <li>Fatiga física y mental, energía y agotamiento.</li>
-          <li>Ánimo, tensión y disposición al contacto social.</li>
-          <li>Carga de trabajo reciente, estrés operativo, duración y calidad del sueño de la noche anterior.</li>
-        </ul>
-        <p>Vincular el autorreporte y las mediciones objetivas de la misma sesión. Los 18 ítems son el formato propuesto para MediSpace. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11357997/">Uso del AMS en Inspiration4</a>.</p>
-      </section>
-
-      <section id="bateria" class="info-card" aria-labelledby="bateria-titulo">
-        <h2 id="bateria-titulo">Batería Cognition</h2>
-        <p>La batería de referencia se usa en la ISS y en entornos análogos. Incluye 15 versiones y suele completarse en menos de 20 minutos tras la familiarización. Registrar la versión, el conjunto de estímulos, el dispositivo y las condiciones de la sesión. <a href="https://www.cceb.upenn.edu/uep/cognition.html">Protocolo y acceso al software de Penn</a>.</p>
-        <details>
-          <summary>Motor Praxis (MP o MPT) · Coordinación visomotora</summary>
-          <p>Presentar 20 cuadrados consecutivos en posiciones variables. Reducir su tamaño conforme avanza la tarea y avanzar al pulsar el objetivo.</p>
-          <p><strong>Mediciones.</strong> Tiempo medio de respuesta en milisegundos y distancia al centro en píxeles, como métrica adicional propuesta.</p>
-        </details>
-        <details>
-          <summary>Visual Object Learning (VOLT) · Memoria visual</summary>
-          <p>Mostrar 10 figuras tridimensionales para memorizar y luego 20 para reconocer, con 10 figuras previas y 10 distractores semejantes. La propuesta especifica 5 segundos por figura durante el aprendizaje y cuatro opciones de confianza, de «definitivamente la vi» a «definitivamente no la vi».</p>
-          <p><strong>Mediciones.</strong> Aciertos, falsos positivos, discriminabilidad y tiempo de decisión.</p>
-        </details>
-        <details>
-          <summary>Fractal 2-Back (F2B) · Memoria de trabajo</summary>
-          <p>Presentar 62 fractales. La persona responde si la imagen coincide con la de dos posiciones atrás. Usar como parámetro de diseño 1,5 segundos de presentación por estímulo, más el intervalo correspondiente al protocolo.</p>
-          <p><strong>Mediciones.</strong> Aciertos, omisiones, falsas alarmas y latencia.</p>
-        </details>
-        <details>
-          <summary>Abstract Matching (AM) · Flexibilidad cognitiva</summary>
-          <p>En 30 ensayos, asignar una figura a uno de dos pares según una regla implícita que puede cambiar, como color, forma u orientación.</p>
-          <p><strong>Mediciones.</strong> Aciertos, respuestas que siguen una regla anterior y tiempo por ensayo.</p>
-        </details>
-        <details>
-          <summary>Line Orientation (LOT) · Percepción espacial</summary>
-          <p>Girar una línea mediante controles de rotación hasta dejarla paralela a la referencia. La propuesta incluye 24 ensayos. La implementación documentada por Penn usa 12 pares.</p>
-          <p><strong>Mediciones.</strong> Error angular medio, sobrecorrecciones y tiempo total.</p>
-        </details>
-        <details>
-          <summary>Emotion Recognition (ERT) · Reconocimiento facial</summary>
-          <p>Clasificar fotografías de rostros en alegría, tristeza, enojo, miedo o neutralidad. Usar material con autorización de uso y condiciones documentadas. La propuesta incluye 40 fotografías. La implementación documentada por Penn usa 20.</p>
-          <p><strong>Mediciones.</strong> Aciertos, matriz de confusión y tiempo por rostro.</p>
-        </details>
-        <details>
-          <summary>Matrix Reasoning (MRT) · Razonamiento abstracto</summary>
-          <p>Completar la pieza ausente en 12 matrices de dificultad creciente. La propuesta contempla cuadrículas de 2 × 2 o 3 × 3 y cinco opciones por ejercicio.</p>
-          <p><strong>Mediciones.</strong> Matrices resueltas y tiempo por nivel.</p>
-        </details>
-        <details>
-          <summary>Digit Symbol Substitution (DSST) · Velocidad de procesamiento</summary>
-          <p>Mostrar una clave de nueve asociaciones entre símbolos y dígitos, fija durante cada sesión. Pedir el dígito de cada símbolo durante 90 segundos y avanzar tras cada respuesta.</p>
-          <p><strong>Mediciones.</strong> Respuestas correctas, tasa de error y tiempo medio por ítem.</p>
-        </details>
-        <details>
-          <summary>Balloon Analog Risk (BART) · Decisión bajo incertidumbre</summary>
-          <p>Presentar 30 globos virtuales. En cada ronda se puede seguir inflando o cobrar. Si el globo revienta, se pierden los puntos de esa ronda. El intervalo propuesto es de 1 a 128 inflados. Penn describe distribuciones que varían entre administraciones.</p>
-          <p><strong>Mediciones.</strong> Promedio de inflados en globos que no reventaron, explosiones y tiempo entre inflados.</p>
-        </details>
-        <details>
-          <summary>Psychomotor Vigilance (PVT y PVT-B) · Atención sostenida</summary>
-          <p>Responder en cuanto aparezca el cronómetro y mostrar la latencia durante un segundo. El protocolo publicado usa intervalos de 2 a 10 segundos para la PVT de 10 minutos y de 1 a 4 segundos para la PVT-B de 3 minutos, incluida la retroalimentación.</p>
-          <p><strong>Mediciones.</strong> Tiempo medio y mediano, media de la velocidad recíproca (1/RT), falsas salidas y lapsos. Contar los lapsos con umbrales inclusivos de 500 ms en PVT y 355 ms en PVT-B. Una respuesta lenta, por sí sola, no identifica un microsueño. <a href="https://pubmed.ncbi.nlm.nih.gov/22025811/">Estudio de validación de PVT-B</a>.</p>
-        </details>
-      </section>
-
-      <section id="puntuacion" class="info-card" aria-labelledby="puntuacion-titulo">
-        <h2 id="puntuacion-titulo">Puntuación y validación cruzada</h2>
-        <ol>
-          <li><strong>Línea base personal.</strong> Usar sesiones comparables del mismo astronauta, tomadas antes del vuelo y en condiciones de descanso. Excluir las primeras dos o tres sesiones de práctica según la regla pactada antes de la calibración.</li>
-          <li><strong>Puntajes Z.</strong> Para cada métrica, dividir la diferencia entre el valor actual y la media personal por la desviación estándar personal. Indicar el sentido del cambio según la métrica. Dejar el puntaje sin calcular si faltan observaciones comparables o la dispersión es cero.</li>
-          <li><strong>Velocidad y precisión.</strong> Mostrar ambos componentes y combinar sus valores mediante un índice de eficiencia definido por tarea. Al revisar el índice, conservar los tiempos y errores para detectar si una mejora en un componente coincide con un empeoramiento en el otro.</li>
-          <li><strong>Alerta amarilla de discrepancia.</strong> La regla propuesta se activa si el AMS indica descanso, alerta y ausencia de estrés, y coexiste un aumento relevante de lapsos frente a la línea base de PVT o una caída de más de 1,5 desviaciones estándar en la eficiencia de DSST o F2B. El umbral de aumento de lapsos y los criterios del AMS requieren validación antes de activar la alerta. Su interpretación corresponde al equipo responsable.</li>
-        </ol>
+        <section aria-labelledby="praxis-resultados-titulo" id="praxis-resultados" hidden>
+          <h3 id="praxis-resultados-titulo">Resultados</h3>
+          <dl class="datos-diario">
+            <div><dt>Tiempo medio de reacción</dt><dd id="praxis-promedio"></dd></div>
+            <div><dt>Respuesta más rápida</dt><dd id="praxis-mejor"></dd></div>
+          </dl>
+          <details>
+            <summary>Tiempos por objetivo</summary>
+            <ol id="praxis-tiempos" class="praxis-tiempos"></ol>
+          </details>
+        </section>
       </section>
     </div>
   </main>

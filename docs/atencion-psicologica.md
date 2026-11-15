@@ -55,7 +55,7 @@ Antes de implementar un semáforo, verificar los límites, el redondeo entre int
 
 MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](modulo-semanal.md). Post-Emergencia queda por desarrollar.
 
-La sección **Pruebas cognitivas** del perfil contiene la [especificación de diseño](../cognicion.html) para el AMS previo, las diez tareas de Cognition y la comparación con la línea base personal.
+La sección **Pruebas cognitivas** del perfil incluye Praxis Motora. Mide en el navegador el tiempo de respuesta a cada uno de los 20 objetivos consecutivos.
 
 ## Chat de apoyo
 
