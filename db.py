@@ -127,7 +127,7 @@ def save_expediente_report(path, user_id, campo, registro, *campos):
         registros = expediente.setdefault(campo, [])
         for anterior in registros:
             if anterior["id"] == registro["id"]:
-                return all(anterior[nombre] == registro[nombre] for nombre in campos)
+                return all(anterior.get(nombre) == registro.get(nombre) for nombre in campos)
         registros.append(registro)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",

@@ -127,7 +127,7 @@ def save_expediente_report(database, user_id, campo, registro, *campos):
         registros = estado["expediente"].get(campo, [])
         anterior = next((r for r in registros if r["id"] == registro["id"]), None)
         if anterior is not None:
-            return all(anterior[nombre] == registro[nombre] for nombre in campos)
+            return all(anterior.get(nombre) == registro.get(nombre) for nombre in campos)
         if _actualizar(database, estado, {f"expediente.{campo}": [*registros, registro]}):
             return True
     raise PyMongoError("El expediente se modificó en otra operación.")
