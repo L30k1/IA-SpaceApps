@@ -42,16 +42,33 @@ SECCIONES = (
 )
 
 
-def filas_formulario(formulario):
+def filas_formulario(formulario, *, editar=False):
     filas = {}
     for grupo, _, campos in SECCIONES:
-        columnas = [formulario.getlist(f"{grupo}.{campo}") for campo, _, _ in campos]
         nombres = [campo for campo, _, _ in campos]
+        if editar and grupo in {"alergias", "antecedentes", "medicamentos"}:
+            nombres.append("_fila_original")
+        columnas = [formulario.getlist(f"{grupo}.{campo}") for campo in nombres]
         filas[grupo] = [
             {campo: valor for campo, valor in zip(nombres, valores) if valor.strip()}
             for valores in zip_longest(*columnas, fillvalue="")
         ]
     return filas
+
+
+def ajustar_filas(filas, accion):
+    operacion, _, destino = accion.partition(":")
+    grupo, _, indice = destino.partition(":")
+    if grupo not in filas:
+        return False
+    if operacion == "agregar" and not indice:
+        filas[grupo].append({})
+    elif (operacion == "quitar" and indice.isascii() and indice.isdigit()
+          and len(indice) <= 6 and int(indice) < len(filas[grupo])):
+        filas[grupo].pop(int(indice))
+    else:
+        return False
+    return True
 
 
 def generar_historial(formulario, filas):

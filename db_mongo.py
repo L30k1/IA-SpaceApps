@@ -55,15 +55,29 @@ def conectar(uri, nombre):
     return database
 
 
-def create_user(database, password_hash, expediente):
+def create_user(database, password_hash, expediente, clave_edicion_hash=None):
     usuario = uuid4().hex
     # El índice único de email sigue presente en despliegues anteriores.
     database.usuarios.insert_one({
         "_id": usuario, "email": f"astronauta:{expediente['_id']}", "name": expediente["astronauta"]["nombre"],
         "password_hash": password_hash, "astronauta_id": expediente["_id"],
-        "expediente": expediente, "revision_expediente": 0,
+        "expediente": expediente, "revision_expediente": 0, "clave_edicion_hash": clave_edicion_hash,
     })
     return usuario
+
+
+def credenciales_edicion(database, user_id):
+    usuario = database.usuarios.find_one({"_id": user_id}, {"password_hash": 1, "clave_edicion_hash": 1})
+    if usuario is not None:
+        usuario.setdefault("clave_edicion_hash", None)
+    return usuario
+
+
+def configurar_llave_edicion(database, user_id, clave_hash):
+    resultado = database.usuarios.update_one(
+        {"_id": user_id, "clave_edicion_hash": None}, {"$set": {"clave_edicion_hash": clave_hash}},
+    )
+    return resultado.matched_count == 1
 
 
 def find_user_by_astronauta(database, astronauta_id):
