@@ -51,10 +51,106 @@
   ],
   "chequeos": [
     {
+      "mision_id": "MS-091",
+      "fase": "vuelo",
+      "motivo": "frgrt",
+      "actividad": "fe",
+      "id": "chequeo-ab24996bb31a4859a697e2ebe7a8a494",
+      "fecha_hora": "2026-11-15T04:08:02+00:00",
+      "resultado": "ALERTA",
+      "mediciones": [
+        {
+          "tipo": "frecuencia_cardiaca",
+          "valor": 21,
+          "unidad": "lpm"
+        },
+        {
+          "tipo": "spo2",
+          "valor": 21,
+          "unidad": "%"
+        },
+        {
+          "tipo": "temperatura",
+          "valor": 21,
+          "unidad": "°C"
+        }
+      ],
+      "conversacion": [
+        {
+          "role": "ai",
+          "text": "¿Cómo se siente el día de hoy?"
+        },
+        {
+          "role": "user",
+          "text": "hola"
+        },
+        {
+          "role": "ai",
+          "text": "¿Podría describir si ha experimentado algún síntoma físico o molestia durante esta jornada?"
+        },
+        {
+          "role": "user",
+          "text": "algo de mareo"
+        },
+        {
+          "role": "ai",
+          "text": "¿Desde hace cuánto tiempo ha sentido ese mareo y es constante o aparece al realizar algún movimiento específico?"
+        },
+        {
+          "role": "user",
+          "text": "cuando me paro"
+        },
+        {
+          "role": "ai",
+          "text": "¿Este mareo se acompaña de alguna otra sensación, como visión borrosa o inestabilidad al ponerse de pie?"
+        },
+        {
+          "role": "user",
+          "text": "si"
+        },
+        {
+          "role": "ai",
+          "text": "¿Ha notado si esta inestabilidad le provoca dificultad para mantener el equilibrio o si el mareo desaparece después de permanecer de pie unos instantes?"
+        },
+        {
+          "role": "user",
+          "text": "si"
+        },
+        {
+          "role": "ai",
+          "text": "¿La inestabilidad desaparece después de permanecer de pie unos instantes, o persiste mientras continúa en esa posición?"
+        }
+      ],
+      "evaluacion_ia": {
+        "estado": "ALERTA",
+        "resumen": "El astronauta reporta mareos y sensación de inestabilidad al ponerse de pie, síntomas que se acompañan de visión borrosa. Los datos de telemetría registrados muestran valores de frecuencia cardíaca, saturación de oxígeno y temperatura significativamente fuera de los rangos fisiológicos normales.",
+        "motivos": [
+          "Presencia de sintomatología subjetiva compatible con hipotensión ortostática o desequilibrio.",
+          "Reporte de visión borrosa e inestabilidad al adoptar la posición de pie.",
+          "Valores de telemetría (frecuencia cardíaca, SpO2 y temperatura) extremadamente bajos que requieren verificación inmediata de los sensores o del estado del paciente.",
+          "Falta de confirmación sobre la duración de los síntomas una vez alcanzada la postura estable."
+        ],
+        "acciones": [
+          {
+            "recomendacion": "Verificar el correcto funcionamiento de los sensores biomédicos y la integridad de la conexión de telemetría.",
+            "accion": "Contactar con el equipo médico para validar la fiabilidad de los datos recibidos."
+          },
+          {
+            "recomendacion": "Realizar un seguimiento detallado del mareo al cambiar de posición para determinar si es transitorio.",
+            "accion": "Documentar el tiempo exacto que tarda en desaparecer la inestabilidad una vez el astronauta permanece de pie."
+          },
+          {
+            "recomendacion": "Evaluar el estado clínico del astronauta ante la discrepancia entre la sintomatología y las mediciones críticas.",
+            "accion": "Solicitar al equipo médico una revisión urgente de los registros aportados."
+          }
+        ]
+      }
+    },
+    {
       "id": "CHEQUEO-LTORRES-001",
       "mision_id": "MS-091",
       "fase": "vuelo",
-      "fecha_hora": "2026-11-13T17:30:00Z",
+      "fecha_hora": "2026-11-13T17:30:00+00:00",
       "registrado_en": "2026-11-13T17:35:00Z",
       "motivo": "Fatiga leve después del ejercicio",
       "actividad": "Ejercicio programado a bordo",

@@ -53,10 +53,17 @@ body {
   cursor: pointer;
   transition: 0.2s;
 }
-.nav-icon.active, .nav-icon:hover {
+.nav-icon.active, .nav-icon:not(:disabled):hover {
   background: rgba(38, 132, 255, 0.25);
   color: var(--accent);
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.nav-icon:disabled {
+  background: transparent;
+  border: 1px solid var(--border-glow);
+  color: var(--text-muted);
+  cursor: default;
 }
 
 .main-area {
@@ -165,12 +172,24 @@ body {
   transition: 0.25s;
   padding: 20px;
 }
-.action-tile:hover {
+.action-tile:not(:disabled):hover {
   border-color: var(--accent);
   background: rgba(20, 52, 112, 0.7);
   transform: translateY(-2px);
 }
 .action-tile span { font-weight: 600; font-size: 0.98rem; }
+
+.module-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.module-actions .action-tile {
+  padding: 14px 8px;
+  color: var(--text-muted);
+  cursor: default;
+}
+.module-actions small { font-size: 0.75rem; }
 
 .btn-primary {
   width: 100%;
