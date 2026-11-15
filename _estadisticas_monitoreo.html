@@ -1,3 +1,4 @@
+{% import '_grafica_estadistica.html' as graficas %}
 {% set nombres = {'frecuencia_cardiaca': 'Frecuencia cardíaca', 'spo2': 'Saturación de oxígeno (SpO₂)', 'temperatura': 'Temperatura'} %}
 <div class="estadisticas-monitoreo">
   <h2>Estadísticas del monitoreo</h2>
@@ -8,18 +9,13 @@
   {% endif %}
 
   <div class="estadisticas-resumen">
-    {% for tipo, (_, unidad) in signos.items() %}
+    {% for tipo in signos %}
     {% set dato = estadisticas[tipo] %}
     <section class="info-card" aria-labelledby="estadistica-{{ tipo }}">
       <h3 id="estadistica-{{ tipo }}">{{ nombres[tipo] }}</h3>
       {% if dato %}
-      <dl>
-        <div><dt>Última medición</dt><dd class="estadisticas-ultima">{{ dato.ultimo }} {{ unidad }}</dd></div>
-        <div><dt>Promedio</dt><dd>{{ dato.promedio | round(2) }} {{ unidad }}</dd></div>
-        <div><dt>Mínimo</dt><dd>{{ dato.minimo }} {{ unidad }}</dd></div>
-        <div><dt>Máximo</dt><dd>{{ dato.maximo }} {{ unidad }}</dd></div>
-        <div><dt>Mediciones</dt><dd>{{ dato.cantidad }}</dd></div>
-      </dl>
+      {{ graficas.cifras(dato) }}
+      {{ graficas.grafica(dato, nombres[tipo]) }}
       {% else %}
       <p>Sin mediciones registradas.</p>
       {% endif %}
