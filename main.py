@@ -571,6 +571,10 @@ def create_app(database=None):
             historial.append({"nombre": nombre, "destino": destino, "ancla": ancla, "registros": registros, "series": series})
         return render_template("historial-cognitivo.html", historial=historial)
 
+    @app.get("/assets/marca/<nombre>")
+    def imagen_marca(nombre):
+        return send_from_directory(ROOT / "static" / "marca", nombre)
+
     @app.get("/assets/orientacion-linea.js")
     def lot_script():
         return send_from_directory(ROOT / "static", "orientacion-linea.js")

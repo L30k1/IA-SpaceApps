@@ -7,7 +7,7 @@ body {
 .top-header { flex-wrap: wrap; gap: 12px 20px; }
 .top-header > :first-child { flex: 1 1 auto; min-width: 0; }
 .top-header .mission-meta, .crew-info { overflow-wrap: anywhere; }
-.top-header .brand-logo svg, .crew-avatar, .health-indicator svg { flex-shrink: 0; }
+.crew-avatar, .health-indicator svg { flex-shrink: 0; }
 .sidebar { flex-shrink: 0; }
 h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .main-area h1 { font-size: clamp(1.4rem, 3vw, 1.9rem); }
@@ -48,7 +48,37 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 
 #view-auth { gap: 16px; padding: clamp(20px, 5vw, 42px); }
 #view-auth .selector-idioma { align-self: end; }
-#view-auth .brand-logo { margin-bottom: 4px; }
+#view-auth .marca-encabezado { justify-items: center; text-align: center; }
+.marca-encabezado { display: grid; justify-items: start; gap: 5px; min-width: 0; }
+.marca-texto { color: var(--accent); font-size: 0.8rem; overflow-wrap: anywhere; }
+.marca-grafica {
+  --marca-emblema: 3.25rem;
+  --marca-logotipo: 8.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-inline-size: 100%;
+  padding: 4px 8px;
+  border: 1px solid #abd6ff;
+  border-radius: 10px;
+  background: #f5f5f5;
+}
+.marca-emblema, .marca-logotipo {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.marca-emblema { inline-size: var(--marca-emblema); aspect-ratio: 1.6; flex-shrink: 0; }
+.marca-logotipo { inline-size: var(--marca-logotipo); aspect-ratio: 4.9; }
+.marca-grafica img { display: block; inline-size: 100%; block-size: auto; transform: translateY(5%); }
+#view-auth .marca-grafica {
+  --marca-emblema: 7rem;
+  --marca-logotipo: 15rem;
+  flex-direction: column;
+  gap: 0;
+  padding: 7px 10px;
+}
+#view-auth .marca-logotipo { max-inline-size: 100%; }
 .auth-box { display: grid; max-width: 440px; gap: 8px; }
 .auth-box h1 { margin-bottom: 6px; font-size: 1.4rem; text-align: center; }
 .auth-box > label { font-size: 0.88rem; font-weight: 600; }

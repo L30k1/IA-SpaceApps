@@ -10,6 +10,7 @@
   <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('voz_chat_script') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <!--{% if false %}-->
@@ -35,15 +36,9 @@
 
     <div class="main-area">
       <header class="top-header">
-        <div class="brand-logo">
-          <svg width="38" height="38" viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="32" r="20" stroke="#38bdf8" stroke-width="2.5"/>
-            <ellipse cx="32" cy="32" rx="30" ry="10" transform="rotate(-28 32 32)" stroke="#60a5fa" stroke-width="2"/>
-          </svg>
-          <div>
-            <div class="brand-title">MediSpace</div>
-            <div class="brand-sub">Crew Health Assistant</div>
-          </div>
+        <div class="marca-encabezado">
+          {% include '_marca.html' %}
+          <span class="marca-texto">Crew Health Assistant</span>
         </div>
         <div class="mission-meta">
           <div><strong>{{ expediente.astronauta.nombre }}</strong></div>
