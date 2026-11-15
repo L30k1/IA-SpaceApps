@@ -10,9 +10,10 @@
   const conversacion = seccion.querySelector('.chat-psicologico');
   const microfono = panel.querySelector('[data-emergencia-mic]');
   const estado = panel.querySelector('[data-voz-estado]');
+  const botonLeer = panel.querySelector('[data-voz-escuchar]');
+  const reproductor = window.crearAudioIA(panel, 'psicologico');
   const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
   const reconocimiento = Reconocimiento && window.isSecureContext ? new Reconocimiento() : null;
-  const sintesis = window.speechSynthesis;
   const idioma = locale;
   const errores = {
     'not-allowed': t('Pulsa Activar micrófono y concede permiso en el navegador. También puedes escribir.'),
@@ -25,7 +26,7 @@
   let cerrando = false;
   let descartado = false;
   let enviando = false;
-  let frase = null;
+  let ultima = conversacion.querySelector('li:last-child:not(.mensaje-usuario) p')?.textContent.trim();
   let pausa;
   let reintento;
   let transcripcion = '';
@@ -48,15 +49,12 @@
   function detenerVoz(aviso) {
     cambiarMicrofono(false);
     descartarCaptura();
-    if (frase) {
-      frase = null;
-      sintesis.cancel();
-    }
+    detenerLectura();
     estado.textContent = aviso;
   }
 
   function escuchar() {
-    if (!activo || capturando || enviando || frase) return;
+    if (!activo || capturando || enviando || reproductor.enCurso) return;
     transcripcion = '';
     descartado = false;
     cerrando = false;
@@ -76,26 +74,39 @@
     reconocimiento.stop();
   }
 
-  function leerRespuesta(texto) {
-    if (!activo || !sintesis || !window.SpeechSynthesisUtterance) {
+  function detenerLectura() {
+    reproductor.detener();
+    botonLeer.textContent = t('Escuchar última respuesta');
+  }
+
+  function leerRespuesta(texto, manual = false) {
+    if (!reproductor.disponible || (!activo && !manual && !reproductor.nubeElegida)) {
       estado.textContent = t('Respuesta disponible en el chat.');
       escuchar();
       return;
     }
-    const respuesta = new window.SpeechSynthesisUtterance(texto);
-    respuesta.lang = idioma;
-    const voces = sintesis.getVoices().filter(voz => voz.localService && voz.lang.split('-')[0].toLowerCase() === idioma.split('-')[0]);
-    const voz = voces.find(opcion => opcion.lang.toLowerCase() === idioma.toLowerCase()) || voces[0];
-    if (voz) respuesta.voice = voz;
-    respuesta.onend = respuesta.onerror = () => {
-      if (frase !== respuesta) return;
-      frase = null;
+    descartarCaptura();
+    botonLeer.textContent = t('Detener lectura');
+    estado.textContent = activo
+      ? t('La IA está respondiendo. El micrófono está en pausa.')
+      : t('Reproduciendo la respuesta de la IA…');
+    reproductor.leer(texto, exito => {
+      botonLeer.textContent = t('Escuchar última respuesta');
+      estado.textContent = exito ? '' : t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
       escuchar();
-    };
-    frase = respuesta;
-    estado.textContent = t('La IA está respondiendo. El micrófono está en pausa.');
-    sintesis.speak(respuesta);
+    }, () => {
+      estado.textContent = t('ElevenLabs no está disponible. Se intenta usar la voz del navegador.');
+    });
   }
+
+  botonLeer.hidden = !ultima || !reproductor.disponible;
+  botonLeer.addEventListener('click', () => {
+    if (enviando) return;
+    if (reproductor.enCurso) {
+      detenerLectura();
+      escuchar();
+    } else if (ultima) leerRespuesta(ultima, true);
+  });
 
   function agregarTurno(turnos) {
     conversacion.querySelector('#ultimo-mensaje')?.removeAttribute('id');
@@ -146,22 +157,22 @@
     }
     if (turnos) {
       agregarTurno(turnos);
-      leerRespuesta(turnos.at(-1).text);
+      ultima = turnos.at(-1).text;
+      botonLeer.hidden = !reproductor.disponible;
+      leerRespuesta(ultima);
     }
   }
 
   form.addEventListener('submit', evento => {
     evento.preventDefault();
-    if (frase) {
-      frase = null;
-      sintesis.cancel();
-    }
+    detenerLectura();
     enviarTurno();
   });
   mensaje.addEventListener('input', () => {
     if (activo) detenerVoz(t('Micrófono detenido mientras escribes.'));
   });
 
+  window.addEventListener('pagehide', () => detenerVoz(t('Micrófono detenido al salir del chat.')));
   if (!reconocimiento) {
     estado.textContent = t('El dictado requiere un navegador compatible y una conexión segura. Puedes escribir tu mensaje.');
     return;
@@ -210,6 +221,5 @@
     if (activo) detenerVoz(t('Micrófono detenido.'));
     else activarVoz();
   });
-  window.addEventListener('pagehide', () => detenerVoz(t('Micrófono detenido al salir del chat.')));
   activarVoz();
 })();

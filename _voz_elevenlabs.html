@@ -1,0 +1,7 @@
+{% if elevenlabs_disponible %}
+<label class="voz-proveedor">
+  <input type="checkbox" data-voz-elevenlabs="{{ url_for('audio_elevenlabs') }}">
+  {{ t('Leer con ElevenLabs') }}
+  <small>{{ t('Al activarlo, se envía a ElevenLabs el texto de las respuestas que escuches.') }}</small>
+</label>
+{% endif %}

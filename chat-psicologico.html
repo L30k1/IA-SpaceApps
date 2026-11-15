@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='voz-chat.css') }}">
   <script src="{{ url_for('idioma_script') }}" defer></script>
+  <script src="{{ url_for('audio_ia_script') }}" defer></script>
   <script src="{{ url_for('voz_emergencia_script' if emergencia else 'voz_chat_script') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
@@ -56,7 +57,9 @@
             <p id="aviso-emergencia">{{ t('Cada pausa envía lo que dijiste. El micrófono se reanuda al terminar la respuesta de la IA. El navegador puede usar su servicio de transcripción.') }}</p>
             <div class="voz-chat-controles">
               <button type="button" data-emergencia-mic aria-pressed="false" aria-describedby="aviso-emergencia" hidden>{{ t('Activar micrófono') }}</button>
+              <button type="button" data-voz-escuchar hidden>{{ t('Escuchar última respuesta') }}</button>
             </div>
+            {% include '_voz_elevenlabs.html' %}
             <p data-voz-estado role="status">{{ t('También puedes escribir tu mensaje.') }}</p>
           </div>
           {% endif %}
