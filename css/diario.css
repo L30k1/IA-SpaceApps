@@ -40,6 +40,14 @@
 .datos-diario dd { font-weight: 600; }
 .diario details > :not(summary) { margin-top: 8px; }
 .diario .step-pills { flex-wrap: wrap; margin-bottom: 0; }
+.step-pill.enlace-chat-apoyo {
+  background: #1958aa;
+  border-color: #60a5fa;
+  color: #fff;
+  font-weight: 700;
+}
+.step-pill.enlace-chat-apoyo:hover { background: #2165b8; }
+.step-pill.enlace-chat-apoyo.active { box-shadow: inset 0 0 0 1px #93c5fd; }
 .chat-psicologico { list-style: none; display: grid; gap: 12px; }
 .chat-psicologico li {
   background: rgba(22, 77, 147, 0.24);
