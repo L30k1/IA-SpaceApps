@@ -49,9 +49,9 @@
         {{ icono_modulo(tipo, 20) }}
       </a>
       {% else %}
-      <button class="nav-icon" type="button" title="{{ nombre }} · Próximamente" aria-label="{{ nombre }}" disabled>
+      <a class="nav-icon" href="{{ url_for('pruebas_cognitivas') }}" title="{{ nombre }}" aria-label="{{ nombre }}">
         {{ icono_modulo(tipo, 20) }}
-      </button>
+      </a>
       {% endif %}
       {% endfor %}
     </nav>
@@ -135,11 +135,11 @@
                 <small>Diario, semanal y chat</small>
               </a>
               {% else %}
-              <button class="action-tile" type="button" disabled>
+              <a class="action-tile" href="{{ url_for('pruebas_cognitivas') }}">
                 {{ icono_modulo(tipo, 26) }}
                 <span>{{ nombre }}</span>
-                <small>Próximamente</small>
-              </button>
+                <small>Protocolo y reglas de medición</small>
+              </a>
               {% endif %}
               {% endfor %}
             </div>
