@@ -1,5 +1,6 @@
 import os
 import re
+from struct import pack
 
 import httpx2
 
@@ -40,6 +41,12 @@ MENSAJES_ELEVENLABS = {
     "ELEVENLABS_AUDIO": "ElevenLabs devolvió una respuesta sin audio válido.",
     "ELEVENLABS_SERVICIO": "ElevenLabs no pudo generar el audio en este momento.",
 }
+
+# ID3v1.1 lleva la procedencia dentro del MP3, incluso al guardarlo fuera de MediSpace.
+ETIQUETA_AUDIO_IA = pack(
+    "3s30s30s30s4s28sBBB", b"TAG", b"Audio generado por IA", b"ElevenLabs",
+    b"MediSpace", b"", b"Generado por IA - ElevenLabs", 0, 0, 255,
+)
 
 
 class ErrorElevenLabs(Exception):
@@ -89,4 +96,7 @@ def sintetizar_elevenlabs(texto, configuracion):
     mime = respuesta.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
     if mime not in {"audio/mpeg", "audio/mp3"} or not respuesta.content:
         raise ErrorElevenLabs("ELEVENLABS_AUDIO", respuesta.status_code)
-    return respuesta.content
+    audio = respuesta.content
+    if audio[-128:-125] == b"TAG":
+        audio = audio[:-128]
+    return audio + ETIQUETA_AUDIO_IA

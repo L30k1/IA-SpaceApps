@@ -23,6 +23,7 @@
     "El navegador no pudo recuperar el archivo vinculado.": "The browser could not retrieve the linked file.",
     "Ya puedes iniciar el reconocimiento diferido.": "You can now start delayed recognition.",
     "Cargando rostros…": "Loading faces…",
+    "Imagen generada por IA": "AI-generated image",
     "No se pudieron cargar los rostros. Vuelve a abrir la prueba.": "The faces did not load. Reopen the test.",
     "Rostro {actual} de {total}": "Face {actual} of {total}",
     "Figura {actual} de {total}": "Figure {actual} of {total}",

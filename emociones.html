@@ -27,6 +27,7 @@
         <h2 id="emociones-titulo">{{ t('Reconocimiento facial (ERT)') }}</h2>
         <p>{{ t('Mira cada rostro. Cuando desaparezca, elige la emoción que viste.') }}</p>
         <p>{{ t('La ronda incluye {cantidad} imágenes, con expresiones leves e intensas.', cantidad=datos.ensayos | length) }}</p>
+        <p>{{ t('Los rostros de esta prueba fueron generados por IA.') }}</p>
         <form id="emociones-form" method="post" action="{{ url_for('prueba_emociones') }}" hidden>
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="registro_id" value="{{ registro_id }}">
@@ -35,7 +36,7 @@
         <noscript><p>{{ t('Activa JavaScript para ver las figuras y medir los tiempos en el navegador.') }}</p></noscript>
         <div class="emociones-ronda" id="emociones-ronda" hidden>
           <p id="emociones-avance"></p>
-          <canvas id="emociones-rostro" width="360" height="360" role="img" aria-label="{{ t('Área del estímulo facial') }}"></canvas>
+          <canvas id="emociones-rostro" width="360" height="392" role="img" aria-label="{{ t('Estímulo facial generado por IA') }}"></canvas>
           <fieldset class="emociones-opciones" id="emociones-opciones" disabled>
             <legend>{{ t('¿Qué emoción viste?') }}</legend>
             <div>

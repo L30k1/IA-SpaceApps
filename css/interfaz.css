@@ -54,7 +54,8 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .marca-grafica {
   --marca-emblema: 3.25rem;
   --marca-logotipo: 8.5rem;
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: var(--marca-emblema) minmax(0, var(--marca-logotipo));
   align-items: center;
   gap: 4px;
   max-inline-size: 100%;
@@ -69,15 +70,26 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
   overflow: hidden;
 }
 .marca-emblema { inline-size: var(--marca-emblema); aspect-ratio: 1.6; flex-shrink: 0; }
-.marca-logotipo { inline-size: var(--marca-logotipo); aspect-ratio: 4.9; }
+.marca-logotipo { inline-size: 100%; aspect-ratio: 4.9; }
 .marca-grafica img { display: block; inline-size: 100%; block-size: auto; transform: translateY(5%); }
+.marca-procedencia {
+  grid-column: 1 / -1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #153764;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-align: center;
+}
 #view-auth .marca-grafica {
   --marca-emblema: 7rem;
   --marca-logotipo: 15rem;
-  flex-direction: column;
-  gap: 0;
+  grid-template-columns: minmax(0, var(--marca-logotipo));
+  justify-items: center;
   padding: 7px 10px;
 }
+#view-auth .marca-procedencia { justify-self: stretch; }
 #view-auth .marca-logotipo { max-inline-size: 100%; }
 .auth-box { display: grid; max-width: 440px; gap: 8px; }
 .auth-box h1 { margin-bottom: 6px; font-size: 1.4rem; text-align: center; }

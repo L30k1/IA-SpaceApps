@@ -9,6 +9,7 @@ from idioma import idioma_actual
 
 
 MODELO = "gemini-3.1-flash-lite"
+PROCEDENCIA_GEMINI = {"tipo": "generado_por_ia", "proveedor": "Google Gemini", "modelo": MODELO}
 CONEXION_IA = local()
 CONTEXTO = (
     "MediSpace documenta chequeos de salud de astronautas y prepara información para su "
@@ -39,6 +40,10 @@ ESQUEMA_RESPUESTA = {
     "properties": {"respuesta": {"type": "string"}},
     "required": ["respuesta"],
 }
+
+
+def turno_ia(texto):
+    return {"role": "ai", "text": texto, "procedencia": PROCEDENCIA_GEMINI.copy()}
 
 
 def cliente_gemini():
@@ -196,6 +201,7 @@ def evaluar_chequeo(conversacion, contexto):
         raise ValueError("Gemini devolvió acciones inválidas.")
     return {
         "estado": estado,
+        "procedencia": PROCEDENCIA_GEMINI.copy(),
         "resumen": texto_respuesta(resultado.get("resumen"), 500),
         "motivos": [texto_respuesta(motivo, 300) for motivo in motivos],
         "acciones": [
