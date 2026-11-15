@@ -1,11 +1,12 @@
 from datetime import date, timedelta, timezone
 
-from database.expedientes import fecha_utc
+from database.expedientes import CAMPO_PRAXIS, fecha_utc
 from lot import CAMPO_LOT
 from volt import CAMPO_VOLT
 
 
 ZONA_MISION = timezone(timedelta(hours=-6), "UTC−6")
+PRUEBAS_COGNITIVAS = (CAMPO_PRAXIS, CAMPO_VOLT, CAMPO_LOT)
 FRECUENCIAS = (
     (7, 1, "diario", 7),
     (30, 3, "semanal", 14),
@@ -52,7 +53,7 @@ def fechas_registros(registros, misiones, ahora):
     return por_mision, prevuelo
 
 
-def cumplimiento(inicio, fin, hoy, intervalo, componentes, previo=None):
+def cumplimiento(inicio, fin, hoy, intervalo, componentes, previos):
     duracion = (fin - inicio).days + 1
     total = max(1, duracion // intervalo)
     dias_pasados = (hoy - inicio).days
@@ -69,7 +70,9 @@ def cumplimiento(inicio, fin, hoy, intervalo, componentes, previo=None):
     puntuales = set.intersection(*a_tiempo)
     vencidas = i - sum(ciclo < i for ciclo in puntuales)
     restantes = sum(i not in parte for parte in ciclos)
+    previo = max((dia for dias in previos for dia in dias), default=None)
     if hoy < inicio:
+        restantes = sum(not dias for dias in previos)
         estado = "Prevuelo registrado" if previo else "Programada"
     elif i in completos:
         estado = "Completada" if i in puntuales else "Completada fuera de plazo"
@@ -89,7 +92,7 @@ def calendario(expediente, medicos, ahora):
     hoy = ahora.astimezone(ZONA_MISION).date()
     misiones = {m["id"]: fechas for m in expediente["misiones"] if (fechas := fechas_mision(m))}
     campos = {campo: fechas_registros(expediente.get(campo, []), misiones, ahora) for campo in (
-        "diario_psicologico", "semanal_psicologico", "praxis_motora", CAMPO_VOLT, CAMPO_LOT,
+        "diario_psicologico", "semanal_psicologico", *PRUEBAS_COGNITIVAS,
     )}
     chequeos, previos_medicos = fechas_registros(medicos, misiones, ahora)
     planes = []
@@ -111,12 +114,12 @@ def calendario(expediente, medicos, ahora):
                 otro_cuestionario=otro_modulo,
                 ultimo_otro=max(otros[identificador] + otros_previos[identificador], default=None),
                 medica=cumplimiento(inicio, fin, hoy, medicina, [chequeos[identificador]],
-                                    max(previos_medicos[identificador], default=None)),
+                                    [previos_medicos[identificador]]),
                 psicologica=cumplimiento(inicio, fin, hoy, intervalo_psicologico,
-                                         [psicologicos[identificador]], max(previos_psicologicos[identificador], default=None)),
-                cognitiva=cumplimiento(inicio, fin, hoy, cognicion, [campos[c][0][identificador] for c in (
-                    "praxis_motora", CAMPO_VOLT, CAMPO_LOT,
-                )]),
+                                         [psicologicos[identificador]], [previos_psicologicos[identificador]]),
+                cognitiva=cumplimiento(inicio, fin, hoy, cognicion,
+                                       [campos[c][0][identificador] for c in PRUEBAS_COGNITIVAS],
+                                       [campos[c][1][identificador] for c in PRUEBAS_COGNITIVAS]),
             )
         planes.append(plan)
     return planes

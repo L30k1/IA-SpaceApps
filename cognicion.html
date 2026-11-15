@@ -49,6 +49,7 @@
       {% if actual %}
       <section class="info-card" id="praxis-guardado" aria-labelledby="praxis-guardado-titulo">
         <h2 id="praxis-guardado-titulo">Resultado guardado</h2>
+        <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">Ver avance de la misión</a>
         <p>{{ actual.fecha_hora | hora_utc }}</p>
         <dl class="datos-diario">
           <div><dt>Tiempo medio de reacción</dt><dd>{{ actual.promedio_ms | round | int }} ms</dd></div>

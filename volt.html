@@ -52,6 +52,7 @@
       {% if actual %}
       <section class="info-card" id="volt-guardado" aria-labelledby="volt-guardado-titulo">
         <h2 id="volt-guardado-titulo">Resultado guardado</h2>
+        <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">Ver avance de la misión</a>
         <p>{{ actual.fecha_hora | hora_utc }} · Intervalo de {{ '%.1f' | format(actual.intervalo_segundos / 60) }} min</p>
         {% for fase, nombre in [('inmediato', 'Reconocimiento inmediato'), ('diferido', 'Reconocimiento diferido')] %}
         {% set resultado = actual[fase] %}
