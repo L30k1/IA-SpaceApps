@@ -6,6 +6,8 @@ import sqlite3
 from datetime import datetime, timezone
 from math import ceil
 from pathlib import Path
+from statistics import mean
+from sys import float_info
 from tempfile import NamedTemporaryFile
 from uuid import uuid4
 
@@ -22,7 +24,7 @@ from database.expedientes import (
 )
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from psicologia import (
-    INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, seguimiento_psicologico,
+    INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
     tramo_mision, validar_registros,
 )
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
@@ -75,6 +77,31 @@ def registros_clinicos(database, user_id, expediente):
          "evaluacion_ia": registro.get("evaluacion_ia") if clave.startswith("app-") else None}
         for clave, registro in historial_expediente(expediente, db.history(database, user_id, expediente["_id"]))
     ]
+
+
+def estadisticas_monitoreo(registros):
+    valores = {tipo: [] for tipo in SIGNOS}
+    historial = []
+    for registro in registros:
+        mediciones = {}
+        for medida in registro["mediciones"]:
+            tipo = medida["tipo"].strip().casefold()
+            valor = medida["valor"]
+            if (tipo in SIGNOS and medida["unidad"].strip().casefold() == SIGNOS[tipo][1].casefold()
+                    and type(valor) in (int, float) and -float_info.max <= valor <= float_info.max):
+                mediciones.setdefault(tipo, []).append(valor)
+        if mediciones:
+            historial.append({"fecha_hora": registro["fecha_hora"], "clave": registro["clave"], "mediciones": mediciones})
+        for tipo, lecturas in mediciones.items():
+            valores[tipo].extend(reversed(lecturas))
+
+    resumen = {}
+    for tipo, lecturas in valores.items():
+        resumen[tipo] = {
+            "cantidad": len(lecturas), "ultimo": lecturas[0], "promedio": mean(lecturas),
+            "minimo": min(lecturas), "maximo": max(lecturas),
+        } if lecturas else None
+    return resumen, historial
 
 
 def escribir_archivo_json(destino, contenido):
@@ -136,7 +163,7 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
-            "pruebas_cognitivas", "prueba_volt", "prueba_lot", "download_expediente", "logout",
+            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -164,7 +191,7 @@ def create_app(database=None):
                 if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
-                if request.endpoint in {"checkup", "registro_psicologico"} and expediente_actual():
+                if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
@@ -477,6 +504,40 @@ def create_app(database=None):
             return pagina, 429, {"Retry-After": str(segundos)}
         return pagina
 
+    @app.route("/psicologia/chat", methods=["GET", "POST"])
+    def chat_psicologico():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        usuario = session["user_id"]
+        revision, mensajes = db.psych_chat(database, usuario)
+        ia_disponible = bool(os.getenv("GEMINI_API_KEY", "").strip())
+        texto = request.form.get("mensaje", "").strip()
+        error = None
+        if request.method == "POST":
+            if request.form.get("revision") != str(revision):
+                error = "La conversación se actualizó. Revisa los mensajes y vuelve a enviarlo."
+            elif not 1 <= len(texto) <= 2000:
+                error = "Escribe un mensaje de hasta 2000 caracteres."
+            elif not ia_disponible:
+                error = "La IA aún no está configurada en el servidor."
+            else:
+                actualizados = [*mensajes, {"role": "user", "text": texto}]
+                try:
+                    respuesta = responder_chat_psicologico(actualizados)
+                except ERRORES_GEMINI:
+                    error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
+                else:
+                    actualizados.append({"role": "ai", "text": respuesta})
+                    if db.save_psych_chat(database, usuario, revision, actualizados):
+                        return redirect(url_for("chat_psicologico", _anchor="ultimo-mensaje"), 303)
+                    revision, mensajes = db.psych_chat(database, usuario)
+                    error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
+        return render_template(
+            "chat-psicologico.html", expediente=expediente, modulo="chat", mensajes=mensajes,
+            revision=revision, texto=texto, error=error, ia_disponible=ia_disponible,
+        )
+
     @app.route("/chequeo.html", methods=["GET", "POST"])
     def checkup():
         expediente = expediente_actual()
@@ -590,15 +651,17 @@ def create_app(database=None):
         if expediente is None:
             return redirect(url_for("index"))
         view = request.args.get("vista", "resultados")
-        if view not in {"resultados", "alertas", "historial"}:
+        if view not in {"resultados", "alertas", "historial", "estadisticas"}:
             return redirect(url_for("summary"))
         records = registros_clinicos(database, session["user_id"], expediente)
         clave = request.args.get("registro")
         latest = next((registro for registro in records if registro["clave"] == clave), None) if clave else (records[0] if records else None)
         if clave and latest is None:
             abort(404)
+        estadisticas, mediciones_historicas = estadisticas_monitoreo(records) if view == "estadisticas" else ({}, [])
         return render_template(
             "resumen.html", view=view, latest=latest, records=records, expediente=expediente,
+            estadisticas=estadisticas, mediciones_historicas=mediciones_historicas,
             actualizar_archivo=view == "resultados" and request.args.get("actualizar_archivo") == "1",
         )
 

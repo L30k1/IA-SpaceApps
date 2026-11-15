@@ -61,3 +61,6 @@ Aprendizaje visual de objetos (VOLT) presenta diez figuras tridimensionales dura
 
 Orientación de línea (LOT) presenta doce pares de segmentos para cotejar sus inclinaciones con un abanico de once líneas numeradas. MediSpace usa ángulos de 15° a 165° y genera sus propios pares. El expediente guarda los aciertos por par y por línea, los tiempos y las respuestas en `orientacion_linea`. [Formato de referencia del juicio de orientación de Benton](https://pmc.ncbi.nlm.nih.gov/articles/PMC3094715/)
 
+## Chat de apoyo
+
+El chat ofrece apoyo emocional por texto y orienta a la persona hacia el equipo de salud cuando corresponde. Para responder, el proveedor de IA recibe el mensaje y los turnos recientes. MediSpace guarda la conversación en la base de datos de la cuenta, fuera del expediente JSON descargable.
