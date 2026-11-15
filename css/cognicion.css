@@ -29,3 +29,16 @@
   gap: 8px 32px;
   padding-inline-start: 1.5rem;
 }
+
+#volt-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+#volt-form p, .volt-opciones { flex-basis: 100%; }
+#volt-form button:disabled { opacity: 0.55; cursor: not-allowed; }
+.volt-figura {
+  display: block;
+  width: min(100%, 440px);
+  height: auto;
+  background: #040e24;
+  border: 1px solid var(--border-glow);
+  border-radius: 12px;
+}
+.volt-opciones { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -22,6 +22,7 @@ from psicologia import (
     INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
     tramo_mision, validar_registros,
 )
+from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
 
 
 ROOT = Path(__file__).resolve().parent
@@ -132,7 +133,7 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
-            "chat_psicologico", "pruebas_cognitivas", "download_expediente", "logout",
+            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -157,7 +158,7 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
-                if request.endpoint == "pruebas_cognitivas":
+                if request.endpoint in {"pruebas_cognitivas", "prueba_volt"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
@@ -268,6 +269,56 @@ def create_app(database=None):
             "cognicion.html", expediente=expediente, objetivos=OBJETIVOS_PRAXIS, registro_id=uuid4().hex,
             registros=registros, actual=actual, actualizar_archivo=actualizar_archivo,
         )
+
+    @app.route("/cognicion/volt", methods=["GET", "POST"])
+    def prueba_volt():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        usuario = session["user_id"]
+        ahora = datetime.now(timezone.utc)
+        if request.method == "POST":
+            accion = request.form.get("accion")
+            ajax = accion in {"inmediato", "diferido"}
+            try:
+                respuestas = json.loads(request.form.get("respuestas", "null")) if ajax else None
+                completado = db.actualizar_volt(database, usuario, accion, request.form.get("registro_id"), respuestas, ahora)
+            except (ValueError, RecursionError) as exc:
+                if ajax:
+                    return {"error": str(exc)}, 400
+                flash(str(exc))
+                return redirect(url_for("prueba_volt"), 303)
+            destino = url_for("prueba_volt")
+            if completado:
+                sincronizar_archivo_expediente(usuario)
+                destino = url_for("prueba_volt", registro=completado, actualizar_archivo=1, _anchor="volt-guardado")
+            return {"url": destino} if ajax else redirect(destino, 303)
+
+        borrador = db.volt_draft(database, usuario)
+        fase = borrador["fase"] if borrador else None
+        aprendizaje, reconocimiento, espera = [], [], 0
+        if fase in {"aprendizaje", "diferido"}:
+            originales, inmediato, diferido = estimulos(borrador["id"])
+            aprendizaje = originales if fase == "aprendizaje" else []
+            reconocimiento = [forma for forma, _ in (inmediato if aprendizaje else diferido)]
+        elif fase == "espera":
+            disponible = fecha_utc(borrador["fin_inmediato"]) + ESPERA
+            espera = max(0, ceil((disponible - ahora).total_seconds()))
+        registros = sorted(expediente.get(CAMPO_VOLT, []), key=lambda registro: registro["fecha_hora"], reverse=True)
+        seleccionado = request.args.get("registro")
+        actual = next((registro for registro in registros if registro["id"] == seleccionado), None)
+        if seleccionado and actual is None:
+            abort(404)
+        return render_template(
+            "volt.html", expediente=expediente, borrador=borrador, fase=fase, espera=espera,
+            aprendizaje=aprendizaje, reconocimiento=reconocimiento, exposicion=EXPOSICION,
+            figuras=FIGURAS, registros=registros, actual=actual,
+            actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
+        )
+
+    @app.get("/assets/memoria-visual.js")
+    def volt_script():
+        return send_from_directory(ROOT / "static", "memoria-visual.js")
 
     @app.get("/assets/praxis-motora.js")
     def praxis_motora_script():

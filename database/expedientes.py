@@ -3,6 +3,8 @@ import math
 import re
 from datetime import datetime, timezone
 
+from volt import CAMPO_VOLT, ESPERA, VERSION_VOLT, estimulos, puntuar
+
 
 GRUPOS = ("misiones", "alergias", "antecedentes", "medicamentos", "chequeos")
 SIGNOS = {
@@ -47,6 +49,32 @@ def registro_praxis(identificador, fecha, tiempos):
         "promedio_ms": round(sum(tiempos) / len(tiempos), 3),
         "mejor_ms": min(tiempos),
     }
+
+
+def registros_volt(registros):
+    if not isinstance(registros, list):
+        raise ValueError("Memoria visual debe contener una lista de sesiones.")
+    normalizados = []
+    ids = set()
+    for registro in registros:
+        if not isinstance(registro, dict) or registro.get("version") != VERSION_VOLT:
+            raise ValueError("La versión del registro de memoria visual no es válida.")
+        identificador = registro.get("id")
+        if not isinstance(identificador, str) or not re.fullmatch(r"[0-9a-f]{32}", identificador) or identificador in ids:
+            raise ValueError("Los identificadores de memoria visual deben ser válidos y únicos.")
+        intervalo = registro.get("intervalo_segundos")
+        if type(intervalo) not in (int, float) or not ESPERA.total_seconds() <= intervalo <= 2**53 - 1:
+            raise ValueError("El intervalo de memoria visual no es válido.")
+        normalizado = {"id": identificador, "version": VERSION_VOLT, "intervalo_segundos": intervalo,
+                       "fecha_hora": fecha_utc(registro.get("fecha_hora")).isoformat()}
+        for fase, ensayos in zip(("inmediato", "diferido"), estimulos(identificador)[1:]):
+            resultado = registro.get(fase)
+            if not isinstance(resultado, dict):
+                raise ValueError("El registro debe incluir ambas fases de reconocimiento.")
+            normalizado[fase] = puntuar(resultado.get("respuestas"), ensayos)
+        normalizados.append(normalizado)
+        ids.add(identificador)
+    return normalizados
 
 
 def leer_expediente(contenido):
@@ -102,4 +130,6 @@ def leer_expediente(contenido):
         if len({registro["id"] for registro in registros}) != len(registros):
             raise ValueError("Los identificadores de Praxis Motora deben ser únicos.")
         expediente[CAMPO_PRAXIS] = registros
+    if CAMPO_VOLT in expediente:
+        expediente[CAMPO_VOLT] = registros_volt(expediente[CAMPO_VOLT])
     return expediente
