@@ -20,6 +20,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 import db
+from historial_formulario import SECCIONES, filas_formulario, generar_historial
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from calendario_mision import calendario
 from database.expedientes import (
@@ -208,7 +209,7 @@ def create_app(database=None):
     @app.after_request
     def proteger_paginas(response):
         if request.endpoint in {
-            "index", "profile", "checkup", "summary", "registro_psicologico",
+            "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "historial_cognitivo",
             "download_expediente", "logout",
         }:
@@ -238,6 +239,8 @@ def create_app(database=None):
                 if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
+                if request.endpoint == "preparar_historial":
+                    return redirect(url_for("preparar_historial"), 303)
                 if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
@@ -289,6 +292,40 @@ def create_app(database=None):
                 sincronizar_archivo_expediente(user_id)
                 return redirect(url_for("profile"), 303)
         return render_template("index.html", mode=mode, nombre=nombre, identificador=identificador, error=error)
+
+    @app.route("/historial-medico/nuevo", methods=["GET", "POST"])
+    def preparar_historial():
+        formulario = request.form
+        filas = filas_formulario(formulario)
+        error = None
+        if request.method == "GET":
+            filas = {grupo: [{}] for grupo in filas}
+        else:
+            accion = formulario.get("accion", "descargar")
+            if accion == "descargar":
+                try:
+                    expediente = generar_historial(formulario, filas)
+                except ValueError as exc:
+                    error = str(exc)
+                else:
+                    identificador = secure_filename(expediente["_id"])[:80]
+                    nombre = f"expediente-{identificador}.json" if identificador else "expediente.json"
+                    contenido = json.dumps(expediente, ensure_ascii=False, indent=2) + "\n"
+                    return Response(contenido, mimetype="application/json",
+                                    headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
+            else:
+                operacion, _, destino = accion.partition(":")
+                grupo, _, indice = destino.partition(":")
+                if grupo not in filas:
+                    abort(400)
+                if operacion == "agregar" and not indice:
+                    filas[grupo].append({})
+                elif (operacion == "quitar" and indice.isascii() and indice.isdigit()
+                      and len(indice) <= 6 and int(indice) < len(filas[grupo])):
+                    filas[grupo].pop(int(indice))
+                else:
+                    abort(400)
+        return render_template("historial-formulario.html", formulario=formulario, filas=filas, secciones=SECCIONES, error=error)
 
     @app.post("/salir")
     def logout():

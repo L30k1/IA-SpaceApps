@@ -60,6 +60,7 @@
           <input id="expediente" name="expediente" type="file" accept=".json,application/json" aria-describedby="ayuda-expediente" required>
           <button type="button" id="elegir-expediente-local" class="file-action" aria-describedby="ayuda-expediente" hidden>Elegir historial JSON y permitir su actualización</button>
           <p id="estado-expediente-local" role="status" hidden></p>
+          <a class="historial-enlace" href="{{ url_for('preparar_historial') }}">Crear un historial médico JSON</a>
         </div>
         {% endif %}
 
