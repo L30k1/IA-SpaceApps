@@ -120,6 +120,9 @@
 
           <!-- Accesos Directos -->
           <div class="right-col">
+            <a class="btn-primary btn-emergencia" href="{{ url_for('chat_psicologico', modo='emergencia') }}">
+              Emergencia · Hablar con la IA
+            </a>
             <form id="iniciar-monitoreo" method="post" action="{{ url_for('checkup') }}">
               <input type="hidden" name="csrf" value="{{ csrf }}">
               <button class="btn-primary" type="submit" name="iniciar" value="1">Iniciar monitoreo →</button>
