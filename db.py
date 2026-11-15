@@ -66,6 +66,16 @@ def find_user(path, email):
         return db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
 
 
+def find_user_by_astronauta(path, astronauta_id):
+    with closing(sqlite3.connect(path)) as db:
+        db.row_factory = sqlite3.Row
+        return db.execute(
+            "SELECT users.id, users.password_hash FROM expedientes "
+            "JOIN users ON users.id = expedientes.user_id WHERE expedientes.astronauta_id = ?",
+            (astronauta_id,),
+        ).fetchone()
+
+
 def open_checkup(path, user_id, profile, greeting):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute(

@@ -1,0 +1,13 @@
+{
+  "_id": "AS-MVEGA-8C42",
+  "astronauta": {
+    "nombre": "Mariana Vega",
+    "rol": "Astronauta"
+  },
+  "simulado": true,
+  "misiones": [],
+  "alergias": [],
+  "antecedentes": [],
+  "medicamentos": [],
+  "chequeos": []
+}
