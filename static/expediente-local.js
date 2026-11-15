@@ -96,25 +96,27 @@
     const input = document.getElementById("expediente");
     const boton = document.getElementById("elegir-expediente-local");
     const estado = document.getElementById("estado-expediente-local");
-    let vinculado = false;
-    formulario.addEventListener("submit", () => {
-      if (!vinculado) sessionStorage.removeItem(storageKey);
-    });
-    if (!input) return;
+    if (!input) {
+      formulario.addEventListener("submit", () => sessionStorage.removeItem(storageKey));
+      return;
+    }
 
-    input.addEventListener("change", () => {
-      vinculado = false;
-      estado.hidden = true;
+    const mostrar = mensaje => {
+      estado.hidden = false;
+      estado.textContent = mensaje;
+    };
+    formulario.addEventListener("submit", evento => {
+      if (!input.files.length) {
+        evento.preventDefault();
+        mostrar("Elige tu archivo JSON para continuar.");
+        boton.focus();
+      }
     });
     boton.hidden = false;
+    const enviar = document.getElementById("btn-auth-submit");
     boton.addEventListener("click", async () => {
       boton.disabled = true;
-      const enviar = document.getElementById("btn-auth-submit");
       enviar.disabled = true;
-      const mostrar = mensaje => {
-        estado.hidden = false;
-        estado.textContent = mensaje;
-      };
       try {
         const seleccion = await elegirArchivo();
         const autorizado = await permisoEscritura(seleccion.handle);
@@ -122,7 +124,6 @@
         carga.items.add(seleccion.archivo);
         await vincular(seleccion);
         input.files = carga.files;
-        vinculado = true;
         mostrar(autorizado
           ? `Archivo vinculado: ${seleccion.archivo.name}.`
           : "Archivo seleccionado. Podrás autorizar la escritura desde Resultados.");
@@ -241,6 +242,12 @@
   }
 
   if (soportado && document.getElementById("auth-form")) prepararFormulario();
+  else if (document.getElementById("expediente")) {
+    const estado = document.getElementById("estado-expediente-local");
+    estado.hidden = false;
+    estado.textContent = "Abre MediSpace en Chrome o Edge para elegir y actualizar tu archivo JSON.";
+    document.getElementById("btn-auth-submit").disabled = true;
+  }
   const panel = document.getElementById("archivo-local");
   if (panel) prepararResultados(panel).catch(() => {
     document.getElementById("estado-archivo-local").textContent = "El navegador no pudo recuperar el archivo vinculado.";

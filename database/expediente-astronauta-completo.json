@@ -1,0 +1,130 @@
+{
+  "_id": "AS-LTORRES-91D6",
+  "tipo_datos": "ficticios",
+  "astronauta": {
+    "nombre": "Lucía Torres",
+    "rol": "Astronauta"
+  },
+  "misiones": [
+    {
+      "id": "MS-091",
+      "fecha_inicio": "2026-11-10",
+      "fecha_fin": null
+    }
+  ],
+  "estado_alergias": "Una reacción reportada, pendiente de confirmación",
+  "alergias": [
+    {
+      "sustancia": "Adhesivo de la cinta de entrenamiento",
+      "reaccion": "Enrojecimiento localizado reportado",
+      "gravedad": "Leve, según el autorreporte",
+      "fecha": "2026-10-12",
+      "confirmacion": "pendiente",
+      "reportado_por": "Astronauta",
+      "verificado_por": null
+    }
+  ],
+  "antecedentes": [
+    {
+      "condicion": "Lesión previa de tobillo durante el entrenamiento",
+      "fecha_inicio": "2026-08-15",
+      "estado": "resuelto",
+      "observaciones": "La astronauta reportó que ya podía completar sus ejercicios habituales.",
+      "reportado_por": "Astronauta",
+      "verificado_por": null
+    }
+  ],
+  "medicamentos": [
+    {
+      "nombre": "Medicamento previo sin identificar",
+      "dosis": null,
+      "unidad": null,
+      "via": null,
+      "frecuencia": null,
+      "motivo": "Tratamiento previo reportado durante el entrenamiento",
+      "fecha_inicio": "2026-08-15",
+      "fecha_fin": "2026-08-18",
+      "estado": "finalizado",
+      "reportado_por": "Astronauta",
+      "verificado_por": null
+    }
+  ],
+  "chequeos": [
+    {
+      "id": "CHEQUEO-LTORRES-001",
+      "mision_id": "MS-091",
+      "fase": "vuelo",
+      "fecha_hora": "2026-11-13T17:30:00Z",
+      "registrado_en": "2026-11-13T17:35:00Z",
+      "motivo": "Fatiga leve después del ejercicio",
+      "actividad": "Ejercicio programado a bordo",
+      "reportado_por": "Astronauta",
+      "verificado_por": null,
+      "sintomas": [
+        {
+          "nombre": "Fatiga",
+          "inicio": "2026-11-13T17:00:00Z",
+          "intensidad": "leve",
+          "evolucion": "La astronauta reportó que disminuyó durante el reposo."
+        }
+      ],
+      "mediciones": [
+        {
+          "tipo": "frecuencia_cardiaca",
+          "valor": 76,
+          "unidad": "lpm",
+          "fecha_hora": "2026-11-13T17:30:00Z",
+          "fuente": "Medición de ejemplo",
+          "dispositivo": "Pulsioxímetro",
+          "contexto": "Reposo posterior al ejercicio",
+          "referencia": false
+        },
+        {
+          "tipo": "spo2",
+          "valor": 98,
+          "unidad": "%",
+          "fecha_hora": "2026-11-13T17:30:00Z",
+          "fuente": "Medición de ejemplo",
+          "dispositivo": "Pulsioxímetro",
+          "contexto": "Reposo posterior al ejercicio",
+          "referencia": false
+        },
+        {
+          "tipo": "temperatura",
+          "valor": 36.7,
+          "unidad": "°C",
+          "fecha_hora": "2026-11-13T17:30:00Z",
+          "fuente": "Medición de ejemplo",
+          "dispositivo": "Termómetro digital",
+          "contexto": "Reposo posterior al ejercicio",
+          "referencia": false
+        }
+      ],
+      "bienestar": {
+        "fecha_hora": "2026-11-13T17:30:00Z",
+        "autorreporte": true,
+        "sueno_horas": 7,
+        "calidad_sueno": "Regular",
+        "fatiga": "Leve",
+        "estado_animo": "Tranquila",
+        "estres_percibido": 2,
+        "escala": "De 0 a 10"
+      },
+      "evaluacion": {
+        "hallazgo": "Fatiga leve reportada después del ejercicio",
+        "diagnostico": null,
+        "estado_revision": "pendiente",
+        "responsable": "Equipo médico de la misión",
+        "accion_acordada": "Revisar el registro del ejercicio y el contexto de la fatiga reportada.",
+        "fecha_seguimiento": "2026-11-14"
+      },
+      "resultado": null,
+      "conversacion": [
+        {
+          "role": "user",
+          "text": "Sentí cansancio leve después del ejercicio. Disminuyó mientras descansaba."
+        }
+      ]
+    }
+  ]
+}
