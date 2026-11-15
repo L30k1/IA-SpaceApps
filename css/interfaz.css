@@ -60,15 +60,15 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 
 .acciones-principales {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
 .acciones-principales .btn-primary { height: 100%; text-align: center; }
 .acciones-principales a.btn-primary { display: grid; place-items: center; }
+.acciones-principales .btn-emergencia { grid-column: 1 / -1; }
 .dashboard-grid > * { min-width: 0; }
 .dashboard-grid .health-status-card, .dashboard-grid .action-tile { flex: 0 0 auto; }
-.module-actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
 .action-tile { text-align: center; }
 .mision-evaluacion { padding-block: 12px 4px; }
 .mision-estado { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 8px; background: #152b50; }
@@ -104,6 +104,7 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .cognicion :is(.lot-diagrama, .volt-figura) { margin-inline: auto; }
 
 @media (max-width: 760px) {
+  .acciones-principales { grid-template-columns: minmax(0, 1fr); }
   .sidebar { display: none; }
   .enlace-perfil-movil { display: inline-block; }
 }

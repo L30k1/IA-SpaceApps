@@ -20,7 +20,10 @@
   <template>
   <!--{% endif %}-->
 
-  {% set modulos = [('psicologia', t('Atención psicológica')), ('cognicion', t('Pruebas cognitivas'))] %}
+  {% set modulos = [
+    ('psicologia', t('Atención psicológica'), url_for('registro_psicologico', modulo='diario')),
+    ('cognicion', t('Pruebas cognitivas'), url_for('pruebas_cognitivas'))
+  ] %}
   {% macro icono_modulo(tipo, tamano) %}
   <svg width="{{ tamano }}" height="{{ tamano }}" viewBox="0 0 24 24" fill="none"
        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -44,16 +47,10 @@
       <a class="nav-icon" href="{{ url_for('summary', vista='historial') }}" aria-label="{{ t('Antecedentes médicos') }}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       </a>
-      {% for tipo, nombre in modulos %}
-      {% if tipo == 'psicologia' %}
-      <a class="nav-icon" href="{{ url_for('registro_psicologico', modulo='diario') }}" title="{{ nombre }}" aria-label="{{ nombre }}">
+      {% for tipo, nombre, destino in modulos %}
+      <a class="nav-icon" href="{{ destino }}" title="{{ nombre }}" aria-label="{{ nombre }}">
         {{ icono_modulo(tipo, 20) }}
       </a>
-      {% else %}
-      <a class="nav-icon" href="{{ url_for('pruebas_cognitivas') }}" title="{{ nombre }}" aria-label="{{ nombre }}">
-        {{ icono_modulo(tipo, 20) }}
-      </a>
-      {% endif %}
       {% endfor %}
     </nav>
 
@@ -85,8 +82,11 @@
           <a class="btn-primary btn-emergencia" href="{{ url_for('chat_psicologico', modo='emergencia') }}">{{ t('Emergencia · Hablar con la IA') }}</a>
           <form id="iniciar-monitoreo" method="post" action="{{ url_for('checkup') }}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
-            <button class="btn-primary" type="submit" name="iniciar" value="1">{{ t('Iniciar monitoreo →') }}</button>
+            <button class="btn-primary" type="submit" name="iniciar" value="1">{{ t('Iniciar monitoreo') }}</button>
           </form>
+          {% for _, nombre, destino in modulos %}
+          <a class="btn-primary" href="{{ destino }}">{{ nombre }}</a>
+          {% endfor %}
         </div>
         <div class="dashboard-grid">
           <div class="left-col">
@@ -137,23 +137,6 @@
               <span>{{ t('Historial médico') }}</span>
             </a>
 
-            <div class="module-actions">
-              {% for tipo, nombre in modulos %}
-              {% if tipo == 'psicologia' %}
-              <a class="action-tile" href="{{ url_for('registro_psicologico', modulo='diario') }}">
-                {{ icono_modulo(tipo, 26) }}
-                <span>{{ nombre }}</span>
-                <small>{{ t('Diario, semanal y chat') }}</small>
-              </a>
-              {% else %}
-              <a class="action-tile" href="{{ url_for('pruebas_cognitivas') }}">
-                {{ icono_modulo(tipo, 26) }}
-                <span>{{ nombre }}</span>
-                <small>{{ t('Praxis Motora, VOLT, LOT y F2B') }}</small>
-              </a>
-              {% endif %}
-              {% endfor %}
-            </div>
             <form method="post" action="{{ url_for('logout') }}">
               <input type="hidden" name="csrf" value="{{ csrf }}">
               <button class="btn-secondary" type="submit">{{ t('Cerrar sesión') }}</button>
