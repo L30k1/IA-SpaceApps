@@ -193,6 +193,7 @@
           throw new Error(t("El archivo seleccionado pertenece a otro expediente."));
         }
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
+        delete combinado.clave_edicion_hash;
         for (const campo of ["alergias", "antecedentes", "medicamentos", "estado_alergias", "referencias_monitoreo"]) {
           if (Object.hasOwn(servidor, campo)) combinado[campo] = servidor[campo];
         }

@@ -21,7 +21,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 import db
-from historial_formulario import SECCIONES, filas_formulario, generar_historial
+from historial_formulario import SECCIONES, ajustar_filas, filas_formulario, generar_historial
 from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, texto_respuesta
 from calendario_mision import ZONA_MISION, calendario, fechas_mision, resumir_ejercicio, rutina_mision
@@ -30,10 +30,14 @@ from database.expedientes import (
     registro_ejercicio, registro_emociones, registro_f2b, registro_praxis,
 )
 from ejercicio import CAMPO_EJERCICIO, CONTEXTOS_FC, CONTEXTOS_FC_EJERCICIO, TIPOS_EJERCICIO
-from editar_expediente import EdicionDesactualizada, aplicar_edicion, datos_editables, version_edicion
+from editar_expediente import (
+    GRUPOS_EDITABLES, SECCIONES_EDICION, EdicionDesactualizada, aplicar_edicion, filas_mision, formulario_edicion,
+    version_edicion,
+)
 from emociones import CAMPO_EMOCIONES, EMOCIONES, EXPOSICION_EMOCIONES_MS, INTENSIDADES, LAMINAS, estimulos_emociones
 from f2b import CAMPO_F2B, COINCIDENCIAS_F2B, EXPOSICION_F2B_MS, ESTIMULOS_F2B, secuencia_f2b
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
+from llave_edicion import CAMPO_LLAVE, llave_del_expediente, preparar_llave, verificar_credencial
 from psicologia import (
     INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
     tramo_mision, validar_registros,
@@ -341,7 +345,8 @@ def create_app(database=None):
                         raise ValueError("El ID debe coincidir con el campo _id de tu historial JSON.")
                     if nombre_normalizado(expediente["astronauta"]["nombre"]) != nombre_normalizado(nombre):
                         raise ValueError("El nombre debe coincidir con el del astronauta en tu historial JSON.")
-                    user_id = almacen.create_user(database, generate_password_hash(password), expediente)
+                    clave_hash = llave_del_expediente(expediente)
+                    user_id = almacen.create_user(database, generate_password_hash(password), expediente, clave_hash)
                 except ValueError as exc:
                     error = str(exc)
                 except conflicto_cuenta:
@@ -373,6 +378,7 @@ def create_app(database=None):
             if accion == "descargar":
                 try:
                     expediente = generar_historial(formulario, filas)
+                    expediente[CAMPO_LLAVE] = preparar_llave(formulario)
                 except ValueError as exc:
                     error = str(exc)
                 else:
@@ -381,18 +387,8 @@ def create_app(database=None):
                     contenido = json.dumps(expediente, ensure_ascii=False, indent=2) + "\n"
                     return Response(contenido, mimetype="application/json",
                                     headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
-            else:
-                operacion, _, destino = accion.partition(":")
-                grupo, _, indice = destino.partition(":")
-                if grupo not in filas:
-                    abort(400)
-                if operacion == "agregar" and not indice:
-                    filas[grupo].append({})
-                elif (operacion == "quitar" and indice.isascii() and indice.isdigit()
-                      and len(indice) <= 6 and int(indice) < len(filas[grupo])):
-                    filas[grupo].pop(int(indice))
-                else:
-                    abort(400)
+            elif not ajustar_filas(filas, accion):
+                abort(400)
         return render_template("historial-formulario.html", formulario=formulario, filas=filas, secciones=SECCIONES, error=error)
 
     @app.post("/salir")
@@ -1020,31 +1016,74 @@ def create_app(database=None):
         expediente = expediente_actual()
         if expediente is None:
             return redirect(url_for("index"))
+        usuario = session["user_id"]
+        credenciales = almacen.credenciales_edicion(database, usuario)
+        if credenciales is None:
+            return redirect(url_for("index"))
+        clave_guardada = credenciales["clave_edicion_hash"]
+        accion = request.form.get("accion")
+        autorizado = clave_guardada and session.get("editor_usuario") == usuario
+        if autorizado and accion == "cerrar":
+            session.pop("editor_usuario", None)
+            return redirect(url_for("summary", vista="historial"), 303)
+        if not autorizado:
+            error = None
+            if accion == "desbloquear":
+                if verificar_credencial(clave_guardada, request.form.get("llave_edicion", "")):
+                    session["editor_usuario"] = usuario
+                    return redirect(url_for("editar_expediente"), 303)
+                error = "La llave de edición es incorrecta."
+            elif accion == "configurar" and not clave_guardada:
+                if not verificar_credencial(credenciales["password_hash"], request.form.get("password", "")):
+                    error = "La contraseña de la cuenta es incorrecta."
+                else:
+                    try:
+                        clave_hash = preparar_llave(request.form)
+                    except ValueError as exc:
+                        error = str(exc)
+                    else:
+                        if almacen.configurar_llave_edicion(database, usuario, clave_hash):
+                            session["editor_usuario"] = usuario
+                        return redirect(url_for("editar_expediente"), 303)
+            elif request.method == "POST":
+                error = "Abre el editor con tu llave antes de guardar."
+            return render_template("editar-expediente.html", configurar=not clave_guardada, error=error), (
+                403 if error else 200
+            )
+
         error = None
         estado = 200
         if request.method == "POST":
-            version = request.form.get("version", "")
-            contenido = request.form.get("contenido", "")
-            usuario = session["user_id"]
-            try:
-                guardado = almacen.actualizar_datos_expediente(
-                    database, usuario, lambda actual: aplicar_edicion(actual, version, contenido),
-                )
-            except EdicionDesactualizada as exc:
-                error, estado = str(exc), 409
-            except ValueError as exc:
-                error, estado = str(exc), 400
-            else:
-                if not guardado:
-                    return redirect(url_for("index"))
-                sincronizar_archivo_expediente(usuario)
-                flash("Cambios del expediente guardados.")
-                return redirect(url_for("summary", vista="historial", actualizar_archivo=1), 303)
+            formulario = request.form
+            version = formulario.get("version", "")
+            metas = formulario.getlist("misiones.ejercicio_min_diarios")
+            filas = filas_formulario(formulario, editar=True)
+            filas["misiones"] = filas_mision(expediente, metas)
+            if accion == "guardar":
+                try:
+                    guardado = almacen.actualizar_datos_expediente(
+                        database, usuario, lambda actual: aplicar_edicion(actual, version, formulario, filas, metas),
+                    )
+                except EdicionDesactualizada as exc:
+                    error, estado = str(exc), 409
+                except ValueError as exc:
+                    error, estado = str(exc), 400
+                else:
+                    if not guardado:
+                        return redirect(url_for("index"))
+                    session.pop("editor_usuario", None)
+                    sincronizar_archivo_expediente(usuario)
+                    flash("Cambios del expediente guardados.")
+                    return redirect(url_for("summary", vista="historial", actualizar_archivo=1), 303)
+            elif not ajustar_filas({grupo: filas[grupo] for grupo in GRUPOS_EDITABLES}, accion or ""):
+                abort(400)
         else:
-            datos = datos_editables(expediente)
-            version = version_edicion(datos)
-            contenido = json.dumps(datos, ensure_ascii=False, indent=2)
-        return render_template("editar-expediente.html", contenido=contenido, version=version, error=error), estado
+            formulario, filas = formulario_edicion(expediente)
+            version = version_edicion(expediente)
+        return render_template(
+            "historial-formulario.html", expediente=expediente, formulario=formulario, filas=filas,
+            secciones=SECCIONES_EDICION, editar=True, version=version, error=error,
+        ), estado
 
     @app.get("/expediente.json")
     def download_expediente():

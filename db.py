@@ -56,20 +56,38 @@ def initialize(path):
                 contenido TEXT NOT NULL
             );
         """)
+        db.execute("BEGIN IMMEDIATE")
+        if "clave_edicion_hash" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
+            db.execute("ALTER TABLE users ADD COLUMN clave_edicion_hash TEXT")
 
 
-def create_user(path, password_hash, expediente):
+def create_user(path, password_hash, expediente, clave_edicion_hash=None):
     with closing(sqlite3.connect(path)) as db, db:
         # La columna email es obligatoria en las bases SQLite existentes.
         user_id = db.execute(
-            "INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)",
-            (f"astronauta:{expediente['_id']}", expediente["astronauta"]["nombre"], password_hash),
+            "INSERT INTO users (email, name, password_hash, clave_edicion_hash) VALUES (?, ?, ?, ?)",
+            (f"astronauta:{expediente['_id']}", expediente["astronauta"]["nombre"], password_hash, clave_edicion_hash),
         ).lastrowid
         db.execute(
             "INSERT INTO expedientes (user_id, astronauta_id, contenido) VALUES (?, ?, ?)",
             (user_id, expediente["_id"], json.dumps(expediente)),
         )
         return user_id
+
+
+def credenciales_edicion(path, user_id):
+    with closing(sqlite3.connect(path)) as db:
+        db.row_factory = sqlite3.Row
+        return db.execute("SELECT password_hash, clave_edicion_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+
+
+def configurar_llave_edicion(path, user_id, clave_hash):
+    with closing(sqlite3.connect(path)) as db, db:
+        resultado = db.execute(
+            "UPDATE users SET clave_edicion_hash = ? WHERE id = ? AND clave_edicion_hash IS NULL",
+            (clave_hash, user_id),
+        )
+        return resultado.rowcount == 1
 
 
 def expediente_for_user(path, user_id):
