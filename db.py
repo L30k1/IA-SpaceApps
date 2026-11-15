@@ -83,11 +83,6 @@ def find_user_by_astronauta(path, astronauta_id):
         ).fetchone()
 
 
-def update_password(path, user_id, password_hash):
-    with closing(sqlite3.connect(path)) as db, db:
-        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
-
-
 def open_checkup(path, user_id, profile, greeting):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute(
@@ -113,14 +108,15 @@ def checkup_record(record_id, finished_at, messages, vitals, details, status):
         fecha = fecha_utc(finished_at)
     except ValueError:
         fecha = datetime.strptime(finished_at, "%d/%m/%Y %H:%M UTC").replace(tzinfo=timezone.utc)
+    medidas = details.get("telemetria", dict(zip(("hr", "spo2", "temp"), vitals)))
     return {
         **{field: details.get(field) or None for field in ("mision_id", "fase", "motivo", "actividad")},
         "id": record_id,
         "fecha_hora": fecha.isoformat(),
-        "resultado_simulador": status,
+        "resultado": status,
         "mediciones": [
-            {"tipo": tipo, "valor": valor, "unidad": unidad}
-            for (tipo, (_, unidad)), valor in zip(SIGNOS.items(), vitals)
+            {"tipo": tipo, "valor": medidas[key], "unidad": SIGNOS[tipo][1]}
+            for tipo, key in zip(SIGNOS, ("hr", "spo2", "temp")) if medidas[key] is not None
         ],
         "conversacion": messages,
         **{field: details[field] for field in ("evaluacion_ia", "evaluacion") if field in details},

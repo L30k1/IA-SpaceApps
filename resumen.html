@@ -56,7 +56,7 @@
       {% endmacro %}
       <nav class="step-pills" aria-label="Resumen del chequeo">
         <a class="step-pill{{ ' active' if view == 'resultados' else '' }}" href="{{ url_for('summary', registro=latest.clave if latest else none) }}">Resultados</a>
-        {% if latest and latest.estado in ['ALERTA', 'INDETERMINADO'] %}
+        {% if latest and (latest.evaluacion_ia or latest.estado in ['ALERTA', 'INDETERMINADO']) %}
         <a class="step-pill{{ ' active' if view == 'alertas' else '' }}" href="{{ url_for('summary', vista='alertas', registro=latest.clave) }}">Seguimiento</a>
         {% endif %}
         <a class="step-pill{{ ' active' if view == 'historial' else '' }}" href="{{ url_for('summary', vista='historial') }}">Historial clínico</a>
@@ -100,16 +100,7 @@
         {% elif view == 'alertas' %}
         <div class="status-banner{{ ' alert' if latest.estado == 'ALERTA' else '' }}">
           <div>
-            {% if latest.estado == 'ALERTA' %}
-            <h2>Alerta de demostración</h2>
-            {% elif latest.estado == 'INDETERMINADO' %}
-            <h2>Chequeo indeterminado</h2>
-            {% elif latest.estado == 'ESTABLE' %}
-            <h2>Sin alertas simuladas</h2>
-            <p>El chequeo se guardó con estado estable.</p>
-            {% else %}
-            <h2>Sin seguimiento registrado</h2>
-            {% endif %}
+            <h2>{{ etiquetas_resultado.get(latest.estado, 'Sin seguimiento registrado') }}</h2>
           </div>
         </div>
         {% if not latest.evaluacion_ia and latest.estado == 'ALERTA' %}
@@ -121,7 +112,7 @@
         <div class="status-banner{{ ' alert' if latest.estado == 'ALERTA' else '' }}">
           <div>
             <h2>Resultados del chequeo</h2>
-            <p>{{ latest.fecha_hora | hora_utc }}{% if latest.estado in ['ESTABLE', 'ALERTA', 'INDETERMINADO'] %} · {{ 'Evaluación simulada de Gemini' if latest.evaluacion_ia else 'Resultado previo' }}: {{ latest.estado }}{% endif %}</p>
+            <p>{{ latest.fecha_hora | hora_utc }}{% if latest.estado in etiquetas_resultado %} · {{ etiquetas_resultado[latest.estado] }}{% endif %}</p>
           </div>
         </div>
         <div class="two-cols">

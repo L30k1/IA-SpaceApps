@@ -3,7 +3,6 @@ import math
 from datetime import datetime, timezone
 
 
-DEMO_ID = "DEMO-AS-2743"
 GRUPOS = ("misiones", "alergias", "antecedentes", "medicamentos", "chequeos")
 SIGNOS = {
     "frecuencia_cardiaca": ("FC", "lpm"),
@@ -30,7 +29,7 @@ def fecha_utc(fecha):
     raise ValueError("La fecha del chequeo debe incluir la zona horaria, por ejemplo 2026-11-14T21:30:00Z.")
 
 
-def leer_expediente(contenido, *, permitir_demo=False):
+def leer_expediente(contenido):
     try:
         expediente = json.loads(contenido)
     except (ValueError, RecursionError):
@@ -39,14 +38,9 @@ def leer_expediente(contenido, *, permitir_demo=False):
         raise ValueError("El JSON debe contener los datos del astronauta.")
 
     expediente["_id"] = texto_requerido(expediente, "_id")
-    if expediente["_id"].casefold() == DEMO_ID.casefold() and not permitir_demo:
-        raise ValueError("Este expediente está reservado para la cuenta de demostración.")
     astronauta = expediente["astronauta"]
     astronauta["nombre"] = texto_requerido(astronauta, "nombre")
     astronauta["rol"] = "Astronauta"
-    if type(expediente.get("simulado", False)) is not bool:
-        raise ValueError("El campo simulado debe ser true o false.")
-
     for grupo in GRUPOS:
         registros = expediente.setdefault(grupo, [])
         if not isinstance(registros, list) or not all(isinstance(registro, dict) for registro in registros):
