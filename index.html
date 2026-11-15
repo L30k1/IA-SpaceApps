@@ -40,8 +40,7 @@
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
         {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
         {% if mode in ['register', 'login-json'] %}
-        <label for="expediente">Expediente del astronauta (.json)</label>
-        <input id="expediente" name="expediente" type="file" accept=".json,application/json" required>
+        <input id="expediente" name="expediente" type="file" accept=".json,application/json" hidden>
         <button type="button" id="elegir-expediente-local" class="file-action" hidden>Elegir JSON y permitir su actualización</button>
         <p id="estado-expediente-local" role="status" hidden></p>
         {% if mode == 'login-json' %}<p>Usa la contraseña de la cuenta vinculada a este expediente.</p>{% endif %}
