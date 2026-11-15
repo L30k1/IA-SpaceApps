@@ -60,6 +60,8 @@ Si la misión dura menos que un intervalo, la primera evaluación de ese tipo ve
 
 La base Atlas empieza vacía. Los JSON siguen sirviendo para importar y exportar expedientes. Con Atlas, la exportación se genera cuando la solicitas y la app guarda el expediente en MongoDB.
 
+En **Atlas → Data Explorer → `medispace` → `usuarios`**, busca el documento por `astronauta_id` y abre `expediente`. Los cuestionarios aparecen en `diario_psicologico` y `semanal_psicologico`. Los resultados cognitivos aparecen en `praxis_motora`, `memoria_visual` (VOLT) y `orientacion_linea` (LOT). Si configuraste `MONGODB_DB`, abre esa base en lugar de `medispace`.
+
 Si falla el arranque, revisa **Render → Logs**. El código `MONGO_RED` apunta a conectividad o al estado del clúster, `MONGO_AUTENTICACION` a las credenciales y `MONGO_PERMISOS` al acceso del usuario a la base. Los mensajes de arranque omiten la URI y las credenciales. [Conectar Render a Atlas](https://render.com/docs/connect-to-mongodb-atlas)
 
 ## Voz en los chats

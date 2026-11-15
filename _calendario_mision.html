@@ -26,7 +26,8 @@
     {{ evaluacion('Evaluación médica', plan.medica, '#iniciar-monitoreo') }}
     {{ evaluacion('Evaluación psicológica', plan.psicologica, url_for('registro_psicologico', modulo=plan.psicologia), 'Cuestionario ' ~ plan.psicologia | capitalize) }}
     {% if plan.ultimo_otro %}<p>Otro cuestionario guardado: {{ plan.otro_cuestionario | capitalize }} · {{ plan.ultimo_otro.strftime('%d/%m/%Y') }}.</p>{% endif %}
-    {{ evaluacion('Evaluación cognitiva', plan.cognitiva, url_for('pruebas_cognitivas'), 'Praxis Motora, VOLT y LOT · ' ~ plan.cognitiva.restantes ~ ' de 3 pendientes en este período') }}
+    {% set periodo_cognitivo = 'en prevuelo' if plan.estado == 'Programada' else 'en este período' %}
+    {{ evaluacion('Evaluación cognitiva', plan.cognitiva, url_for('pruebas_cognitivas'), 'Praxis Motora, VOLT y LOT · ' ~ plan.cognitiva.restantes ~ ' de 3 pendientes ' ~ periodo_cognitivo) }}
     {% else %}
     <p>El expediente JSON necesita fechas de inicio y fin válidas para calcular la duración y los plazos.</p>
     {% endif %}
