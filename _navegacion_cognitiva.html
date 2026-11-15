@@ -4,6 +4,7 @@
     ('prueba_volt', t('Aprendizaje visual de objetos (VOLT)')),
     ('prueba_lot', t('Orientación de línea (LOT)')),
     ('prueba_f2b', 'Fractal 2-Back (F2B)'),
+    ('prueba_emociones', t('Reconocimiento facial (ERT)')),
     ('historial_cognitivo', t('Historial'))
   ] %}
   <a class="step-pill{% if request.endpoint == endpoint %} active{% endif %}" href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ etiqueta }}</a>
