@@ -508,5 +508,443 @@
       "promedio_ms": 732.67,
       "mejor_ms": 493.5
     }
+  ],
+  "memoria_visual": [
+    {
+      "id": "3a22101ac06a43bcae19f033080bbeec",
+      "version": "medispace-volt-1",
+      "intervalo_segundos": 904.217802,
+      "fecha_hora": "2026-11-15T06:03:53.390423+00:00",
+      "inmediato": {
+        "correctas": 10,
+        "reconocidas": 10,
+        "falsos_positivos": 10,
+        "promedio_ms": 362.905,
+        "respuestas": [
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 2847.4
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 791
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 430.3
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 269
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 181.1
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 179.4
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 171.4
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 173.5
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 181.6
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 171.3
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 183.5
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 188.9
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 183.1
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 187.9
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 183.1
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 176
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 185.4
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 183.3
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 175.5
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 215.4
+          }
+        ]
+      },
+      "diferido": {
+        "correctas": 10,
+        "reconocidas": 9,
+        "falsos_positivos": 9,
+        "promedio_ms": 299.85,
+        "respuestas": [
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 1287.3
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 367.1
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 147.4
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 195.1
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 159.4
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 153.3
+          },
+          {
+            "vista": false,
+            "esperada": false,
+            "tiempo_ms": 749.3
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 441.3
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 215.6
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 147.4
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 149.5
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 155.2
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 112.3
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 149.6
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 147
+          },
+          {
+            "vista": true,
+            "esperada": false,
+            "tiempo_ms": 137.5
+          },
+          {
+            "vista": false,
+            "esperada": true,
+            "tiempo_ms": 531.2
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 458
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 149.5
+          },
+          {
+            "vista": true,
+            "esperada": true,
+            "tiempo_ms": 144
+          }
+        ]
+      }
+    }
+  ],
+  "orientacion_linea": [
+    {
+      "id": "0ecebad8af3a490488414d118d66a5e6",
+      "fecha_hora": "2026-11-15T06:09:25.702233+00:00",
+      "version": "medispace-lot-1",
+      "pares_correctos": 2,
+      "lineas_correctas": 10,
+      "promedio_ms": 4282.5,
+      "respuestas": [
+        {
+          "lineas": [
+            6,
+            10
+          ],
+          "tiempo_ms": 9042.8,
+          "coincidencias": 2
+        },
+        {
+          "lineas": [
+            2,
+            3
+          ],
+          "tiempo_ms": 11604.9,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            2,
+            4
+          ],
+          "tiempo_ms": 4078.1,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            3,
+            8
+          ],
+          "tiempo_ms": 5522.7,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            6,
+            8
+          ],
+          "tiempo_ms": 4196.5,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 8282.6,
+          "coincidencias": 2
+        },
+        {
+          "lineas": [
+            3,
+            4
+          ],
+          "tiempo_ms": 1764.7,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            3,
+            4
+          ],
+          "tiempo_ms": 1274.8,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            2,
+            3
+          ],
+          "tiempo_ms": 1219.2,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1132.7,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1809.2,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1461.8,
+          "coincidencias": 1
+        }
+      ]
+    },
+    {
+      "id": "56a544cb96ee472fa8fc4e454379d053",
+      "fecha_hora": "2026-11-15T06:11:02.915263+00:00",
+      "version": "medispace-lot-1",
+      "pares_correctos": 0,
+      "lineas_correctas": 5,
+      "promedio_ms": 2472,
+      "respuestas": [
+        {
+          "lineas": [
+            3,
+            5
+          ],
+          "tiempo_ms": 8480.3,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            2,
+            3
+          ],
+          "tiempo_ms": 1796.4,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            2,
+            3
+          ],
+          "tiempo_ms": 3193.2,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1674.9,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            2,
+            7
+          ],
+          "tiempo_ms": 2222.2,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            4,
+            5
+          ],
+          "tiempo_ms": 2734.5,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            2,
+            3
+          ],
+          "tiempo_ms": 1856.4,
+          "coincidencias": 1
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1744.3,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            3,
+            4
+          ],
+          "tiempo_ms": 2056.5,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1230.6,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            2,
+            3
+          ],
+          "tiempo_ms": 1546.7,
+          "coincidencias": 0
+        },
+        {
+          "lineas": [
+            1,
+            2
+          ],
+          "tiempo_ms": 1128,
+          "coincidencias": 1
+        }
+      ]
+    }
   ]
 }

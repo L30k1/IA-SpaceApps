@@ -200,25 +200,6 @@ def seguimiento_psicologico(registro, modulo):
     return validar_seguimiento(json.loads(respuesta))
 
 
-def responder_chat_psicologico(mensajes):
-    respuesta = consultar_gemini(
-        {"conversacion": mensajes[-24:]},
-        "Actúa como un asistente de IA de apoyo emocional para personas en ambientes de "
-        "aislamiento, confinamiento o alta exigencia. Escucha, refleja lo que la persona "
-        "describe y, cuando ayude, haz una pregunta abierta. Ofrece estrategias de "
-        "afrontamiento de bajo riesgo o ayuda a preparar una conversación con el equipo "
-        "de salud. Mantén un tono empático y breve. Identifícate como IA. No te presentes "
-        "como profesional, no ofrezcas terapia, diagnósticos, fármacos, decisiones de "
-        "aptitud ni promesas de confidencialidad. Anima a buscar apoyo humano y evita "
-        "afirmar que ya avisaste a alguien. Si hay indicios de daño inminente, recomienda "
-        "contactar inmediatamente al equipo de emergencia de la misión o a los servicios "
-        "de emergencia de su ubicación y buscar a una persona cercana. No solicites "
-        "identificadores ni detalles médicos que no sean necesarios. Responde en texto simple.",
-        max_output_tokens=700,
-    )
-    return texto_valido(respuesta, 2400)
-
-
 def validar_seguimiento(datos):
     if not isinstance(datos, dict):
         raise ValueError("La IA devolvió un seguimiento inválido.")

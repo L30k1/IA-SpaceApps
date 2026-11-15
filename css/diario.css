@@ -40,18 +40,6 @@
 .datos-diario dd { font-weight: 600; }
 .diario details > :not(summary) { margin-top: 8px; }
 .diario .step-pills { flex-wrap: wrap; margin-bottom: 0; }
-.chat-psicologico { list-style: none; display: grid; gap: 12px; }
-.chat-psicologico li {
-  background: rgba(22, 77, 147, 0.24);
-  border: 1px solid var(--border-glow);
-  border-radius: 10px;
-  padding: 12px;
-  overflow-wrap: anywhere;
-}
-.chat-psicologico .mensaje-usuario { background: rgba(22, 77, 147, 0.5); }
-.chat-psicologico li p { white-space: pre-wrap; margin-top: 6px; }
-.form-chat-psicologico { display: grid; gap: 10px; }
-.form-chat-psicologico button { justify-self: start; }
 
 @media (max-width: 640px) {
   .diario { padding: 18px; }
