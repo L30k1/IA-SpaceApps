@@ -1,0 +1,16 @@
+.voz-chat[hidden], .voz-chat [hidden] { display: none; }
+.voz-chat { display: grid; gap: 6px; margin-block: 8px; color: var(--text-muted); font-size: 0.86rem; }
+.voz-chat-controles { display: flex; flex-wrap: wrap; gap: 8px; }
+.voz-chat button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #5698d4;
+  border-radius: 8px;
+  background: #102950;
+  color: #f0f6ff;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.voz-chat button:disabled { opacity: 0.55; cursor: not-allowed; }
+.voz-chat audio { max-width: 100%; }
+.voz-chat [data-voz-estado]:empty { display: none; }

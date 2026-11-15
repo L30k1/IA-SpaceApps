@@ -49,3 +49,21 @@ Si la misión dura menos que un intervalo, la primera evaluación de ese tipo ve
 4. En **Environment**, agrega `MEDISPACE_SECRET_KEY` con un valor aleatorio propio. Agrega `GEMINI_API_KEY` con tu clave nueva para habilitar la IA.
 5. Para conservar las cuentas y el historial en Render, usa un disco persistente montado en `/var/data` y agrega `MEDISPACE_DATABASE=/var/data/medispace.sqlite3`.
 6. Pulsa **Deploy** y comparte la dirección HTTPS que Render genera. Los visitantes pueden crear una cuenta con su propio expediente JSON.
+
+## Voz opcional con ElevenLabs
+
+1. Crea una cuenta **Free** en ElevenLabs para pruebas no comerciales. El plan incluye 10 000 créditos al mes. [Planes de ElevenLabs](https://elevenlabs.io/pricing)
+2. En **Developers → API Keys**, crea una clave restringida a **Text to Speech**. Puedes limitar los créditos de la clave. [Configuración de API Keys](https://elevenlabs.io/docs/help-center/technical/how-do-i-authorize-myself-using-an-api-key)
+3. En **Voices → My Voices**, elige una voz propia y copia su ID desde los tres puntos. Si no tienes voz, puedes crear una en **Add a new voice → Voice Design** con una descripción de la voz en español. La API del plan gratuito excluye las voces de la biblioteca comunitaria. [Diseño de voz](https://elevenlabs.io/docs/eleven-creative/voices/voice-design/) · [Cómo copiar el ID](https://elevenlabs.io/docs/es/help-center/technical/how-do-i-find-the-voice-id-of-my-voices-via-the-website-and-api)
+4. En **Render → tu servicio → Environment**, agrega `ELEVENLABS_API_KEY` con la clave y `ELEVENLABS_VOICE_ID` con el ID de voz. Guarda y despliega el código actualizado. [Variables en Render](https://render.com/docs/configure-environment-variables)
+5. Abre un chequeo o el chat de apoyo, genera una respuesta de prueba y pulsa **Escuchar con ElevenLabs**. Puedes reproducir el mismo audio de nuevo desde el reproductor. El dictado y la voz del navegador siguen disponibles.
+
+Para probar en PowerShell, define las variables en la terminal desde la que arrancas el servidor.
+
+```powershell
+$env:ELEVENLABS_API_KEY = '<tu clave>'
+$env:ELEVENLABS_VOICE_ID = '<tu ID de voz>'
+python main.py
+```
+
+Usa datos ficticios para las pruebas. Al generar audio, ElevenLabs recibe el texto de la última respuesta y su API aplica retención por defecto. El botón es opcional y se activa solo cuando el servidor tiene ambas variables. [Retención de datos de ElevenLabs](https://elevenlabs.io/docs/eleven-api/resources/zero-retention-mode)
