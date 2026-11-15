@@ -50,6 +50,16 @@
     return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
   }
 
+  function combinarRegistros(local, servidor, campo) {
+    const previos = local[campo] ?? [];
+    const actuales = servidor[campo] ?? [];
+    if (!Array.isArray(previos) || !Array.isArray(actuales)) {
+      throw new Error("Revisa los registros del archivo original antes de actualizarlo.");
+    }
+    const ids = new Set(actuales.map(registro => registro.id));
+    return [...actuales, ...previos.filter(registro => !ids.has(registro?.id))];
+  }
+
   async function leerArchivo(handle) {
     const archivo = await handle.getFile();
     if (archivo.size > limiteBytes) {
@@ -176,14 +186,11 @@
         if (servidor._id.trim() !== expedienteId || local._id.trim() !== expedienteId) {
           throw new Error("El archivo seleccionado pertenece a otro expediente.");
         }
-        if (local.chequeos !== undefined && !Array.isArray(local.chequeos)) {
-          throw new Error("Revisa la lista de chequeos del archivo original antes de actualizarlo.");
+        const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
+        if ("diario_psicologico" in servidor || "diario_psicologico" in local) {
+          combinado.diario_psicologico = combinarRegistros(local, servidor, "diario_psicologico");
         }
-        const idsServidor = new Set(servidor.chequeos.map(chequeo => chequeo.id));
-        const soloLocales = (local.chequeos || []).filter(chequeo => !idsServidor.has(chequeo?.id));
-        const actualizado = new TextEncoder().encode(
-          JSON.stringify({ ...local, chequeos: [...servidor.chequeos, ...soloLocales] }, null, 2) + "\n",
-        );
+        const actualizado = new TextEncoder().encode(JSON.stringify(combinado, null, 2) + "\n");
         const hash = await huella(actualizado);
         const hashLocal = await huella(contenido);
         if (hashLocal !== hash && hashLocal !== guardado.huella) {

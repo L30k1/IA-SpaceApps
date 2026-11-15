@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atención psicológica diaria · MediSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+</head>
+<body>
+  <main class="app-frame">
+    <div class="main-area diario">
+      <header class="top-header">
+        <div>
+          <div class="brand-title">MediSpace</div>
+          <div class="brand-sub">{{ expediente.astronauta.nombre }}</div>
+        </div>
+        <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
+      </header>
+      <h1>Atención psicológica diaria</h1>
+      {% for mensaje in get_flashed_messages() %}<p role="status">{{ mensaje }}</p>{% endfor %}
+      {% if error %}<p class="diario-error" role="alert">{{ error }}</p>{% endif %}
+
+      {% if actual %}
+      <section class="info-card">
+        <h2>Registro guardado</h2>
+        <p>{{ actual.fecha_hora | hora_utc }}</p>
+        <dl class="datos-diario">
+          <div><dt>Índice descriptivo</dt><dd>{{ actual.puntuacion.indice }} / 100</dd></div>
+          <div><dt>Diferencia entre energía y esfuerzo invertido</dt><dd>{{ actual.puntuacion.diferencia_energia }} / 4 puntos</dd></div>
+          {% if actual.pvt %}
+          <div><dt>Mediana PVT-B</dt><dd>{{ actual.pvt.mediana_ms }} ms</dd></div>
+          <div><dt>Mediana de referencia</dt><dd>{{ actual.pvt.mediana_base_ms }} ms</dd></div>
+          <div><dt>Cambio respecto a la referencia</dt><dd>{{ '%+.2f' | format(actual.pvt.cambio_pct) }} %</dd></div>
+          {% endif %}
+        </dl>
+        <details>
+          <summary>Ver respuestas</summary>
+          <ul>
+            {% for clave, texto in reactivos %}
+            <li>{{ texto }} <strong>{{ actual.respuestas[clave] }} / 5</strong></li>
+            {% endfor %}
+          </ul>
+          {% if actual.nota %}<p>{{ actual.nota }}</p>{% endif %}
+        </details>
+      </section>
+      <section class="info-card">
+        <h2>Seguimiento</h2>
+        {% if actual.seguimiento_ia %}
+        <p>{{ actual.seguimiento_ia.resumen }}</p>
+        <ul>
+          {% for accion in actual.seguimiento_ia.acciones %}<li>{{ accion }}</li>{% endfor %}
+        </ul>
+        <p>El equipo responsable debe revisar estas sugerencias.</p>
+        {% elif ia_disponible %}
+        <form method="post" action="{{ url_for('diario', registro=actual.id) }}">
+          <input name="csrf" type="hidden" value="{{ csrf }}">
+          <p>Al solicitar seguimiento, la IA recibe tus respuestas, la nota y las mediciones de este registro.</p>
+          <button class="step-pill" name="accion" value="seguimiento" type="submit">Generar seguimiento con IA</button>
+        </form>
+        {% else %}
+        <p>Seguimiento con IA disponible cuando se configure el servidor.</p>
+        {% endif %}
+      </section>
+      {% include '_archivo_local.html' %}
+      <a class="btn-primary" href="{{ url_for('diario') }}">Nuevo registro diario</a>
+      {% else %}
+      <form class="info-card" method="post" action="{{ url_for('diario') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        <p>Piensa en tu turno actual y en el último periodo de sueño.</p>
+        <p id="escala-diario">1 equivale a totalmente en desacuerdo y 5 a totalmente de acuerdo.</p>
+        {% for clave, texto in reactivos %}
+        <fieldset aria-describedby="escala-diario">
+          <legend>{{ texto }}</legend>
+          <div class="escala-diario">
+            {% for valor, etiqueta in escala %}
+            <label title="{{ etiqueta }}">
+              <input type="radio" name="{{ clave }}" value="{{ valor }}" aria-label="{{ valor }}. {{ etiqueta }}"
+                     required{% if formulario.get(clave) == valor|string %} checked{% endif %}>
+              <span>{{ valor }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endfor %}
+        <label class="campo-diario">Nota de contexto (opcional)
+          <textarea name="nota" rows="2" maxlength="600">{{ formulario.get('nota', '') }}</textarea>
+        </label>
+        <details{% if formulario.get('pvt_actual') or formulario.get('pvt_base') %} open{% endif %}>
+          <summary>Medición complementaria de vigilancia (opcional)</summary>
+          <p>Ingresa medianas de una PVT-B de 3 minutos ya realizada. Usa la misma versión, dispositivo y condiciones comparables en ambas mediciones.</p>
+          <div class="datos-diario">
+            <label class="campo-diario">Mediana actual (ms)
+              <input type="number" name="pvt_actual" min="1" max="60000" value="{{ formulario.get('pvt_actual', '') }}">
+            </label>
+            <label class="campo-diario">Mediana de referencia (ms)
+              <input type="number" name="pvt_base" min="1" max="60000" value="{{ formulario.get('pvt_base', '') }}">
+            </label>
+          </div>
+        </details>
+        {% if ia_disponible %}
+        <p>Si eliges el seguimiento con IA, se envían tus respuestas, la nota y las mediciones de este registro.</p>
+        {% endif %}
+        <div class="file-actions">
+          <button class="{{ 'step-pill' if ia_disponible else 'btn-primary' }}" type="submit" name="accion" value="guardar">Guardar registro</button>
+          {% if ia_disponible %}
+          <button class="btn-primary" type="submit" name="accion" value="guardar-ia">Guardar y generar seguimiento con IA</button>
+          {% endif %}
+        </div>
+      </form>
+      {% endif %}
+
+      {% if registros %}
+      <section class="info-card">
+        <h2>Registros diarios</h2>
+        <ul>
+          {% for registro in registros %}
+          <li><a class="diario-link" href="{{ url_for('diario', registro=registro.id) }}">{{ registro.fecha_hora | hora_utc }}</a></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+    </div>
+  </main>
+  {% if actual %}<script src="{{ url_for('expediente_local_script') }}" defer></script>{% endif %}
+</body>
+</html>

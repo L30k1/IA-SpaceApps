@@ -44,9 +44,15 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       </a>
       {% for tipo, nombre in modulos %}
+      {% if tipo == 'psicologia' %}
+      <a class="nav-icon" href="{{ url_for('diario') }}" title="{{ nombre }}" aria-label="{{ nombre }}">
+        {{ icono_modulo(tipo, 20) }}
+      </a>
+      {% else %}
       <button class="nav-icon" type="button" title="{{ nombre }} · Próximamente" aria-label="{{ nombre }}" disabled>
         {{ icono_modulo(tipo, 20) }}
       </button>
+      {% endif %}
       {% endfor %}
     </nav>
 
@@ -122,11 +128,19 @@
 
             <div class="module-actions">
               {% for tipo, nombre in modulos %}
+              {% if tipo == 'psicologia' %}
+              <a class="action-tile" href="{{ url_for('diario') }}">
+                {{ icono_modulo(tipo, 26) }}
+                <span>{{ nombre }}</span>
+                <small>Registro diario</small>
+              </a>
+              {% else %}
               <button class="action-tile" type="button" disabled>
                 {{ icono_modulo(tipo, 26) }}
                 <span>{{ nombre }}</span>
                 <small>Próximamente</small>
               </button>
+              {% endif %}
               {% endfor %}
             </div>
             <form method="post" action="{{ url_for('logout') }}">

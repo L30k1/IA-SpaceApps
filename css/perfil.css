@@ -186,6 +186,10 @@ body {
 }
 .module-actions .action-tile {
   padding: 14px 8px;
+  color: var(--text-main);
+  text-align: center;
+}
+.module-actions .action-tile:disabled {
   color: var(--text-muted);
   cursor: default;
 }

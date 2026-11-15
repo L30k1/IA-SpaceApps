@@ -4,7 +4,7 @@ MediSpace registra chequeos de astronautas y prepara información de seguimiento
 
 ## Abrir con doble clic en Windows
 
-Abre `Abrir MediSpace.cmd` desde el Explorador de archivos. Si te pide la clave de Gemini, pégala en la ventana para habilitar los chequeos. Con el campo vacío puedes consultar el historial. La clave introducida dura lo que dure esa sesión.
+Abre `Abrir MediSpace.cmd` desde el Explorador de archivos. Si te pide la clave de IA, pégala en la ventana para habilitar los chequeos. Con el campo vacío puedes consultar el historial. La clave introducida dura lo que dure esa sesión.
 
 MediSpace abre tu navegador y muestra una ventana de control que puedes minimizar. Usa **Detener MediSpace** cuando termines. Si MediSpace ya está abierto desde PowerShell, el acceso abre esa misma instancia. Detén esa instancia con **Ctrl+C** para que el acceso pueda iniciar su propio servidor.
 
@@ -23,7 +23,7 @@ Cada chequeo completado se agrega a la lista `chequeos` del expediente JSON de s
 
 En Chrome o Edge, usa **Elegir JSON y permitir su actualización** al iniciar sesión con JSON o al crear tu cuenta. Autoriza la escritura en el navegador. Al terminar un chequeo, MediSpace incorpora los registros al mismo archivo. Si se pierde el permiso, usa **Actualizar archivo original** en Resultados. En **Historial clínico** también puedes vincular el archivo original o descargar una copia.
 
-Para habilitar los chequeos, ejecuta `$env:GEMINI_API_KEY = "<tu clave de Gemini>"` en PowerShell antes de iniciar el servidor. Gemini recibe los mensajes y las mediciones ingresadas. Pulsa **Enviar** para seguir conversando o **Finalizar chequeo** cuando quieras ver el resultado. Las recomendaciones se basan en el cuestionario y las mediciones disponibles, y quedan para revisión del equipo médico. MediSpace guarda la conversación completa y resume los turnos anteriores cuando la conversación es larga. Si Gemini falla, puedes reintentar sin perder los turnos guardados.
+Para habilitar los chequeos, ejecuta `$env:GEMINI_API_KEY = "<tu clave de IA>"` en PowerShell antes de iniciar el servidor. La IA recibe los mensajes y las mediciones ingresadas. Pulsa **Enviar** para seguir conversando o **Finalizar chequeo** cuando quieras ver el resultado. Las recomendaciones se basan en el cuestionario y las mediciones disponibles, y quedan para revisión del equipo médico. MediSpace guarda la conversación completa y resume los turnos anteriores cuando la conversación es larga. Si la IA falla, puedes reintentar sin perder los turnos guardados.
 
 Al abrir un HTML directamente o usar un servidor estático como Live Server, verás un enlace para entrar a la aplicación de Python. El historial se guarda por cuenta y perfil en `medispace.sqlite3`.
 
@@ -34,6 +34,6 @@ Puedes definir `MEDISPACE_SECRET_KEY` con un valor secreto estable para conserva
 1. Sube los cambios del proyecto a GitHub. Guarda las claves en los ajustes del servicio y conserva la base de datos local fuera del repositorio.
 2. En [Render](https://dashboard.render.com/), selecciona **New → Web Service** y conecta el repositorio. Elige **Python**.
 3. Usa `pip install -r requirements.txt` como comando de compilación y `gunicorn --bind 0.0.0.0:$PORT 'main:create_app()'` como comando de inicio.
-4. En **Environment**, agrega `MEDISPACE_SECRET_KEY` con un valor aleatorio propio. Agrega `GEMINI_API_KEY` con tu clave nueva si quieres habilitar Gemini.
+4. En **Environment**, agrega `MEDISPACE_SECRET_KEY` con un valor aleatorio propio. Agrega `GEMINI_API_KEY` con tu clave nueva para habilitar la IA.
 5. Para conservar las cuentas y el historial en Render, usa un disco persistente montado en `/var/data` y agrega `MEDISPACE_DATABASE=/var/data/medispace.sqlite3`.
 6. Pulsa **Deploy** y comparte la dirección HTTPS que Render genera. Los visitantes pueden crear una cuenta con su propio expediente JSON.
