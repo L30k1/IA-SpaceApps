@@ -132,7 +132,7 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
-            "chat_psicologico", "download_expediente", "logout",
+            "chat_psicologico", "pruebas_cognitivas", "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -234,6 +234,12 @@ def create_app(database=None):
             return redirect(url_for("index"))
         records = registros_clinicos(database, session["user_id"], expediente)
         return render_template("perfil.htm", expediente=expediente, latest=records[0] if records else None)
+
+    @app.get("/cognicion")
+    def pruebas_cognitivas():
+        if expediente_actual() is None:
+            return redirect(url_for("index"))
+        return render_template("cognicion.html")
 
     @app.get("/assets/expediente-local.js")
     def expediente_local_script():

@@ -55,6 +55,8 @@ Antes de implementar un semáforo, verificar los límites, el redondeo entre int
 
 MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](modulo-semanal.md). Post-Emergencia queda por desarrollar.
 
+La sección **Pruebas cognitivas** del perfil contiene la [especificación de diseño](../cognicion.html) para el AMS previo, las diez tareas de Cognition y la comparación con la línea base personal.
+
 ## Chat de apoyo
 
 El chat ofrece apoyo emocional por texto y orienta a la persona hacia el equipo de salud cuando corresponde. Para responder, el proveedor de IA recibe el mensaje y los turnos recientes. MediSpace guarda la conversación en la base de datos de la cuenta, fuera del expediente JSON descargable.

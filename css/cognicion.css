@@ -1,0 +1,6 @@
+.cognicion .info-card ul, .cognicion .info-card ol { padding-inline-start: 1.25rem; }
+.cognicion .info-card ul { list-style: disc; display: block; font-size: inherit; }
+.cognicion li + li { margin-top: 8px; }
+.cognicion .info-card a { color: var(--accent); }
+.cognicion details + details { border-top: 1px solid var(--border-glow); padding-top: 10px; }
+.cognicion summary { font-weight: 600; }
