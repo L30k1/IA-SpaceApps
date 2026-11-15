@@ -130,6 +130,13 @@
               </svg>
               <span>{{ t('Historial médico') }}</span>
             </a>
+            <a class="action-tile" href="{{ url_for('ejercicio') }}">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12h18M5 8v8m4-10v12m6-12v12m4-10v8"/>
+              </svg>
+              <span>{{ t('Ejercicio y recuperación') }}</span>
+            </a>
 
             <form method="post" action="{{ url_for('logout') }}">
               <input type="hidden" name="csrf" value="{{ csrf }}">

@@ -3,7 +3,7 @@ import os
 import re
 import secrets
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import ceil, isfinite
 from operator import itemgetter
 from pathlib import Path
@@ -27,8 +27,9 @@ from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, 
 from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
-    registro_emociones, registro_f2b, registro_praxis,
+    registro_ejercicio, registro_emociones, registro_f2b, registro_praxis,
 )
+from ejercicio import CAMPO_EJERCICIO, CONTEXTOS_FC, CONTEXTOS_FC_EJERCICIO, TIPOS_EJERCICIO
 from emociones import CAMPO_EMOCIONES, EMOCIONES, EXPOSICION_EMOCIONES_MS, INTENSIDADES, LAMINAS, estimulos_emociones
 from f2b import CAMPO_F2B, COINCIDENCIAS_F2B, EXPOSICION_F2B_MS, ESTIMULOS_F2B, secuencia_f2b
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
@@ -254,7 +255,7 @@ def create_app(database=None):
         if request.endpoint in {
             "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "historial_cognitivo",
-            "download_expediente", "logout",
+            "download_expediente", "logout", "ejercicio",
         } or request.endpoint in PRUEBAS_JSON:
             response.cache_control.no_store = True
             response.headers["Content-Language"] = idioma_actual()
@@ -277,6 +278,7 @@ def create_app(database=None):
             "csrf": session["csrf"],
             "fases": {clave: t(etiqueta) for clave, etiqueta in FASES.items()},
             "signos": SIGNOS,
+            "contextos_fc": CONTEXTOS_FC,
             "limites_captura": LIMITES_CAPTURA,
             "etiquetas_resultado": {clave: t(etiqueta) for clave, etiqueta in ETIQUETAS_RESULTADO.items()},
             "idioma": idioma_actual(),
@@ -301,7 +303,7 @@ def create_app(database=None):
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint == "preparar_historial":
                     return redirect(url_for("preparar_historial"), 303)
-                if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
+                if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico", "ejercicio"} and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
@@ -403,6 +405,71 @@ def create_app(database=None):
             planes=calendario(expediente, records, datetime.now(timezone.utc)),
         )
 
+    @app.route("/ejercicio", methods=["GET", "POST"])
+    def ejercicio():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+
+        ahora = datetime.now(ZONA_MISION)
+        fecha_local = ahora.strftime("%Y-%m-%dT%H:%M")
+        campos = ("fecha_hora", "tipo", "duracion_min", "equipo", "esfuerzo", "recuperacion")
+        formulario = {"fecha_hora": fecha_local}
+        identificador = uuid4().hex
+        error = None
+        if request.method == "POST":
+            formulario = {campo: request.form.get(campo, "").strip() for campo in campos}
+            identificador = request.form.get("registro_id", "")
+            try:
+                fecha = datetime.strptime(formulario["fecha_hora"], "%Y-%m-%dT%H:%M")
+                if fecha > ahora.replace(tzinfo=None):
+                    raise ValueError
+            except ValueError:
+                error = "Ingresa la fecha y hora local de una sesión realizada."
+            if error is None:
+                datos = formulario.copy()
+                for campo in ("duracion_min", "esfuerzo"):
+                    try:
+                        datos[campo] = int(formulario[campo]) if formulario[campo] else None
+                    except ValueError:
+                        pass
+                try:
+                    registro = registro_ejercicio(identificador, fecha.replace(tzinfo=ZONA_MISION).isoformat(), datos)
+                except ValueError as exc:
+                    error = str(exc)
+                else:
+                    usuario = session["user_id"]
+                    if almacen.save_expediente_report(database, usuario, CAMPO_EJERCICIO, registro, *campos):
+                        sincronizar_archivo_expediente(usuario)
+                        flash("Sesión de ejercicio guardada.")
+                        return redirect(url_for("ejercicio", actualizar_archivo=1), 303)
+                    error = "Esta sesión ya existe con otros datos. Vuelve a abrir el registro."
+
+        registros = sorted(expediente.get(CAMPO_EJERCICIO, []), key=lambda r: r["fecha_hora"], reverse=True)
+        inicio = ahora.date() - timedelta(days=6)
+        semana = [r for r in registros if inicio <= fecha_utc(r["fecha_hora"]).astimezone(ZONA_MISION).date() <= ahora.date()]
+        minutos = {}
+        esfuerzos = {}
+        for registro in semana:
+            tipo = registro["tipo"]
+            minutos[tipo] = minutos.get(tipo, 0) + registro["duracion_min"]
+            if registro["equipo"] and registro["esfuerzo"] is not None:
+                clave = tipo, registro["equipo"].casefold()
+                esfuerzos.setdefault(clave, []).append(registro)
+        graficas = [
+            serie_estadistica(
+                t(TIPOS_EJERCICIO[tipo]) + " · " + grupo[0]["equipo"],
+                "/ 10", [(r["fecha_hora"], r["esfuerzo"]) for r in grupo],
+            )
+            for (tipo, _), grupo in esfuerzos.items() if len(grupo) > 1
+        ]
+        return render_template(
+            "ejercicio.html", expediente=expediente, error=error, formulario=formulario,
+            tipos=TIPOS_EJERCICIO, fecha_maxima=fecha_local, registro_id=identificador, registros=registros,
+            sesiones_semana=len(semana), minutos=minutos, graficas=graficas,
+            actualizar_archivo=request.args.get("actualizar_archivo") == "1",
+        )
+
     @app.route("/cognicion", methods=["GET", "POST"])
     def pruebas_cognitivas():
         expediente = expediente_actual()
@@ -420,7 +487,7 @@ def create_app(database=None):
             except ValueError as exc:
                 return {"error": t(str(exc))}, 400
             usuario = session["user_id"]
-            if not almacen.save_cognitive_report(database, usuario, CAMPO_PRAXIS, registro, "tiempos_ms"):
+            if not almacen.save_expediente_report(database, usuario, CAMPO_PRAXIS, registro, "tiempos_ms"):
                 return {"error": t("Ya existe un resultado diferente con el identificador de esta ronda.")}, 409
             sincronizar_archivo_expediente(usuario)
             return {"url": url_for("pruebas_cognitivas", registro=registro["id"], actualizar_archivo=1, _anchor="praxis-guardado")}
@@ -491,7 +558,7 @@ def create_app(database=None):
         except ValueError as exc:
             return {"error": t(str(exc))}, 400
         usuario = session["user_id"]
-        if not almacen.save_cognitive_report(database, usuario, campo, registro, campo_respuestas):
+        if not almacen.save_expediente_report(database, usuario, campo, registro, campo_respuestas):
             return {"error": t("Ya existe un resultado diferente con el identificador de esta ronda.")}, 409
         sincronizar_archivo_expediente(usuario)
         return {"url": url_for(request.endpoint, registro=registro["id"], actualizar_archivo=1, _anchor=ancla)}
@@ -853,7 +920,8 @@ def create_app(database=None):
             if accion not in {"enviar", "finalizar"}:
                 abort(400)
             vitals = {key: request.form.get(key, "").strip() for key in vitals}
-            details = {campo: request.form.get(campo, "").strip() for campo in ("mision_id", "fase", "motivo", "actividad")}
+            details = {campo: request.form.get(campo, "").strip()
+                       for campo in ("mision_id", "fase", "motivo", "actividad", "contexto_fc")}
             misiones = {mision["id"] for mision in expediente["misiones"]}
             medidas = {}
             try:
@@ -870,6 +938,8 @@ def create_app(database=None):
                 error = "Selecciona una misión y una fase del expediente."
             if any(len(details[campo]) > 200 for campo in ("motivo", "actividad")):
                 error = "El motivo y la actividad admiten hasta 200 caracteres."
+            if details["contexto_fc"] and details["contexto_fc"] not in CONTEXTOS_FC:
+                error = "Selecciona un contexto válido para la frecuencia cardíaca."
             if len(answer) > 1000 or (accion == "enviar" and not answer):
                 error = "Escribe una respuesta de hasta 1000 caracteres."
             if not error:
@@ -882,6 +952,12 @@ def create_app(database=None):
                     "fase": details["fase"], "actividad": details["actividad"], "motivo": details["motivo"],
                 }
                 comparacion = comparar_referencias(medidas, expediente.get("referencias_monitoreo", {}))
+                if medidas["hr"] is not None and details["contexto_fc"]:
+                    contexto["contexto_fc"] = details["contexto_fc"]
+                    if details["contexto_fc"] in CONTEXTOS_FC_EJERCICIO:
+                        comparacion.pop("frecuencia_cardiaca", None)
+                else:
+                    details.pop("contexto_fc")
                 if comparacion:
                     contexto["comparacion_referencias"] = comparacion
                 try:

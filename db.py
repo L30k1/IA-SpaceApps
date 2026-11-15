@@ -118,7 +118,7 @@ def actualizar_volt(path, user_id, accion, identificador, respuestas, ahora):
         return completado
 
 
-def save_cognitive_report(path, user_id, campo, registro, campo_respuestas):
+def save_expediente_report(path, user_id, campo, registro, *campos):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         expediente = read_expediente(db, user_id)
@@ -127,7 +127,7 @@ def save_cognitive_report(path, user_id, campo, registro, campo_respuestas):
         registros = expediente.setdefault(campo, [])
         for anterior in registros:
             if anterior["id"] == registro["id"]:
-                return anterior[campo_respuestas] == registro[campo_respuestas]
+                return all(anterior[nombre] == registro[nombre] for nombre in campos)
         registros.append(registro)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
@@ -251,6 +251,7 @@ def checkup_record(record_id, finished_at, messages, vitals, details, status):
         "conversacion": messages,
         **{field: details[field] for field in ("evaluacion_ia", "evaluacion", "comparacion_referencias")
            if field in details},
+        **({"contexto_fc": details["contexto_fc"]} if details.get("contexto_fc") else {}),
     }
 
 

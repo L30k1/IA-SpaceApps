@@ -195,7 +195,7 @@
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
         for (const campo of [
           "diario_psicologico", "semanal_psicologico", "praxis_motora", "memoria_visual",
-          "orientacion_linea", "fractal_2_back", "reconocimiento_emociones",
+          "orientacion_linea", "fractal_2_back", "reconocimiento_emociones", "sesiones_ejercicio",
         ]) {
           if (campo in servidor || campo in local) {
             combinado[campo] = combinarRegistros(local, servidor, campo);

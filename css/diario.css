@@ -60,6 +60,15 @@
 .chat-psicologico li p { white-space: pre-wrap; margin-top: 6px; }
 .form-chat-psicologico { display: grid; gap: 10px; }
 .form-chat-psicologico button { justify-self: start; }
+.ejercicio-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 195px), 1fr));
+  gap: 12px;
+}
+.ejercicio-historial li + li {
+  border-top: 1px solid var(--border-glow);
+  padding-top: 10px;
+}
 
 @media (max-width: 640px) {
   .diario { padding: 18px; }

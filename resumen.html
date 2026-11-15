@@ -126,6 +126,9 @@
           <div class="info-card">
             <h3>{{ t('Mediciones') }}</h3>
             <ul>{{ mediciones(latest) }}</ul>
+            {% if latest.contexto_fc is string and latest.contexto_fc in contextos_fc %}
+            <p>{{ t('Contexto del pulso:') }} {{ t(contextos_fc[latest.contexto_fc]) }}</p>
+            {% endif %}
             {% if latest.clave.startswith('app-') and latest.comparacion_referencias %}
             <h3>{{ t('Comparación con tus rangos personales') }}</h3>
             <ul>

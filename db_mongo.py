@@ -119,7 +119,7 @@ def actualizar_volt(database, user_id, accion, identificador, respuestas, ahora)
     raise PyMongoError("El expediente se modificó en otra operación.")
 
 
-def save_cognitive_report(database, user_id, campo, registro, campo_respuestas):
+def save_expediente_report(database, user_id, campo, registro, *campos):
     for _ in range(8):
         estado = _estado(database, user_id)
         if estado is None:
@@ -127,7 +127,7 @@ def save_cognitive_report(database, user_id, campo, registro, campo_respuestas):
         registros = estado["expediente"].get(campo, [])
         anterior = next((r for r in registros if r["id"] == registro["id"]), None)
         if anterior is not None:
-            return anterior[campo_respuestas] == registro[campo_respuestas]
+            return all(anterior[nombre] == registro[nombre] for nombre in campos)
         if _actualizar(database, estado, {f"expediente.{campo}": [*registros, registro]}):
             return True
     raise PyMongoError("El expediente se modificó en otra operación.")

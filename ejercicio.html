@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="{{ idioma }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t('Ejercicio y recuperación') }} · MediSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+</head>
+<body>
+  <main class="app-frame">
+    <div class="main-area diario">
+      <header class="top-header">
+        <div class="marca-encabezado">{% include '_marca.html' %}</div>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        {% include '_selector_idioma.html' %}
+      </header>
+      <h1>{{ t('Ejercicio y recuperación') }}</h1>
+      {% for aviso in get_flashed_messages() %}<p role="status">{{ t(aviso) }}</p>{% endfor %}
+      {% if error %}<p class="diario-error" role="alert">{{ t(error) }}</p>{% endif %}
+      <form class="info-card" action="{{ url_for('ejercicio') }}" method="post" aria-labelledby="ejercicio-registro">
+        <h2 id="ejercicio-registro">{{ t('Registrar sesión de ejercicio') }}</h2>
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        <div class="ejercicio-campos">
+          <label class="campo-diario">{{ t('Fecha y hora de la sesión (UTC−6)') }}
+            <input type="datetime-local" name="fecha_hora" value="{{ formulario.fecha_hora }}" max="{{ fecha_maxima }}" required>
+          </label>
+          <label class="campo-diario">{{ t('Tipo de ejercicio') }}
+            <select name="tipo" required>
+              <option value="">{{ t('Selecciona un tipo de ejercicio.') }}</option>
+              {% for tipo, etiqueta in tipos.items() %}
+              <option value="{{ tipo }}"{% if formulario.tipo == tipo %} selected{% endif %}>{{ t(etiqueta) }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="campo-diario">{{ t('Duración (min)') }}
+            <input type="number" name="duracion_min" min="1" max="1440" value="{{ formulario.duracion_min | default('') }}" required>
+          </label>
+          <label class="campo-diario">{{ t('Equipo (opcional)') }}
+            <input name="equipo" maxlength="80" value="{{ formulario.equipo | default('') }}" placeholder="{{ t('ARED, T2, CEVIS u otro') }}">
+          </label>
+          <label class="campo-diario">{{ t('Esfuerzo percibido (0–10, opcional)') }}
+            <input type="number" name="esfuerzo" min="0" max="10" value="{{ formulario.esfuerzo | default('') }}">
+          </label>
+        </div>
+        <label class="campo-diario">{{ t('¿Cómo te sentiste al terminar? (opcional)') }}
+          <textarea name="recuperacion" maxlength="500" rows="2">{{ formulario.recuperacion | default('') }}</textarea>
+        </label>
+        <button class="btn-primary" type="submit">{{ t('Guardar sesión') }}</button>
+      </form>
+
+      {% import '_grafica_estadistica.html' as graficas_comunes %}
+      <section class="info-card" aria-labelledby="ejercicio-semana">
+        <h2 id="ejercicio-semana">{{ t('Últimos 7 días') }}</h2>
+        <dl class="datos-diario">
+          <div><dt>{{ t('Sesiones completadas') }}</dt><dd>{{ sesiones_semana }}</dd></div>
+          <div><dt>{{ t('Minutos totales') }}</dt><dd>{{ minutos.values() | sum }}</dd></div>
+          {% for tipo, total in minutos.items() %}
+          <div><dt>{{ t(tipos[tipo]) }}</dt><dd>{{ total }} min</dd></div>
+          {% endfor %}
+        </dl>
+        {% if graficas %}
+        <details>
+          <summary>{{ t('Evolución del esfuerzo por tipo de ejercicio y equipo') }}</summary>
+          <div class="estadisticas-resumen">
+            {% for serie in graficas %}
+            <div class="info-card">
+              <h3>{{ serie.etiqueta }}</h3>
+              {{ graficas_comunes.grafica(serie, serie.etiqueta) }}
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+      </section>
+
+      {% if registros %}
+      <details class="info-card">
+        <summary>{{ t('Historial de ejercicio') }}</summary>
+        <ul class="ejercicio-historial">
+          {% for registro in registros %}
+          <li>
+            <strong>{{ t(tipos[registro.tipo]) }} · {{ registro.duracion_min }} min</strong>
+            <p>{{ registro.fecha_hora | hora_utc }}{% if registro.equipo %} · {{ registro.equipo }}{% endif %}</p>
+            {% if registro.esfuerzo is not none %}<p>{{ t('Esfuerzo percibido') }} · {{ registro.esfuerzo }}/10</p>{% endif %}
+            {% if registro.recuperacion %}<p>{{ registro.recuperacion }}</p>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% include '_archivo_local.html' %}
+      <script src="{{ url_for('idioma_script') }}" defer></script>
+      <script src="{{ url_for('expediente_local_script') }}" defer></script>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>
