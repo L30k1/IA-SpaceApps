@@ -66,7 +66,6 @@
               <div class="crew-info">
                 <h2 id="crew-name">{{ expediente.astronauta.nombre }}</h2>
                 <div class="crew-id" id="crew-id">ID: {{ expediente._id }} · Astronauta</div>
-                {% if expediente.simulado %}<div class="status-badge">Expediente ficticio</div>{% endif %}
               </div>
             </div>
 
@@ -80,7 +79,7 @@
                   </svg>
                   <div>
                     <div class="health-label">Último chequeo</div>
-                    <div class="health-value" id="overall-health-status">{{ (latest.estado or 'Importado') if latest else 'Sin registros' }}</div>
+                    <div class="health-value" id="overall-health-status">{{ etiquetas_resultado.get(latest.estado, latest.estado or 'Importado') if latest else 'Sin registros' }}</div>
                   </div>
                 </div>
               </div>

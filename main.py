@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-import click
 import httpx2
 from flask import Flask, Response, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 from google.genai.errors import APIError
@@ -15,51 +14,26 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 import db
-from asistente import evaluar_chequeo, generar_pregunta
-from database.expedientes import DEMO_ID, FASES, SIGNOS, fecha_utc, leer_expediente
+from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
+from database.expedientes import FASES, SIGNOS, fecha_utc, leer_expediente
 
 
 ROOT = Path(__file__).resolve().parent
 MODOS_ACCESO = {"login", "login-json", "register"}
-ACCESOS_JSON = (
-    ("expediente-ejemplo.json", "rivera@example.test", DEMO_ID, "MEDISPACE_RIVERA_PASSWORD"),
-    ("expediente-astronauta.json", "mariana@example.test", "AS-MVEGA-8C42", "MEDISPACE_MARIANA_PASSWORD"),
-)
+ETIQUETAS_RESULTADO = {
+    "ALERTA": "Revisión prioritaria sugerida",
+    "ESTABLE": "Sin prioridad adicional sugerida",
+    "INDETERMINADO": "Información por aclarar",
+}
 ERRORES_GEMINI = (APIError, httpx2.HTTPError, ValueError)
 MENSAJE_GEMINI = "Gemini no devolvió una respuesta válida. Vuelve a intentarlo."
 
 
-def leer_expediente_subido(*, permitir_demo=False):
+def leer_expediente_subido():
     archivo = request.files.get("expediente")
     if not archivo or not archivo.filename.lower().endswith(".json"):
         raise ValueError("Selecciona tu expediente en formato JSON.")
-    return leer_expediente(archivo.read(), permitir_demo=permitir_demo)
-
-
-def configurar_acceso_json(database, archivo, correo, astronauta_id, password, *, actualizar=False):
-    if not 12 <= len(password) <= 128:
-        raise ValueError("La contraseña debe tener entre 12 y 128 caracteres.")
-    expediente = leer_expediente((ROOT / "database" / archivo).read_bytes(), permitir_demo=True)
-    if expediente["_id"] != astronauta_id:
-        raise ValueError("El expediente no coincide con el identificador de la cuenta.")
-
-    if not db.find_user(database, correo):
-        try:
-            db.create_user(database, correo, expediente["astronauta"]["nombre"],
-                           generate_password_hash(password), expediente)
-            return
-        except sqlite3.IntegrityError as exc:
-            if not actualizar:
-                raise ValueError("La cuenta o el expediente ya existe.") from exc
-    if not actualizar:
-        raise ValueError("La cuenta ya existe.")
-
-    usuario = db.find_user(database, correo)
-    titular = db.find_user_by_astronauta(database, astronauta_id)
-    if not usuario or not titular or usuario["id"] != titular["id"]:
-        raise ValueError("El correo o el expediente está vinculado a otra cuenta.")
-    if not check_password_hash(usuario["password_hash"], password):
-        db.update_password(database, usuario["id"], generate_password_hash(password))
+    return leer_expediente(archivo.read())
 
 
 def historial_expediente(expediente, filas):
@@ -84,7 +58,7 @@ def historial_expediente(expediente, filas):
 
 def registros_clinicos(database, user_id, expediente):
     return [
-        {**registro, "clave": clave, "estado": registro.get("resultado_simulador"),
+        {**registro, "clave": clave, "estado": registro.get("resultado") or registro.get("resultado_simulador"),
          "evaluacion_ia": registro.get("evaluacion_ia") if clave.startswith("app-") else None}
         for clave, registro in historial_expediente(expediente, db.history(database, user_id, expediente["_id"]))
     ]
@@ -118,25 +92,6 @@ def create_app(database=None):
     database = database or os.getenv("MEDISPACE_DATABASE") or ROOT / "medispace.sqlite3"
     archivos_expedientes = Path(f"{database}.expedientes")
     db.initialize(database)
-    for archivo, correo, astronauta_id, variable in ACCESOS_JSON:
-        password = os.getenv(variable)
-        if password:
-            try:
-                configurar_acceso_json(database, archivo, correo, astronauta_id, password, actualizar=True)
-            except (OSError, ValueError) as exc:
-                app.logger.error("No se pudo configurar %s: %s", variable, exc)
-
-    @app.cli.command("crear-usuario-demo")
-    @click.password_option(confirmation_prompt=True)
-    def crear_usuario_demo(password):
-        """Crea una cuenta para el expediente de ejemplo."""
-        archivo, correo, astronauta_id, _ = ACCESOS_JSON[0]
-        try:
-            configurar_acceso_json(database, archivo, correo, astronauta_id, password)
-        except (OSError, ValueError) as exc:
-            raise click.ClickException(str(exc)) from exc
-        click.echo(f"Cuenta creada: {correo}")
-
     @app.template_filter("hora_utc")
     def hora_utc(fecha):
         return fecha_utc(fecha).strftime("%d/%m/%Y %H:%M UTC")
@@ -179,6 +134,7 @@ def create_app(database=None):
             "csrf": session["csrf"],
             "fases": FASES,
             "signos": SIGNOS,
+            "etiquetas_resultado": ETIQUETAS_RESULTADO,
         }
 
     @app.before_request
@@ -210,7 +166,7 @@ def create_app(database=None):
             password = request.form.get("password", "")
             if mode == "login-json":
                 try:
-                    expediente = leer_expediente_subido(permitir_demo=True)
+                    expediente = leer_expediente_subido()
                 except ValueError as exc:
                     error = str(exc)
                 else:
@@ -276,8 +232,6 @@ def create_app(database=None):
         expediente = expediente_actual()
         if expediente is None:
             return redirect(url_for("index"))
-        if not expediente.get("simulado"):
-            return render_template("chequeo.html", expediente=expediente, bloqueado="El chequeo con Gemini está disponible para expedientes ficticios.")
         if not os.getenv("GEMINI_API_KEY", "").strip():
             return render_template("chequeo.html", expediente=expediente, bloqueado="Gemini aún no está configurado en el servidor.")
 
@@ -286,7 +240,7 @@ def create_app(database=None):
         if request.method == "POST" and request.form.get("iniciar") == "1":
             if draft is None:
                 try:
-                    pregunta = generar_pregunta([])
+                    pregunta = generar_pregunta({"mensajes": []})
                 except ERRORES_GEMINI:
                     return render_template("chequeo.html", expediente=expediente, error=MENSAJE_GEMINI), 503
                 db.open_checkup(database, usuario, astronauta, {"role": "ai", "text": pregunta})
@@ -295,48 +249,67 @@ def create_app(database=None):
             return render_template("chequeo.html", expediente=expediente)
 
         messages = json.loads(draft["messages"])
-        vitals = {key: draft[key] if draft["revision"] else "" for key in ("hr", "spo2", "temp")}
-        details = json.loads(draft["details"] or "{}")
-        misiones = {mision["id"] for mision in expediente["misiones"]}
+        datos_guardados = json.loads(draft["details"] or "{}")
+        vitals = {
+            key: datos_guardados.get("telemetria", {}).get(key, draft[key] if draft["revision"] else None)
+            for key in ("hr", "spo2", "temp")
+        }
+        details = datos_guardados
         answer = request.form.get("answer", "").strip()
         error = None
         if request.method == "POST":
             if request.form.get("turn") != f"{draft['id']}:{draft['revision']}":
                 return redirect(url_for("checkup"), 303)
-            vitals = {key: request.form.get(key, "") for key in vitals}
+            accion = request.form.get("accion", "enviar")
+            if accion not in {"enviar", "finalizar"}:
+                abort(400)
+            vitals = {key: request.form.get(key, "").strip() for key in vitals}
             details = {campo: request.form.get(campo, "").strip() for campo in ("mision_id", "fase", "motivo", "actividad")}
+            misiones = {mision["id"] for mision in expediente["misiones"]}
+            medidas = {}
             try:
-                hr, spo2, temp = int(vitals["hr"]), int(vitals["spo2"]), float(vitals["temp"])
-                if not (1 <= hr <= 999 and 0 <= spo2 <= 100 and 0.1 <= temp <= 99.9):
-                    raise ValueError
+                for key, convertir, minimo, maximo in (
+                    ("hr", int, 1, 999), ("spo2", int, 0, 100), ("temp", float, 0.1, 99.9),
+                ):
+                    valor = convertir(vitals[key]) if vitals[key] else None
+                    if valor is not None and not minimo <= valor <= maximo:
+                        raise ValueError
+                    medidas[key] = valor
             except ValueError:
-                error = "Ingresa los tres valores de telemetría y revisa sus unidades."
+                error = "Revisa el formato y las unidades de las mediciones ingresadas."
             if ((details["mision_id"] and details["mision_id"] not in misiones)
                     or (details["fase"] and details["fase"] not in FASES)):
                 error = "Selecciona una misión y una fase del expediente."
             if any(len(details[campo]) > 200 for campo in ("motivo", "actividad")):
                 error = "El motivo y la actividad admiten hasta 200 caracteres."
-            if not error and not 1 <= len(answer) <= 1000:
+            if len(answer) > 1000 or (accion == "enviar" and not answer):
                 error = "Escribe una respuesta de hasta 1000 caracteres."
             if not error:
-                updated = [*messages, {"role": "user", "text": answer}]
+                updated = [*messages, {"role": "user", "text": answer}] if answer else messages
                 status = None
+                details["telemetria"] = medidas
                 contexto = {
-                    "telemetria": {"frecuencia_cardiaca_lpm": hr, "spo2_pct": spo2, "temperatura_c": temp},
+                    "telemetria": {etiqueta: medidas[key] for key, etiqueta in (
+                        ("hr", "frecuencia_cardiaca_lpm"), ("spo2", "spo2_pct"), ("temp", "temperatura_c"),
+                    ) if medidas[key] is not None},
                     "fase": details["fase"], "actividad": details["actividad"], "motivo": details["motivo"],
                 }
                 try:
-                    if draft["revision"] < 2:
-                        pregunta = generar_pregunta(updated, contexto)
-                        updated.append({"role": "ai", "text": pregunta})
-                    else:
-                        evaluacion = evaluar_chequeo(updated, contexto)
+                    conversacion, memoria = preparar_conversacion(updated, datos_guardados.get("memoria_ia"))
+                    if accion == "finalizar":
+                        evaluacion = evaluar_chequeo(conversacion, contexto)
                         status = evaluacion["estado"]
                         details["evaluacion_ia"] = evaluacion
+                    else:
+                        pregunta = generar_pregunta(conversacion, contexto)
+                        updated.append({"role": "ai", "text": pregunta})
+                        if memoria:
+                            details["memoria_ia"] = memoria
                 except ERRORES_GEMINI:
                     error = MENSAJE_GEMINI
                 if not error:
-                    saved = db.save_turn(database, draft, updated, (hr, spo2, temp), details, status)
+                    valores_sql = tuple(medidas[key] if medidas[key] is not None else 0 for key in ("hr", "spo2", "temp"))
+                    saved = db.save_turn(database, draft, updated, valores_sql, details, status)
                     if saved and status:
                         sincronizar_archivo_expediente(usuario)
                         return redirect(url_for("summary", registro=f"app-{draft['id']}", actualizar_archivo=1), 303)

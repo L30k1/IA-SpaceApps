@@ -112,12 +112,6 @@ body {
 
 .crew-info h2 { font-size: 1.35rem; font-weight: 600; }
 .crew-id { font-size: 0.85rem; color: var(--text-muted); margin: 2px 0 6px; }
-.status-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 0.82rem; color: #86efac;
-}
-.dot-green { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
-
 .health-status-card {
   background: var(--card-bg);
   border: 1px solid rgba(56, 152, 255, 0.35);
@@ -146,13 +140,6 @@ body {
 
 .health-label { font-size: 0.85rem; color: var(--text-muted); }
 .health-value { font-size: 1.5rem; font-weight: 700; color: #4ade80; }
-
-#ecg-canvas {
-  width: 180px;
-  height: 52px;
-  background: rgba(4, 15, 36, 0.6);
-  border-radius: 8px;
-}
 
 .schedule-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
 .schedule-item {
@@ -200,76 +187,6 @@ body {
 }
 .btn-primary:hover { filter: brightness(1.1); }
 
-/* ANTECEDENTES MÉDICOS (PANTALLA 4) */
-.tabs-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.tab-btn {
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(8, 20, 48, 0.7);
-  border: 1px solid rgba(56, 152, 255, 0.25);
-  color: var(--text-muted);
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.tab-btn.active {
-  background: rgba(29, 116, 245, 0.35);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.medical-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  flex: 1;
-}
-
-.med-card {
-  background: var(--card-bg);
-  border: 1px solid rgba(56, 152, 255, 0.3);
-  border-radius: 14px;
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.med-card h3 { font-size: 1.05rem; margin-bottom: 16px; color: var(--accent); }
-.med-list { list-style: none; display: flex; flex-direction: column; gap: 14px; font-size: 0.92rem; }
-.med-list li { display: flex; align-items: center; gap: 10px; color: var(--text-main); }
-
-.records-link {
-  margin-top: 20px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(56, 152, 255, 0.2);
-  display: flex;
-  justify-content: space-between;
-  color: var(--accent);
-  font-size: 0.88rem;
-  cursor: pointer;
-}
-
-.baseline-note {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.footer-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.btn-evaluation { width: 220px; }
-
 .btn-secondary {
   padding: 11px 20px;
   background: transparent;
@@ -280,11 +197,11 @@ body {
 }
 
 @media (max-width: 760px) {
-  .dashboard-grid, .medical-grid { grid-template-columns: 1fr; }
+  .dashboard-grid { grid-template-columns: 1fr; }
   .sidebar { display: none; }
 }
 
-a.nav-icon, a.action-tile, a.btn-primary, a.btn-secondary, a.tab-btn, a.records-link {
+a.nav-icon, a.action-tile, a.btn-primary {
   text-decoration: none;
 }
 

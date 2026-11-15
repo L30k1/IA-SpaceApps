@@ -55,7 +55,7 @@
         {% elif not draft %}
         <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <p>Usa datos ficticios. Gemini recibe la conversación y la telemetría para evaluar el chequeo de demostración.</p>
+          <p>Gemini recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.</p>
           {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
           <button name="iniciar" value="1" type="submit" class="btn-send">Iniciar con Gemini</button>
         </form>
@@ -65,9 +65,9 @@
           <input type="hidden" name="turn" value="{{ draft['id'] }}:{{ draft['revision'] }}">
           <div class="telemetry-strip">
             <span class="telemetry-title">📡 Telemetría</span>
-            <label>FC (lpm) <input type="number" name="hr" value="{{ vitals.hr }}" min="1" max="999" required></label>
-            <label>SpO₂ (%) <input type="number" name="spo2" value="{{ vitals.spo2 }}" min="0" max="100" required></label>
-            <label>Temp (°C) <input type="number" name="temp" value="{{ vitals.temp }}" min="0.1" max="99.9" step="0.1" required></label>
+            <label>FC (lpm) <input type="number" name="hr" value="{{ vitals.hr if vitals.hr is not none else '' }}" min="1" max="999"></label>
+            <label>SpO₂ (%) <input type="number" name="spo2" value="{{ vitals.spo2 if vitals.spo2 is not none else '' }}" min="0" max="100"></label>
+            <label>Temp (°C) <input type="number" name="temp" value="{{ vitals.temp if vitals.temp is not none else '' }}" min="0.1" max="99.9" step="any"></label>
           </div>
 
           <div class="telemetry-strip checkup-context">
@@ -91,7 +91,6 @@
             <label>Actividad <input name="actividad" value="{{ details.actividad | default('') }}" maxlength="200"></label>
           </div>
 
-          <p>Chequeo ficticio con Gemini.</p>
           <div class="chat-container" aria-label="Conversación">
             {% for message in messages %}
             <div class="msg-row {{ message.role }}">
@@ -103,7 +102,8 @@
           {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
           <div class="chat-input-bar">
             <input type="text" name="answer" aria-label="Tu respuesta" placeholder="Escribe tu respuesta..." value="{{ answer }}" maxlength="1000" autocomplete="off">
-            <button type="submit" class="btn-send">{{ 'Evaluar con Gemini' if draft.revision >= 2 else 'Enviar' }}</button>
+            <button type="submit" class="btn-send" name="accion" value="enviar">Enviar</button>
+            <button type="submit" class="btn-send" name="accion" value="finalizar">Finalizar chequeo</button>
           </div>
         </form>
         {% endif %}

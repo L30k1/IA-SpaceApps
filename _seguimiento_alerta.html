@@ -2,6 +2,7 @@
 {% set evaluacion = latest.evaluacion_ia %}
 <div class="info-card">
   <h3>Evaluación de Gemini</h3>
+  <p>El equipo médico debe revisar estas sugerencias de seguimiento.</p>
   <p>{{ evaluacion.resumen }}</p>
   <ul>
     {% for motivo in evaluacion.motivos %}
