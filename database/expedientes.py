@@ -3,6 +3,7 @@ import math
 import re
 from datetime import datetime, timezone
 
+from lot import CAMPO_LOT, VERSION_LOT, puntuar_lot
 from volt import CAMPO_VOLT, ESPERA, VERSION_VOLT, estimulos, puntuar
 
 
@@ -48,6 +49,15 @@ def registro_praxis(identificador, fecha, tiempos):
         "tiempos_ms": tiempos,
         "promedio_ms": round(sum(tiempos) / len(tiempos), 3),
         "mejor_ms": min(tiempos),
+    }
+
+
+def registro_lot(identificador, fecha, respuestas):
+    if not isinstance(identificador, str) or not re.fullmatch(r"[0-9a-f]{32}", identificador):
+        raise ValueError("El identificador de la prueba de orientación no es válido.")
+    return {
+        "id": identificador, "fecha_hora": fecha_utc(fecha).isoformat(), "version": VERSION_LOT,
+        **puntuar_lot(identificador, respuestas),
     }
 
 
@@ -132,4 +142,14 @@ def leer_expediente(contenido):
         expediente[CAMPO_PRAXIS] = registros
     if CAMPO_VOLT in expediente:
         expediente[CAMPO_VOLT] = registros_volt(expediente[CAMPO_VOLT])
+    if CAMPO_LOT in expediente:
+        registros = expediente[CAMPO_LOT]
+        if not isinstance(registros, list) or not all(
+            isinstance(r, dict) and r.get("version") == VERSION_LOT for r in registros
+        ):
+            raise ValueError("Orientación de línea debe contener una lista de rondas válidas.")
+        registros = [registro_lot(r.get("id"), r.get("fecha_hora"), r.get("respuestas")) for r in registros]
+        if len({registro["id"] for registro in registros}) != len(registros):
+            raise ValueError("Los identificadores de orientación de línea deben ser únicos.")
+        expediente[CAMPO_LOT] = registros
     return expediente

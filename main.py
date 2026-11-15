@@ -17,7 +17,10 @@ from werkzeug.utils import secure_filename
 
 import db
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
-from database.expedientes import CAMPO_PRAXIS, FASES, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_praxis
+from database.expedientes import (
+    CAMPO_PRAXIS, FASES, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot, registro_praxis,
+)
+from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from psicologia import (
     INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
     tramo_mision, validar_registros,
@@ -133,7 +136,7 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
-            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "download_expediente", "logout",
+            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -158,7 +161,7 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
-                if request.endpoint in {"pruebas_cognitivas", "prueba_volt"}:
+                if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
@@ -255,7 +258,7 @@ def create_app(database=None):
             except ValueError as exc:
                 return {"error": str(exc)}, 400
             usuario = session["user_id"]
-            if not db.save_praxis_report(database, usuario, registro):
+            if not db.save_cognitive_report(database, usuario, CAMPO_PRAXIS, registro, "tiempos_ms"):
                 return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
             sincronizar_archivo_expediente(usuario)
             return {"url": url_for("pruebas_cognitivas", registro=registro["id"], actualizar_archivo=1, _anchor="praxis-guardado")}
@@ -315,6 +318,46 @@ def create_app(database=None):
             figuras=FIGURAS, registros=registros, actual=actual,
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
         )
+
+    @app.route("/cognicion/lot", methods=["GET", "POST"])
+    def prueba_lot():
+        expediente = expediente_actual()
+        if expediente is None:
+            if request.method == "POST":
+                return {"error": "Inicia sesión para guardar los resultados."}, 401
+            return redirect(url_for("index"))
+        if request.method == "POST":
+            try:
+                respuestas = json.loads(request.form.get("respuestas", ""))
+            except (ValueError, RecursionError):
+                return {"error": "No se pudieron leer las respuestas de la ronda."}, 400
+            try:
+                registro = registro_lot(request.form.get("registro_id"), datetime.now(timezone.utc).isoformat(), respuestas)
+            except ValueError as exc:
+                return {"error": str(exc)}, 400
+            usuario = session["user_id"]
+            if not db.save_cognitive_report(database, usuario, CAMPO_LOT, registro, "respuestas"):
+                return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
+            sincronizar_archivo_expediente(usuario)
+            destino = url_for("prueba_lot", registro=registro["id"], actualizar_archivo=1, _anchor="lot-guardado")
+            return {"url": destino}
+
+        registros = sorted(expediente.get(CAMPO_LOT, []), key=lambda registro: registro["fecha_hora"], reverse=True)
+        seleccionado = request.args.get("registro")
+        actual = next((registro for registro in registros if registro["id"] == seleccionado), None)
+        if seleccionado and actual is None:
+            abort(404)
+        identificador = uuid4().hex
+        rondas = [[ANGULOS_LOT[numero - 1] for numero in par] for par in pares_lot(identificador)]
+        return render_template(
+            "lot.html", expediente=expediente, registro_id=identificador, rondas=rondas, angulos=ANGULOS_LOT,
+            opciones=OPCIONES_LOT, ensayos=ENSAYOS_LOT, registros=registros, actual=actual,
+            actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
+        )
+
+    @app.get("/assets/orientacion-linea.js")
+    def lot_script():
+        return send_from_directory(ROOT / "static", "orientacion-linea.js")
 
     @app.get("/assets/memoria-visual.js")
     def volt_script():

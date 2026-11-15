@@ -57,7 +57,9 @@ MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](m
 
 La sección **Pruebas cognitivas** del perfil incluye Praxis Motora. Mide en el navegador el tiempo de respuesta a cada uno de los 20 objetivos consecutivos. Las rondas completas se guardan en el historial de la cuenta y en `praxis_motora` dentro del expediente JSON.
 
-Memoria visual presenta diez figuras tridimensionales durante cinco segundos cada una. Los reconocimientos inmediato y diferido contienen veinte figuras cada uno. Tras el reconocimiento inmediato, el servidor conserva la sesión y habilita el diferido a partir de los quince minutos. El expediente guarda ambas puntuaciones, los tiempos y el intervalo real en `memoria_visual`. Las figuras de MediSpace son propias. [Descripción del reconocimiento diferido en Cognitive Atlas](https://cognitiveatlas.org/task/id/trm_56a2a98785453/)
+Aprendizaje visual de objetos (VOLT) presenta diez figuras tridimensionales durante cinco segundos cada una. Los reconocimientos inmediato y diferido contienen veinte figuras cada uno. Tras el reconocimiento inmediato, el servidor conserva la sesión y habilita el diferido a partir de los quince minutos. El expediente guarda ambas puntuaciones, los tiempos y el intervalo real en `memoria_visual`. Las figuras de MediSpace son propias. [Descripción del reconocimiento diferido en Cognitive Atlas](https://cognitiveatlas.org/task/id/trm_56a2a98785453/)
+
+Orientación de línea (LOT) presenta doce pares de segmentos para cotejar sus inclinaciones con un abanico de once líneas numeradas. MediSpace usa ángulos de 15° a 165° y genera sus propios pares. El expediente guarda los aciertos por par y por línea, los tiempos y las respuestas en `orientacion_linea`. [Formato de referencia del juicio de orientación de Benton](https://pmc.ncbi.nlm.nih.gov/articles/PMC3094715/)
 
 ## Chat de apoyo
 
