@@ -1,7 +1,6 @@
-import json
 from datetime import date, timedelta
 
-from asistente import consultar_gemini, texto_valido
+from asistente import consultar_gemini, consultar_respuesta, leer_json_ia, limpiar_conversacion, texto_respuesta, texto_valido
 from idioma import traducir as t
 from database.expedientes import fecha_utc, texto_requerido
 
@@ -198,12 +197,12 @@ def seguimiento_psicologico(registro, modulo):
             "required": ["resumen", "acciones"],
         },
     )
-    return validar_seguimiento(json.loads(respuesta))
+    return validar_seguimiento(leer_json_ia(respuesta), leer_texto=texto_respuesta)
 
 
 def responder_chat_psicologico(mensajes):
-    respuesta = consultar_gemini(
-        {"conversacion": mensajes[-24:]},
+    return consultar_respuesta(
+        {"conversacion": limpiar_conversacion(mensajes[-24:])},
         "Actúa como un asistente de IA de apoyo emocional para personas en ambientes de "
         "aislamiento, confinamiento o alta exigencia. Escucha, refleja lo que la persona "
         "describe y, cuando ayude, haz una pregunta abierta. Ofrece estrategias de "
@@ -214,19 +213,19 @@ def responder_chat_psicologico(mensajes):
         "afirmar que ya avisaste a alguien. Si hay indicios de daño inminente, recomienda "
         "contactar inmediatamente al equipo de emergencia de la misión o a los servicios "
         "de emergencia de su ubicación y buscar a una persona cercana. No solicites "
-        "identificadores ni detalles médicos que no sean necesarios. Responde en texto simple.",
+        "identificadores ni detalles médicos que no sean necesarios.",
         max_output_tokens=700,
+        limite=2400,
     )
-    return texto_valido(respuesta, 2400)
 
 
-def validar_seguimiento(datos):
+def validar_seguimiento(datos, *, leer_texto=texto_valido):
     if not isinstance(datos, dict):
         raise ValueError("La IA devolvió un seguimiento inválido.")
     acciones = datos.get("acciones")
     if not isinstance(acciones, list) or not 1 <= len(acciones) <= 3:
         raise ValueError("La IA devolvió acciones inválidas.")
     return {
-        "resumen": texto_valido(datos.get("resumen"), 600),
-        "acciones": [texto_valido(accion, 300) for accion in acciones],
+        "resumen": leer_texto(datos.get("resumen"), 600),
+        "acciones": [leer_texto(accion, 300) for accion in acciones],
     }
