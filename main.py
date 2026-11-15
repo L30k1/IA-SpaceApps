@@ -19,6 +19,10 @@ from database.expedientes import DEMO_ID, FASES, SIGNOS, fecha_utc, leer_expedie
 
 ROOT = Path(__file__).resolve().parent
 MODOS_ACCESO = {"login", "login-json", "register"}
+ACCESOS_JSON = (
+    ("expediente-ejemplo.json", "rivera@example.test", DEMO_ID, "MEDISPACE_RIVERA_PASSWORD"),
+    ("expediente-astronauta.json", "mariana@example.test", "AS-MVEGA-8C42", "MEDISPACE_MARIANA_PASSWORD"),
+)
 ERRORES_GEMINI = (APIError, httpx2.HTTPError, ValueError)
 MENSAJE_GEMINI = "Gemini no devolvió una respuesta válida. Vuelve a intentarlo."
 
@@ -28,6 +32,32 @@ def leer_expediente_subido(*, permitir_demo=False):
     if not archivo or not archivo.filename.lower().endswith(".json"):
         raise ValueError("Selecciona tu expediente en formato JSON.")
     return leer_expediente(archivo.read(), permitir_demo=permitir_demo)
+
+
+def configurar_acceso_json(database, archivo, correo, astronauta_id, password, *, actualizar=False):
+    if not 12 <= len(password) <= 128:
+        raise ValueError("La contraseña debe tener entre 12 y 128 caracteres.")
+    expediente = leer_expediente((ROOT / "database" / archivo).read_bytes(), permitir_demo=True)
+    if expediente["_id"] != astronauta_id:
+        raise ValueError("El expediente no coincide con el identificador de la cuenta.")
+
+    if not db.find_user(database, correo):
+        try:
+            db.create_user(database, correo, expediente["astronauta"]["nombre"],
+                           generate_password_hash(password), expediente)
+            return
+        except sqlite3.IntegrityError as exc:
+            if not actualizar:
+                raise ValueError("La cuenta o el expediente ya existe.") from exc
+    if not actualizar:
+        raise ValueError("La cuenta ya existe.")
+
+    usuario = db.find_user(database, correo)
+    titular = db.find_user_by_astronauta(database, astronauta_id)
+    if not usuario or not titular or usuario["id"] != titular["id"]:
+        raise ValueError("El correo o el expediente está vinculado a otra cuenta.")
+    if not check_password_hash(usuario["password_hash"], password):
+        db.update_password(database, usuario["id"], generate_password_hash(password))
 
 
 def registros_clinicos(database, user_id, expediente):
@@ -67,23 +97,24 @@ def create_app(database=None):
     )
     database = database or os.getenv("MEDISPACE_DATABASE") or ROOT / "medispace.sqlite3"
     db.initialize(database)
+    for archivo, correo, astronauta_id, variable in ACCESOS_JSON:
+        password = os.getenv(variable)
+        if password:
+            try:
+                configurar_acceso_json(database, archivo, correo, astronauta_id, password, actualizar=True)
+            except (OSError, ValueError) as exc:
+                app.logger.error("No se pudo configurar %s: %s", variable, exc)
 
     @app.cli.command("crear-usuario-demo")
     @click.password_option(confirmation_prompt=True)
     def crear_usuario_demo(password):
         """Crea una cuenta para el expediente de ejemplo."""
-        if len(password) < 12:
-            raise click.ClickException("Usa una contraseña de al menos 12 caracteres.")
-        archivo = ROOT / "database" / "expediente-ejemplo.json"
-        expediente = leer_expediente(archivo.read_bytes(), permitir_demo=True)
-        if expediente["_id"] != DEMO_ID:
-            raise click.ClickException("El archivo de ejemplo debe conservar su identificador.")
+        archivo, correo, astronauta_id, _ = ACCESOS_JSON[0]
         try:
-            db.create_user(database, "rivera@example.test", expediente["astronauta"]["nombre"],
-                           generate_password_hash(password), expediente)
-        except sqlite3.IntegrityError as exc:
-            raise click.ClickException("La cuenta de demostración ya existe.") from exc
-        click.echo("Cuenta creada: rivera@example.test")
+            configurar_acceso_json(database, archivo, correo, astronauta_id, password)
+        except (OSError, ValueError) as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo(f"Cuenta creada: {correo}")
 
     @app.template_filter("hora_utc")
     def hora_utc(fecha):

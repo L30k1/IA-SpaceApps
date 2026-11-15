@@ -76,6 +76,11 @@ def find_user_by_astronauta(path, astronauta_id):
         ).fetchone()
 
 
+def update_password(path, user_id, password_hash):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+
+
 def open_checkup(path, user_id, profile, greeting):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute(

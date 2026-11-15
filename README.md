@@ -25,6 +25,15 @@ Para habilitar los chequeos ficticios, ejecuta `$env:GEMINI_API_KEY = "<tu clave
 
 El expediente de ejemplo está reservado para `rivera@example.test`. Para crear esa cuenta en una instalación, ejecuta `python -m flask --app main:create_app crear-usuario-demo` y elige una contraseña al recibir la solicitud. El comando usa la misma base de datos que la aplicación. Para Render, ejecútalo en el entorno del servicio con acceso a su base de datos.
 
+Para habilitar ambos expedientes en Render, agrega estas variables en **Environment**. Escribe una contraseña distinta de 12 a 128 caracteres en el campo **Value** de cada una.
+
+| Archivo | Correo asignado | Variable |
+| --- | --- | --- |
+| `expediente-ejemplo.json` | `rivera@example.test` | `MEDISPACE_RIVERA_PASSWORD` |
+| `expediente-astronauta.json` | `mariana@example.test` | `MEDISPACE_MARIANA_PASSWORD` |
+
+Despliega la versión actualizada. Al arrancar, MediSpace crea las cuentas o actualiza la contraseña si el correo y el identificador corresponden a la cuenta configurada. Si el expediente ya está vinculado a otro correo, conserva su cuenta y contraseña. En **Iniciar sesión con JSON**, sube el archivo correspondiente y escribe la contraseña de esa cuenta.
+
 Los formularios y enlaces funcionan en la dirección de MediSpace indicada arriba. Al abrir un HTML directamente o usar un servidor estático como Live Server, verás un enlace para entrar a la aplicación de Python. El estado ESTABLE o ALERTA lo calculan las reglas de demostración en `main.py`. El historial se guarda por cuenta y perfil en `medispace.sqlite3`.
 
 Puedes definir `MEDISPACE_SECRET_KEY` con un valor secreto estable para conservar las sesiones al reiniciar el servidor. Si se omite, se genera una clave nueva en cada inicio.
