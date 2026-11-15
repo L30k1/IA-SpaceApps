@@ -24,7 +24,7 @@ import db
 from historial_formulario import SECCIONES, filas_formulario, generar_historial
 from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, texto_respuesta
-from calendario_mision import ZONA_MISION, calendario, fechas_mision
+from calendario_mision import ZONA_MISION, calendario, fechas_ejercicio, fechas_mision, rutina_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
     registro_ejercicio, registro_emociones, registro_f2b, registro_praxis,
@@ -415,6 +415,10 @@ def create_app(database=None):
         fecha_local = ahora.strftime("%Y-%m-%dT%H:%M")
         misiones = {m["id"]: fechas for m in expediente["misiones"] if (fechas := fechas_mision(m))}
         seleccionada = request.args.get("mision", "")
+        if not seleccionada:
+            vigentes = [clave for clave, (inicio, fin) in misiones.items() if inicio <= ahora.date() <= fin]
+            if len(vigentes) == 1:
+                seleccionada = vigentes[0]
         campos = ("fecha_hora", "tipo", "duracion_min", "equipo", "esfuerzo", "recuperacion", "mision_id")
         formulario = {"fecha_hora": fecha_local, "mision_id": seleccionada if seleccionada in misiones else ""}
         identificador = uuid4().hex
@@ -429,12 +433,16 @@ def create_app(database=None):
             except ValueError:
                 error = "Ingresa la fecha y hora local de una sesión realizada."
             mision_id = formulario["mision_id"]
-            if error is None and mision_id:
-                rango = misiones.get(mision_id)
-                if rango is None or not rango[0] <= fecha.date() <= rango[1]:
-                    error = "La fecha de la sesión debe estar dentro de la misión seleccionada."
             if error is None:
-                datos = formulario.copy()
+                candidatas = [clave for clave, (inicio, fin) in misiones.items() if inicio <= fecha.date() <= fin]
+                if mision_id and mision_id not in candidatas:
+                    error = "La fecha de la sesión debe estar dentro de la misión seleccionada."
+                elif not mision_id and len(candidatas) == 1:
+                    mision_id = candidatas[0]
+                elif not mision_id and len(candidatas) > 1:
+                    error = "Selecciona la misión para que esta sesión cuente en su rutina."
+            if error is None:
+                datos = {**formulario, "mision_id": mision_id}
                 for campo in ("duracion_min", "esfuerzo"):
                     try:
                         datos[campo] = int(formulario[campo]) if formulario[campo] else None
@@ -453,6 +461,11 @@ def create_app(database=None):
                     error = "Esta sesión ya existe con otros datos. Vuelve a abrir el registro."
 
         registros = sorted(expediente.get(CAMPO_EJERCICIO, []), key=lambda r: r["fecha_hora"], reverse=True)
+        mision_seleccionada = formulario["mision_id"]
+        rutina = None
+        if mision_seleccionada in misiones:
+            rutina = rutina_mision(mision_seleccionada, *misiones[mision_seleccionada], ahora.date(),
+                                   fechas_ejercicio(registros, misiones, ahora))
         inicio = ahora.date() - timedelta(days=6)
         semana = [r for r in registros if inicio <= fecha_utc(r["fecha_hora"]).astimezone(ZONA_MISION).date() <= ahora.date()]
         minutos = {}
@@ -474,6 +487,7 @@ def create_app(database=None):
             "ejercicio.html", expediente=expediente, error=error, formulario=formulario,
             tipos=TIPOS_EJERCICIO, misiones=misiones, fecha_maxima=fecha_local, registro_id=identificador, registros=registros,
             sesiones_semana=len(semana), minutos=minutos, graficas=graficas,
+            rutina=rutina, mision_seleccionada=mision_seleccionada,
             actualizar_archivo=request.args.get("actualizar_archivo") == "1",
         )
 

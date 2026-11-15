@@ -115,7 +115,16 @@ def rutina_mision(identificador, inicio, fin, hoy, sesiones_por_tipo):
         metas.append({"tipo": TIPOS_EJERCICIO.get(tipo, "Actividad registrada"), "ejemplo": EJEMPLOS_EJERCICIO[tipo],
                       "completada": any(inicio_periodo <= fecha <= fin_periodo for fecha in dias)})
     return {"inicio": inicio_periodo, "fin": fin_periodo, "metas": metas,
-            "completadas": sum(meta["completada"] for meta in metas)}
+            "completadas": sum(meta["completada"] for meta in metas),
+            "total_sesiones": len(sesiones_por_tipo["general"][identificador])}
+
+
+def fechas_ejercicio(sesiones, misiones, ahora):
+    por_tipo = {"general": fechas_registros(sesiones, misiones, ahora)[0]}
+    for tipo in ("aerobico", "fuerza", "movilidad"):
+        tipos_validos = {tipo, "mixto"} if tipo in {"aerobico", "fuerza"} else {tipo}
+        por_tipo[tipo] = fechas_registros((s for s in sesiones if s["tipo"] in tipos_validos), misiones, ahora)[0]
+    return por_tipo
 
 
 def calendario(expediente, medicos, ahora):
@@ -125,10 +134,7 @@ def calendario(expediente, medicos, ahora):
         "diario_psicologico", "semanal_psicologico", *PRUEBAS_COGNITIVAS,
     )}
     chequeos, previos_medicos = fechas_registros(medicos, misiones, ahora)
-    sesiones = expediente.get(CAMPO_EJERCICIO, [])
-    sesiones_por_tipo = {"general": fechas_registros(sesiones, misiones, ahora)[0]}
-    for tipo in ("aerobico", "fuerza", "movilidad"):
-        sesiones_por_tipo[tipo] = fechas_registros((s for s in sesiones if s["tipo"] == tipo), misiones, ahora)[0]
+    sesiones_por_tipo = fechas_ejercicio(expediente.get(CAMPO_EJERCICIO, []), misiones, ahora)
     planes = []
     for mision in expediente["misiones"]:
         identificador = mision["id"]
