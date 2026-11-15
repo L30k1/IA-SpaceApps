@@ -1,7 +1,7 @@
 <nav class="step-pills" aria-label="Atención psicológica">
-  {% for clave_modulo, etiqueta in [('diario', 'Diario'), ('semanal', 'Semanal'), ('chat', 'Chat de apoyo')] %}
+  {% for clave_modulo, etiqueta in [('diario', 'Diario'), ('semanal', 'Semanal')] %}
   <a class="step-pill{{ ' active' if modulo == clave_modulo else '' }}"
-     href="{{ url_for('chat_psicologico') if clave_modulo == 'chat' else url_for('registro_psicologico', modulo=clave_modulo) }}"
+     href="{{ url_for('registro_psicologico', modulo=clave_modulo) }}"
      {% if modulo == clave_modulo %}aria-current="page"{% endif %}>{{ etiqueta }}</a>
   {% endfor %}
 </nav>

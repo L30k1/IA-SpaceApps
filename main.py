@@ -22,7 +22,7 @@ from database.expedientes import (
 )
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from psicologia import (
-    INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
+    INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, seguimiento_psicologico,
     tramo_mision, validar_registros,
 )
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
@@ -136,7 +136,7 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
-            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "download_expediente", "logout",
+            "pruebas_cognitivas", "prueba_volt", "prueba_lot", "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -164,7 +164,7 @@ def create_app(database=None):
                 if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
-                if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
+                if request.endpoint in {"checkup", "registro_psicologico"} and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
@@ -477,40 +477,6 @@ def create_app(database=None):
             return pagina, 429, {"Retry-After": str(segundos)}
         return pagina
 
-    @app.route("/psicologia/chat", methods=["GET", "POST"])
-    def chat_psicologico():
-        expediente = expediente_actual()
-        if expediente is None:
-            return redirect(url_for("index"))
-        usuario = session["user_id"]
-        revision, mensajes = db.psych_chat(database, usuario)
-        ia_disponible = bool(os.getenv("GEMINI_API_KEY", "").strip())
-        texto = request.form.get("mensaje", "").strip()
-        error = None
-        if request.method == "POST":
-            if request.form.get("revision") != str(revision):
-                error = "La conversación se actualizó. Revisa los mensajes y vuelve a enviarlo."
-            elif not 1 <= len(texto) <= 2000:
-                error = "Escribe un mensaje de hasta 2000 caracteres."
-            elif not ia_disponible:
-                error = "La IA aún no está configurada en el servidor."
-            else:
-                actualizados = [*mensajes, {"role": "user", "text": texto}]
-                try:
-                    respuesta = responder_chat_psicologico(actualizados)
-                except ERRORES_GEMINI:
-                    error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
-                else:
-                    actualizados.append({"role": "ai", "text": respuesta})
-                    if db.save_psych_chat(database, usuario, revision, actualizados):
-                        return redirect(url_for("chat_psicologico", _anchor="ultimo-mensaje"), 303)
-                    revision, mensajes = db.psych_chat(database, usuario)
-                    error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
-        return render_template(
-            "chat-psicologico.html", expediente=expediente, modulo="chat", mensajes=mensajes,
-            revision=revision, texto=texto, error=error, ia_disponible=ia_disponible,
-        )
-
     @app.route("/chequeo.html", methods=["GET", "POST"])
     def checkup():
         expediente = expediente_actual()
@@ -526,11 +492,11 @@ def create_app(database=None):
                 try:
                     pregunta = generar_pregunta({"mensajes": []})
                 except ERRORES_GEMINI:
-                    return render_template("chequeo.html", expediente=expediente, error=MENSAJE_GEMINI), 503
+                    return render_template("chequeo.html", expediente=expediente, bloqueado=MENSAJE_GEMINI), 503
                 db.open_checkup(database, usuario, astronauta, {"role": "ai", "text": pregunta})
             return redirect(url_for("checkup"), 303)
         if draft is None:
-            return render_template("chequeo.html", expediente=expediente)
+            return redirect(url_for("profile"), 303)
 
         messages = json.loads(draft["messages"])
         datos_guardados = json.loads(draft["details"] or "{}")

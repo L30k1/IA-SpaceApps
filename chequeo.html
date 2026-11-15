@@ -52,17 +52,11 @@
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
         {% if bloqueado %}
         <p role="status">{{ bloqueado }}</p>
-        {% elif not draft %}
-        <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
-          <input type="hidden" name="csrf" value="{{ csrf }}">
-          <p>La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.</p>
-          {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
-          <button name="iniciar" value="1" type="submit" class="btn-send">Iniciar con IA</button>
-        </form>
         {% else %}
         <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="turn" value="{{ draft['id'] }}:{{ draft['revision'] }}">
+          <p>La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.</p>
           <div class="telemetry-strip">
             <span class="telemetry-title">📡 Telemetría</span>
             <label>FC (lpm) <input type="number" name="hr" value="{{ vitals.hr if vitals.hr is not none else '' }}" min="1" max="999"></label>

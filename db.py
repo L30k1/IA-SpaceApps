@@ -46,11 +46,6 @@ def initialize(path):
                 checkup_id INTEGER PRIMARY KEY REFERENCES checkups(id),
                 contenido TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS psych_chat (
-                user_id INTEGER PRIMARY KEY REFERENCES users(id),
-                revision INTEGER NOT NULL,
-                mensajes TEXT NOT NULL
-            );
             CREATE TABLE IF NOT EXISTS volt_drafts (
                 user_id INTEGER PRIMARY KEY REFERENCES users(id),
                 contenido TEXT NOT NULL
@@ -207,30 +202,6 @@ def save_psych_followup(path, user_id, campo, registro_id, seguimiento):
                 )
                 return True
         return False
-
-
-def psych_chat(path, user_id):
-    with closing(sqlite3.connect(path)) as db:
-        row = db.execute("SELECT revision, mensajes FROM psych_chat WHERE user_id = ?", (user_id,)).fetchone()
-        return (row[0], json.loads(row[1])) if row else (0, [])
-
-
-def save_psych_chat(path, user_id, revision, mensajes):
-    with closing(sqlite3.connect(path)) as db, db:
-        contenido = json.dumps(mensajes, ensure_ascii=False)
-        if revision == 0:
-            actualizado = db.execute(
-                "INSERT INTO psych_chat (user_id, revision, mensajes) VALUES (?, 1, ?) "
-                "ON CONFLICT (user_id) DO NOTHING",
-                (user_id, contenido),
-            )
-        else:
-            actualizado = db.execute(
-                "UPDATE psych_chat SET mensajes = ?, revision = revision + 1 "
-                "WHERE user_id = ? AND revision = ?",
-                (contenido, user_id, revision),
-            )
-        return actualizado.rowcount == 1
 
 
 def find_user(path, email):
