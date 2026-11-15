@@ -34,8 +34,6 @@
       reproductor.leer(ultima, exito => {
         escuchar.textContent = t('Escuchar última respuesta');
         if (!exito) estado.textContent = t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
-      }, () => {
-        estado.textContent = t('ElevenLabs no está disponible. Se intenta usar la voz del navegador.');
       });
     }
 
