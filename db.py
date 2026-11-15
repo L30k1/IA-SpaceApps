@@ -249,7 +249,8 @@ def checkup_record(record_id, finished_at, messages, vitals, details, status):
             for tipo, key in zip(SIGNOS, ("hr", "spo2", "temp")) if medidas[key] is not None
         ],
         "conversacion": messages,
-        **{field: details[field] for field in ("evaluacion_ia", "evaluacion") if field in details},
+        **{field: details[field] for field in ("evaluacion_ia", "evaluacion", "comparacion_referencias")
+           if field in details},
     }
 
 

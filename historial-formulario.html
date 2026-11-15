@@ -31,6 +31,26 @@
           <label>{{ t('ID del astronauta') }} <input name="astronauta_id" autocomplete="off" value="{{ formulario.get('astronauta_id', '') }}" required></label>
         </div>
       </section>
+      <section class="expediente-panel" aria-labelledby="referencias-monitoreo">
+        <h2 id="referencias-monitoreo">{{ t('Rangos personales de referencia') }}</h2>
+        <p>{{ t('Usa los rangos acordados con el equipo médico para mediciones en condiciones comparables. Deja ambos campos vacíos si aún no tienes un rango.') }}</p>
+        <div class="expediente-cuadricula">
+          {% set nombres_signos = {'frecuencia_cardiaca': 'Frecuencia cardíaca', 'spo2': 'Saturación de oxígeno (SpO₂)', 'temperatura': 'Temperatura'} %}
+          {% for tipo, (_, unidad) in signos.items() %}
+          {% set limite_inferior, limite_superior = limites_captura[tipo] %}
+          <fieldset class="expediente-registro">
+            <legend>{{ t(nombres_signos[tipo]) }} ({{ t(unidad) }})</legend>
+            {% for extremo, nombre in [('minimo', 'Mínimo'), ('maximo', 'Máximo')] %}
+            {% set campo = 'referencias.' ~ tipo ~ '.' ~ extremo %}
+            <label>{{ t(nombre) }}
+              <input type="number" name="{{ campo }}" value="{{ formulario.get(campo, '') }}"
+                     min="{{ limite_inferior }}" max="{{ limite_superior }}" step="any">
+            </label>
+            {% endfor %}
+          </fieldset>
+          {% endfor %}
+        </div>
+      </section>
       {% for grupo, titulo, campos in secciones %}
       <details class="expediente-panel"{% if filas[grupo] | length > 1 or (filas[grupo] and filas[grupo][0]) or formulario.get('accion', '') == 'agregar:' ~ grupo or (grupo == 'alergias' and formulario.get('estado_alergias')) %} open{% endif %}>
         <summary>{{ t(titulo) }}</summary>

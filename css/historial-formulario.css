@@ -12,3 +12,4 @@
 .expediente-panel :is(input, select, textarea) { width: 100%; padding: 9px; border: 1px solid var(--border-glow); border-radius: 8px; background: #071229; color: var(--text-main); color-scheme: dark; }
 .expediente-registro { min-inline-size: 0; padding: 10px; border: 1px solid var(--border-glow); border-radius: 8px; }
 .expediente-registro legend { padding-inline: 5px; color: var(--text-muted); }
+.expediente-registro > label + label { margin-top: 10px; }

@@ -5,6 +5,11 @@
     "nombre": "Lucía Torres",
     "rol": "Astronauta"
   },
+  "referencias_monitoreo": {
+    "frecuencia_cardiaca": null,
+    "spo2": null,
+    "temperatura": null
+  },
   "misiones": [
     {
       "id": "MS-091",

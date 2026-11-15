@@ -82,7 +82,9 @@ def generar_pregunta(conversacion, contexto=None):
         {"conversacion": conversacion, "contexto": contexto or {}},
         "Si la conversación está vacía, inicia con una pregunta breve sobre cómo se siente "
         "la persona. Si ya respondió, formula una sola pregunta distinta que "
-        "aclare sus respuestas o alguna medición. Evita diagnósticos y recomendaciones médicas.",
+        "aclare sus respuestas o alguna medición. Si se incluye una diferencia respecto al rango "
+        "personal, puedes preguntar si la medición se tomó en condiciones comparables. "
+        "Evita diagnósticos y recomendaciones médicas.",
         max_output_tokens=512,
     )
     return texto_valido(pregunta, 500)
@@ -93,7 +95,12 @@ def evaluar_chequeo(conversacion, contexto):
         {"conversacion": conversacion, "contexto": contexto},
         "Prepara una evaluación para revisión del equipo médico. Basa el resumen, los motivos y "
         "cada acción en lo que la persona escribió en la conversación y en las mediciones disponibles. "
-        "Usa solo datos aportados. Decide si los hallazgos descritos merecen revisión prioritaria "
+        "Usa solo datos aportados. Si comparacion_referencias muestra un valor inferior o superior "
+        "al rango personal, menciona en los motivos la medición, su unidad y el rango registrado. "
+        "Considera los síntomas, la actividad y las condiciones de medición al explicar la diferencia. "
+        "Los rangos personales son información de contexto. No son umbrales diagnósticos y un valor "
+        "dentro del rango no descarta un problema. No infieras referencias faltantes. "
+        "Decide si los hallazgos descritos merecen revisión prioritaria "
         "(ALERTA), si el registro no aporta motivos aparentes para priorizarla (ESTABLE), o si "
         "faltan datos relevantes o existen contradicciones (INDETERMINADO). Si no hubo respuestas, "
         "indica esa limitación y nunca supongas que no hay síntomas. No afirmes que la persona está "
