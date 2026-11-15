@@ -1,6 +1,7 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import Random
 from statistics import mean
+from uuid import uuid4
 
 
 CAMPO_VOLT = "memoria_visual"
@@ -64,3 +65,39 @@ def puntuar(respuestas, ensayos):
         "promedio_ms": round(mean(r["tiempo_ms"] for r in registros), 3),
         "respuestas": registros,
     }
+
+
+def avanzar(borrador, registros, accion, identificador, respuestas, ahora):
+    if accion == "iniciar":
+        return borrador or {"id": uuid4().hex, "fase": "aprendizaje", "inicio": ahora.isoformat()}, None, None
+    if accion == "diferido" and any(r["id"] == identificador for r in registros):
+        return borrador, None, identificador
+    if borrador is None or borrador["id"] != identificador:
+        raise ValueError("Esta prueba ya no está activa. Vuelve a la página de aprendizaje visual de objetos.")
+    fase = borrador["fase"]
+    if accion == "cancelar":
+        return None, None, None
+    if accion == "inmediato":
+        if fase != "aprendizaje":
+            return borrador, None, None
+        if (ahora - datetime.fromisoformat(borrador["inicio"])).total_seconds() < FIGURAS * EXPOSICION:
+            raise ValueError("Completa primero la fase de aprendizaje.")
+        return {
+            **borrador, "fase": "espera", "inmediato": puntuar(respuestas, estimulos(identificador)[1]),
+            "fin_inmediato": ahora.isoformat(),
+        }, None, None
+    if accion == "abrir_diferido":
+        if fase == "diferido":
+            return borrador, None, None
+        if fase != "espera" or ahora < datetime.fromisoformat(borrador["fin_inmediato"]) + ESPERA:
+            raise ValueError("Aún no termina el intervalo de 15 minutos.")
+        return {**borrador, "fase": "diferido", "inicio_diferido": ahora.isoformat()}, None, None
+    if accion == "diferido" and fase == "diferido":
+        inicio = datetime.fromisoformat(borrador["inicio_diferido"])
+        fin_inmediato = datetime.fromisoformat(borrador["fin_inmediato"])
+        return None, {
+            "id": identificador, "version": VERSION_VOLT, "fecha_hora": ahora.isoformat(),
+            "intervalo_segundos": (inicio - fin_inmediato).total_seconds(),
+            "inmediato": borrador["inmediato"], "diferido": puntuar(respuestas, estimulos(identificador)[2]),
+        }, identificador
+    raise ValueError("La fase solicitada no está disponible.")

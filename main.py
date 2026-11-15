@@ -73,11 +73,11 @@ def historial_expediente(expediente, filas):
     return sorted(registros, key=lambda item: fecha_utc(item[1]["fecha_hora"]), reverse=True)
 
 
-def registros_clinicos(database, user_id, expediente):
+def registros_clinicos(database, user_id, expediente, almacen=db):
     return [
         {**registro, "clave": clave, "estado": registro.get("resultado") or registro.get("resultado_simulador"),
          "evaluacion_ia": registro.get("evaluacion_ia") if clave.startswith("app-") else None}
-        for clave, registro in historial_expediente(expediente, db.history(database, user_id, expediente["_id"]))
+        for clave, registro in historial_expediente(expediente, almacen.history(database, user_id, expediente["_id"]))
     ]
 
 
@@ -149,31 +149,55 @@ def create_app(database=None):
         MAX_CONTENT_LENGTH=256 * 1024,
         SESSION_COOKIE_SAMESITE="Lax",
     )
-    database = database or os.getenv("MEDISPACE_DATABASE") or ROOT / "medispace.sqlite3"
-    archivos_expedientes = Path(f"{database}.expedientes")
-    db.initialize(database)
+    uri_mongo = os.getenv("MONGODB_URI", "").strip() if database is None else ""
+    if uri_mongo:
+        import db_mongo as almacen
+
+        try:
+            database = almacen.conectar(uri_mongo, os.getenv("MONGODB_DB", "").strip() or "medispace")
+        except (almacen.ErrorBase, ValueError):
+            raise RuntimeError("No se pudo conectar con MongoDB. Revisa la configuración y los permisos del servicio.") from None
+        archivos_expedientes = None
+        conflicto_cuenta = almacen.ConflictoCuenta
+
+        @app.errorhandler(almacen.ErrorBase)
+        def base_no_disponible(_error):
+            mensaje = "No se pudo confirmar la operación en la base de datos. Revisa tu historial antes de reintentar."
+            if request.method == "POST" and request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
+                return {"error": mensaje}, 503
+            return mensaje, 503
+    else:
+        almacen = db
+        database = database or os.getenv("MEDISPACE_DATABASE") or ROOT / "medispace.sqlite3"
+        archivos_expedientes = Path(f"{database}.expedientes")
+        conflicto_cuenta = sqlite3.IntegrityError
+        db.initialize(database)
+
     @app.template_filter("hora_utc")
     def hora_utc(fecha):
         return fecha_utc(fecha).strftime("%d/%m/%Y %H:%M UTC")
 
     def expediente_actual():
-        return db.expediente_for_user(database, session.get("user_id"))
+        return almacen.expediente_for_user(database, session.get("user_id"))
 
     def actualizar_archivo_expediente(user_id):
-        with db.expediente_para_archivo(database, user_id) as (expediente, filas):
+        with almacen.expediente_para_archivo(database, user_id) as (expediente, filas):
             if expediente is None:
                 return None
             expediente["chequeos"] = [registro for _, registro in historial_expediente(expediente, filas)]
             identificador = secure_filename(expediente["_id"])[:80]
             filename = f"expediente-{identificador}.json" if identificador else "expediente.json"
             contenido = (json.dumps(expediente, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
-            try:
-                escribir_archivo_json(archivos_expedientes / str(user_id) / filename, contenido)
-            except OSError as exc:
-                app.logger.warning("No se pudo actualizar el archivo del usuario %s: %s", user_id, exc)
+            if archivos_expedientes is not None:
+                try:
+                    escribir_archivo_json(archivos_expedientes / str(user_id) / filename, contenido)
+                except OSError as exc:
+                    app.logger.warning("No se pudo actualizar el archivo del usuario %s: %s", user_id, exc)
             return filename, contenido
 
     def sincronizar_archivo_expediente(user_id):
+        if archivos_expedientes is None:
+            return
         try:
             actualizar_archivo_expediente(user_id)
         except sqlite3.OperationalError as exc:
@@ -236,7 +260,7 @@ def create_app(database=None):
                 except ValueError as exc:
                     error = str(exc)
                 else:
-                    user = db.find_user_by_astronauta(database, expediente["_id"])
+                    user = almacen.find_user_by_astronauta(database, expediente["_id"])
                     if user and len(password) <= 128 and check_password_hash(user["password_hash"], password):
                         user_id = user["id"]
                     else:
@@ -244,26 +268,26 @@ def create_app(database=None):
             elif not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 254:
                 error = "Escribe un correo electrónico válido."
             else:
-                user = db.find_user(database, email)
+                user = almacen.find_user(database, email)
                 valid_password = bool(user and len(password) <= 128 and check_password_hash(user["password_hash"], password))
                 if mode == "register":
                     try:
                         if not 8 <= len(password) <= 128:
                             raise ValueError("Escribe una contraseña de 8 a 128 caracteres.")
-                        if user and (not valid_password or db.expediente_for_user(database, user["id"])):
+                        if user and (not valid_password or almacen.expediente_for_user(database, user["id"])):
                             raise ValueError("No se puede registrar esa cuenta.")
                         expediente = leer_expediente_subido()
-                        user_id = db.create_user(
+                        user_id = almacen.create_user(
                             database, email, expediente["astronauta"]["nombre"], generate_password_hash(password),
                             expediente, existing_user=user["id"] if user else None,
                         )
                     except ValueError as exc:
                         error = str(exc)
-                    except sqlite3.IntegrityError:
+                    except conflicto_cuenta:
                         error = "La cuenta o el identificador del astronauta ya está registrado."
                 elif not valid_password:
                     error = "El correo o la contraseña son incorrectos."
-                elif not db.expediente_for_user(database, user["id"]):
+                elif not almacen.expediente_for_user(database, user["id"]):
                     flash("Agrega tu expediente JSON con el mismo correo y contraseña para habilitar tu cuenta.")
                     return redirect(url_for("index", mode="register"), 303)
                 else:
@@ -286,7 +310,7 @@ def create_app(database=None):
         expediente = expediente_actual()
         if expediente is None:
             return redirect(url_for("index"))
-        records = registros_clinicos(database, session["user_id"], expediente)
+        records = registros_clinicos(database, session["user_id"], expediente, almacen)
         return render_template(
             "perfil.htm", expediente=expediente, latest=records[0] if records else None,
             planes=calendario(expediente, records, datetime.now(timezone.utc)),
@@ -309,7 +333,7 @@ def create_app(database=None):
             except ValueError as exc:
                 return {"error": str(exc)}, 400
             usuario = session["user_id"]
-            if not db.save_cognitive_report(database, usuario, CAMPO_PRAXIS, registro, "tiempos_ms"):
+            if not almacen.save_cognitive_report(database, usuario, CAMPO_PRAXIS, registro, "tiempos_ms"):
                 return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
             sincronizar_archivo_expediente(usuario)
             return {"url": url_for("pruebas_cognitivas", registro=registro["id"], actualizar_archivo=1, _anchor="praxis-guardado")}
@@ -336,7 +360,7 @@ def create_app(database=None):
             ajax = accion in {"inmediato", "diferido"}
             try:
                 respuestas = json.loads(request.form.get("respuestas", "null")) if ajax else None
-                completado = db.actualizar_volt(database, usuario, accion, request.form.get("registro_id"), respuestas, ahora)
+                completado = almacen.actualizar_volt(database, usuario, accion, request.form.get("registro_id"), respuestas, ahora)
             except (ValueError, RecursionError) as exc:
                 if ajax:
                     return {"error": str(exc)}, 400
@@ -348,7 +372,7 @@ def create_app(database=None):
                 destino = url_for("prueba_volt", registro=completado, actualizar_archivo=1, _anchor="volt-guardado")
             return {"url": destino} if ajax else redirect(destino, 303)
 
-        borrador = db.volt_draft(database, usuario)
+        borrador = almacen.volt_draft(database, usuario)
         fase = borrador["fase"] if borrador else None
         aprendizaje, reconocimiento, espera = [], [], 0
         if fase in {"aprendizaje", "diferido"}:
@@ -387,7 +411,7 @@ def create_app(database=None):
             except ValueError as exc:
                 return {"error": str(exc)}, 400
             usuario = session["user_id"]
-            if not db.save_cognitive_report(database, usuario, CAMPO_LOT, registro, "respuestas"):
+            if not almacen.save_cognitive_report(database, usuario, CAMPO_LOT, registro, "respuestas"):
                 return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
             sincronizar_archivo_expediente(usuario)
             destino = url_for("prueba_lot", registro=registro["id"], actualizar_archivo=1, _anchor="lot-guardado")
@@ -526,7 +550,7 @@ def create_app(database=None):
                     if modulo == "semanal":
                         registro["mision_id"] = mision_elegida or None
                         registro["tramo_mision"] = tramos.get(mision_elegida)
-                    if not db.save_psych_report(database, usuario, campo, registro, intervalo):
+                    if not almacen.save_psych_report(database, usuario, campo, registro, intervalo):
                         return redirect(url_for("registro_psicologico", modulo=modulo, registro=registro_id), 303)
                 except db.RegistroPrematuro as exc:
                     disponible = exc.disponible
@@ -544,7 +568,7 @@ def create_app(database=None):
                         except ERRORES_GEMINI:
                             flash("El registro se guardó. Puedes volver a solicitar el seguimiento de IA.")
                         else:
-                            db.save_psych_followup(database, usuario, campo, registro["id"], orientacion)
+                            almacen.save_psych_followup(database, usuario, campo, registro["id"], orientacion)
                     else:
                         flash("El registro se guardó. La IA aún no está configurada.")
                 sincronizar_archivo_expediente(usuario)
@@ -570,7 +594,7 @@ def create_app(database=None):
         if expediente is None:
             return redirect(url_for("index"))
         usuario = session["user_id"]
-        revision, mensajes = db.psych_chat(database, usuario)
+        revision, mensajes = almacen.psych_chat(database, usuario)
         ia_disponible = bool(os.getenv("GEMINI_API_KEY", "").strip())
         texto = request.form.get("mensaje", "").strip()
         error = None
@@ -589,9 +613,9 @@ def create_app(database=None):
                     error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
                 else:
                     actualizados.append({"role": "ai", "text": respuesta})
-                    if db.save_psych_chat(database, usuario, revision, actualizados):
+                    if almacen.save_psych_chat(database, usuario, revision, actualizados):
                         return redirect(url_for("chat_psicologico", _anchor="ultimo-mensaje"), 303)
-                    revision, mensajes = db.psych_chat(database, usuario)
+                    revision, mensajes = almacen.psych_chat(database, usuario)
                     error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
         return render_template(
             "chat-psicologico.html", expediente=expediente, modulo="chat", mensajes=mensajes,
@@ -607,14 +631,14 @@ def create_app(database=None):
             return render_template("chequeo.html", expediente=expediente, bloqueado="La IA aún no está configurada en el servidor.")
 
         usuario, astronauta = session["user_id"], expediente["_id"]
-        draft = db.get_open_checkup(database, usuario, astronauta)
+        draft = almacen.get_open_checkup(database, usuario, astronauta)
         if request.method == "POST" and request.form.get("iniciar") == "1":
             if draft is None:
                 try:
                     pregunta = generar_pregunta({"mensajes": []})
                 except ERRORES_GEMINI:
                     return render_template("chequeo.html", expediente=expediente, bloqueado=MENSAJE_GEMINI), 503
-                db.open_checkup(database, usuario, astronauta, {"role": "ai", "text": pregunta})
+                almacen.open_checkup(database, usuario, astronauta, {"role": "ai", "text": pregunta})
             return redirect(url_for("checkup"), 303)
         if draft is None:
             return redirect(url_for("profile"), 303)
@@ -680,7 +704,7 @@ def create_app(database=None):
                     error = MENSAJE_GEMINI
                 if not error:
                     valores_sql = tuple(medidas[key] if medidas[key] is not None else 0 for key in ("hr", "spo2", "temp"))
-                    saved = db.save_turn(database, draft, updated, valores_sql, details, status)
+                    saved = almacen.save_turn(database, draft, updated, valores_sql, details, status)
                     if saved and status:
                         sincronizar_archivo_expediente(usuario)
                         return redirect(url_for("summary", registro=f"app-{draft['id']}", actualizar_archivo=1), 303)
@@ -713,7 +737,7 @@ def create_app(database=None):
         view = request.args.get("vista", "resultados")
         if view not in {"resultados", "alertas", "historial", "estadisticas"}:
             return redirect(url_for("summary"))
-        records = registros_clinicos(database, session["user_id"], expediente)
+        records = registros_clinicos(database, session["user_id"], expediente, almacen)
         clave = request.args.get("registro")
         latest = next((registro for registro in records if registro["clave"] == clave), None) if clave else (records[0] if records else None)
         if clave and latest is None:
