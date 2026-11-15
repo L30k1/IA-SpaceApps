@@ -4,7 +4,8 @@ import re
 import secrets
 import sqlite3
 from datetime import datetime, timezone
-from math import ceil
+from math import ceil, isfinite
+from operator import itemgetter
 from pathlib import Path
 from statistics import mean
 from sys import float_info
@@ -79,6 +80,29 @@ def registros_clinicos(database, user_id, expediente):
     ]
 
 
+def serie_estadistica(etiqueta, unidad, lecturas):
+    if not lecturas:
+        return None
+    # El historial llega del más reciente al más antiguo.
+    valores = [valor for _, valor in lecturas]
+    minimo, maximo = min(valores), max(valores)
+    escala = 1 if isfinite(float(maximo) - float(minimo)) else 2
+    diferencia = maximo / escala - minimo / escala
+    fechas = [fecha_utc(fecha) for fecha, _ in lecturas]
+    inicio, fin = fechas[-1], fechas[0]
+    duracion = (fin - inicio).total_seconds()
+    puntos = []
+    for fecha, valor in reversed(list(zip(fechas, valores))):
+        x = 12 + 536 * (fecha - inicio).total_seconds() / duracion if duracion else 280
+        y = 116 - 104 * ((valor / escala - minimo / escala) / diferencia) if diferencia else 64
+        puntos.append({"x": round(x, 2), "y": round(y, 2), "fecha": fecha.isoformat(), "valor": valor})
+    return {
+        "etiqueta": etiqueta, "unidad": unidad, "cantidad": len(valores), "ultimo": valores[0],
+        "promedio": mean(valores), "minimo": minimo, "maximo": maximo, "puntos": puntos,
+        "inicio": inicio.isoformat(), "fin": fin.isoformat(),
+    }
+
+
 def estadisticas_monitoreo(registros):
     valores = {tipo: [] for tipo in SIGNOS}
     historial = []
@@ -93,14 +117,9 @@ def estadisticas_monitoreo(registros):
         if mediciones:
             historial.append({"fecha_hora": registro["fecha_hora"], "clave": registro["clave"], "mediciones": mediciones})
         for tipo, lecturas in mediciones.items():
-            valores[tipo].extend(reversed(lecturas))
+            valores[tipo].extend((registro["fecha_hora"], valor) for valor in reversed(lecturas))
 
-    resumen = {}
-    for tipo, lecturas in valores.items():
-        resumen[tipo] = {
-            "cantidad": len(lecturas), "ultimo": lecturas[0], "promedio": mean(lecturas),
-            "minimo": min(lecturas), "maximo": max(lecturas),
-        } if lecturas else None
+    resumen = {tipo: serie_estadistica(*SIGNOS[tipo], lecturas) for tipo, lecturas in valores.items()}
     return resumen, historial
 
 
@@ -163,7 +182,8 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
-            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "download_expediente", "logout",
+            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "historial_cognitivo",
+            "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -381,6 +401,38 @@ def create_app(database=None):
             opciones=OPCIONES_LOT, ensayos=ENSAYOS_LOT, registros=registros, actual=actual,
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
         )
+
+    @app.get("/cognicion/historial")
+    def historial_cognitivo():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        pruebas = (
+            (CAMPO_PRAXIS, "Praxis Motora", "pruebas_cognitivas", "praxis-guardado", (
+                ("Tiempo medio de reacción", "ms", itemgetter("promedio_ms")),
+                ("Respuesta más rápida", "ms", itemgetter("mejor_ms")),
+            )),
+            (CAMPO_VOLT, "Aprendizaje visual de objetos (VOLT)", "prueba_volt", "volt-guardado", (
+                ("Aciertos en reconocimiento inmediato", "aciertos", lambda r: r["inmediato"]["correctas"]),
+                ("Aciertos en reconocimiento diferido", "aciertos", lambda r: r["diferido"]["correctas"]),
+                ("Tiempo medio en reconocimiento inmediato", "ms", lambda r: r["inmediato"]["promedio_ms"]),
+                ("Tiempo medio en reconocimiento diferido", "ms", lambda r: r["diferido"]["promedio_ms"]),
+            )),
+            (CAMPO_LOT, "Orientación de línea (LOT)", "prueba_lot", "lot-guardado", (
+                ("Pares correctos", "pares", itemgetter("pares_correctos")),
+                ("Líneas correctas", "líneas", itemgetter("lineas_correctas")),
+                ("Tiempo medio por par", "ms", itemgetter("promedio_ms")),
+            )),
+        )
+        historial = []
+        for campo, nombre, destino, ancla, metricas in pruebas:
+            registros = sorted(expediente.get(campo, []), key=lambda r: fecha_utc(r["fecha_hora"]), reverse=True)
+            series = [
+                serie_estadistica(etiqueta, unidad, [(r["fecha_hora"], valor(r)) for r in registros])
+                for etiqueta, unidad, valor in metricas
+            ] if registros else []
+            historial.append({"nombre": nombre, "destino": destino, "ancla": ancla, "registros": registros, "series": series})
+        return render_template("historial-cognitivo.html", historial=historial)
 
     @app.get("/assets/orientacion-linea.js")
     def lot_script():

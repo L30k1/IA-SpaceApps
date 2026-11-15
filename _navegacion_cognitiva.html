@@ -1,5 +1,5 @@
 <nav class="step-pills" aria-label="Pruebas cognitivas">
-  {% for endpoint, etiqueta in [('pruebas_cognitivas', 'Praxis Motora'), ('prueba_volt', 'Aprendizaje visual de objetos (VOLT)'), ('prueba_lot', 'Orientación de línea (LOT)')] %}
+  {% for endpoint, etiqueta in [('pruebas_cognitivas', 'Praxis Motora'), ('prueba_volt', 'Aprendizaje visual de objetos (VOLT)'), ('prueba_lot', 'Orientación de línea (LOT)'), ('historial_cognitivo', 'Historial')] %}
   <a class="step-pill{% if request.endpoint == endpoint %} active{% endif %}" href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ etiqueta }}</a>
   {% endfor %}
 </nav>

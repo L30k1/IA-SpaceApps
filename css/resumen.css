@@ -194,3 +194,16 @@ body {
 .estadisticas-tabla th, .estadisticas-tabla td { padding: 9px; border-bottom: 1px solid var(--border-glow); }
 .estadisticas-tabla thead th, .estadisticas-tabla td { white-space: nowrap; }
 .estadisticas-tabla a { color: var(--text-main); }
+
+.grafica-estadistica { border-top: 1px solid var(--border-glow); padding-top: 10px; }
+.grafica-area { display: flex; align-items: stretch; gap: 5px; }
+.grafica-escala { display: flex; flex-direction: column; justify-content: space-between; padding-block: 5px; }
+.grafica-escala > :only-child { margin-block: auto; }
+.grafica-estadistica svg { width: 100%; min-width: 0; height: 112px; overflow: visible; }
+.grafica-estadistica figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; }
+.grafica-escala, .grafica-estadistica figcaption { color: var(--text-muted); font-size: 0.75rem; }
+.grafica-escala span { white-space: nowrap; }
+.grafica-guia, .grafica-linea { fill: none; vector-effect: non-scaling-stroke; }
+.grafica-guia { stroke: var(--border-glow); }
+.grafica-linea { stroke: var(--accent); stroke-width: 2; }
+.grafica-punto { fill: var(--accent); stroke: var(--card-bg); stroke-width: 1; vector-effect: non-scaling-stroke; }
