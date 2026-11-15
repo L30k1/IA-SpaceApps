@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Atención psicológica diaria · MediSpace</title>
+  <title>Atención psicológica {{ 'diaria' if modulo == 'diario' else 'semanal' }} · MediSpace</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
@@ -18,7 +18,14 @@
         </div>
         <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
       </header>
-      <h1>Atención psicológica diaria</h1>
+      <h1>Atención psicológica</h1>
+      <nav class="step-pills" aria-label="Frecuencia del registro">
+        {% for clave_modulo, etiqueta in [('diario', 'Diario'), ('semanal', 'Semanal')] %}
+        <a class="step-pill{{ ' active' if modulo == clave_modulo else '' }}"
+           href="{{ url_for('registro_psicologico', modulo=clave_modulo) }}"
+           {% if modulo == clave_modulo %}aria-current="page"{% endif %}>{{ etiqueta }}</a>
+        {% endfor %}
+      </nav>
       {% for mensaje in get_flashed_messages() %}<p role="status">{{ mensaje }}</p>{% endfor %}
       {% if error %}<p class="diario-error" role="alert">{{ error }}</p>{% endif %}
 
@@ -27,7 +34,19 @@
         <h2>Registro guardado</h2>
         <p>{{ actual.fecha_hora | hora_utc }}</p>
         <dl class="datos-diario">
+          {% if modulo == 'semanal' %}
+          {% if actual.mision_id %}
+          <div><dt>Misión</dt><dd>{{ actual.mision_id }}</dd></div>
+          <div><dt>Cuarto de misión</dt>
+            <dd>{% if actual.tramo_mision %}{{ actual.tramo_mision.cuarto }} de 4 · {{ actual.tramo_mision.avance_pct }} %{% else %}Sin fechas suficientes o fuera del periodo{% endif %}</dd>
+          </div>
+          {% endif %}
+          {% for dominio, valor in actual.puntuacion.dominios.items() %}
+          <div><dt>{{ dominio }}</dt><dd>{{ valor }} / 100</dd></div>
+          {% endfor %}
+          {% else %}
           <div><dt>Índice descriptivo</dt><dd>{{ actual.puntuacion.indice }} / 100</dd></div>
+          {% endif %}
           <div><dt>Diferencia entre energía y esfuerzo invertido</dt><dd>{{ actual.puntuacion.diferencia_energia }} / 4 puntos</dd></div>
           {% if actual.pvt %}
           <div><dt>Mediana PVT-B</dt><dd>{{ actual.pvt.mediana_ms }} ms</dd></div>
@@ -39,7 +58,7 @@
           <summary>Ver respuestas</summary>
           <ul>
             {% for clave, texto in reactivos %}
-            <li>{{ texto }} <strong>{{ actual.respuestas[clave] }} / 5</strong></li>
+            <li>{{ texto }} <strong>{{ dict(escala)[actual.respuestas[clave]] if modulo == 'semanal' else (actual.respuestas[clave] ~ ' / 5') }}</strong></li>
             {% endfor %}
           </ul>
           {% if actual.nota %}<p>{{ actual.nota }}</p>{% endif %}
@@ -54,7 +73,7 @@
         </ul>
         <p>El equipo responsable debe revisar estas sugerencias.</p>
         {% elif ia_disponible %}
-        <form method="post" action="{{ url_for('diario', registro=actual.id) }}">
+        <form method="post" action="{{ url_for('registro_psicologico', modulo=modulo, registro=actual.id) }}">
           <input name="csrf" type="hidden" value="{{ csrf }}">
           <p>Al solicitar seguimiento, la IA recibe tus respuestas, la nota y las mediciones de este registro.</p>
           <button class="step-pill" name="accion" value="seguimiento" type="submit">Generar seguimiento con IA</button>
@@ -64,13 +83,29 @@
         {% endif %}
       </section>
       {% include '_archivo_local.html' %}
-      <a class="btn-primary" href="{{ url_for('diario') }}">Nuevo registro diario</a>
+      <a class="btn-primary" href="{{ url_for('registro_psicologico', modulo=modulo) }}">Nuevo registro {{ modulo }}</a>
       {% else %}
-      <form class="info-card" method="post" action="{{ url_for('diario') }}">
+      <form class="info-card" method="post" action="{{ url_for('registro_psicologico', modulo=modulo) }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        {% if modulo == 'semanal' %}
+        <p>Indica cuántos días de la última semana ocurrió cada situación.</p>
+        <p id="escala-diario">1: ningún día · 2: 1 a 2 días · 3: 3 a 4 días · 4: 5 a 6 días · 5: los 7 días.</p>
+        {% if expediente.misiones %}
+        <label class="campo-diario">Misión (opcional)
+          <select name="mision_id">
+            <option value="">Sin especificar</option>
+            {% for mision in expediente.misiones %}
+            {% set tramo = tramos[mision.id] %}
+            <option value="{{ mision.id }}"{% if mision.id == mision_elegida %} selected{% endif %}>{{ mision.id }}{% if tramo %} · Cuarto {{ tramo.cuarto }} de 4{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        {% else %}
         <p>Piensa en tu turno actual y en el último periodo de sueño.</p>
         <p id="escala-diario">1 equivale a totalmente en desacuerdo y 5 a totalmente de acuerdo.</p>
+        {% endif %}
         {% for clave, texto in reactivos %}
         <fieldset aria-describedby="escala-diario">
           <legend>{{ texto }}</legend>
@@ -114,10 +149,10 @@
 
       {% if registros %}
       <section class="info-card">
-        <h2>Registros diarios</h2>
+        <h2>Registros {{ 'diarios' if modulo == 'diario' else 'semanales' }}</h2>
         <ul>
           {% for registro in registros %}
-          <li><a class="diario-link" href="{{ url_for('diario', registro=registro.id) }}">{{ registro.fecha_hora | hora_utc }}</a></li>
+          <li><a class="diario-link" href="{{ url_for('registro_psicologico', modulo=modulo, registro=registro.id) }}">{{ registro.fecha_hora | hora_utc }}</a></li>
           {% endfor %}
         </ul>
       </section>

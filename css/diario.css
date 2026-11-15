@@ -27,7 +27,7 @@
 .escala-diario input { accent-color: var(--accent); }
 
 .campo-diario { display: flex; flex-direction: column; gap: 6px; }
-.campo-diario input, .campo-diario textarea {
+.campo-diario input, .campo-diario textarea, .campo-diario select {
   min-width: 0;
   padding: 8px;
   color: var(--text-main);

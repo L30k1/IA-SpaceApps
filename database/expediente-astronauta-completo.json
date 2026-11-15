@@ -51,6 +51,66 @@
   ],
   "chequeos": [
     {
+      "mision_id": null,
+      "fase": null,
+      "motivo": null,
+      "actividad": null,
+      "id": "chequeo-739f624a2dbb43dab98f05f03e6dbea4",
+      "fecha_hora": "2026-11-15T04:34:08+00:00",
+      "resultado": "ALERTA",
+      "mediciones": [
+        {
+          "tipo": "frecuencia_cardiaca",
+          "valor": 3,
+          "unidad": "lpm"
+        },
+        {
+          "tipo": "spo2",
+          "valor": 3,
+          "unidad": "%"
+        },
+        {
+          "tipo": "temperatura",
+          "valor": 3,
+          "unidad": "°C"
+        }
+      ],
+      "conversacion": [
+        {
+          "role": "ai",
+          "text": "¿Cómo se siente el día de hoy?"
+        },
+        {
+          "role": "user",
+          "text": "re"
+        }
+      ],
+      "evaluacion_ia": {
+        "estado": "ALERTA",
+        "resumen": "El astronauta respondió de manera incomprensible y los sensores biométricos muestran valores extremadamente bajos que son incompatibles con la vida.",
+        "motivos": [
+          "La respuesta proporcionada por el usuario es ilegible.",
+          "La frecuencia cardíaca registrada es de 3 lpm.",
+          "El nivel de saturación de oxígeno (SpO2) reportado es del 3%.",
+          "La temperatura corporal registrada es de 3 grados Celsius."
+        ],
+        "acciones": [
+          {
+            "recomendacion": "Verificar la integridad de los sensores biométricos debido a los valores críticos registrados.",
+            "accion": "Contactar al equipo técnico para descartar fallo en la telemetría."
+          },
+          {
+            "recomendacion": "Solicitar una comunicación de voz inmediata con el astronauta para evaluar su estado de consciencia.",
+            "accion": "Contactar al equipo médico para iniciar protocolo de emergencia."
+          },
+          {
+            "recomendacion": "Aclarar el significado del mensaje enviado por el astronauta.",
+            "accion": "Documentar la falta de respuesta coherente en el historial clínico."
+          }
+        ]
+      }
+    },
+    {
       "mision_id": "MS-091",
       "fase": "vuelo",
       "motivo": "frgrt",
@@ -221,6 +281,34 @@
           "text": "Sentí cansancio leve después del ejercicio. Disminuyó mientras descansaba."
         }
       ]
+    }
+  ],
+  "diario_psicologico": [
+    {
+      "id": "cc71d50e7df3459ebe272bf53bbfbb82",
+      "version": 1,
+      "fecha_hora": "2026-11-15T04:31:48.457753+00:00",
+      "respuestas": {
+        "sueno": 5,
+        "energia": 2,
+        "estres": 1,
+        "claridad": 1,
+        "esfuerzo": 1
+      },
+      "nota": "",
+      "pvt": null,
+      "puntuacion": {
+        "indice": 56.25,
+        "diferencia_energia": 3
+      },
+      "seguimiento_ia": {
+        "resumen": "El astronauta reporta un descanso nocturno reparador. Sin embargo, indica una percepción de falta de energía para el ritmo habitual de trabajo y una notable dificultad en la claridad mental y la atención para seguir los pasos de las tareas, a pesar de reportar niveles bajos de estrés y una percepción de bajo esfuerzo en las actividades realizadas. Se observa un índice descriptivo de 56.25 y una diferencia de energía reportada de 3 puntos.",
+        "acciones": [
+          "Documentar la discrepancia entre el nivel de descanso percibido y el bajo nivel de energía y claridad mental reportado.",
+          "Verificar la precisión de las mediciones del índice descriptivo y la diferencia de energía con los sistemas a bordo.",
+          "Consultar al equipo médico de la misión sobre la evolución de estos parámetros para su seguimiento clínico."
+        ]
+      }
     }
   ]
 }

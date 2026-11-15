@@ -53,4 +53,4 @@ Antes de implementar un semáforo, verificar los límites, el redondeo entre int
 3. **Prueba objetiva complementaria.** Ejercicio breve de atención o memoria con condiciones de aplicación y métrica para comparar con el autorreporte.
 4. **Lógica de cálculo y umbrales.** Fórmula y tabla de interpretación con las fuentes y el estado de validación de cada umbral.
 
-El [módulo Diario](modulo-diario.md) es el primero disponible en MediSpace. Semanal y Post-Emergencia quedan como módulos por desarrollar.
+MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](modulo-semanal.md). Post-Emergencia queda por desarrollar.
