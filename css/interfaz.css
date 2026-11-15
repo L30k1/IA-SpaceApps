@@ -100,6 +100,9 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .dashboard-grid > * { min-width: 0; }
 .dashboard-grid .health-status-card, .dashboard-grid .action-tile { flex: 0 0 auto; }
 .action-tile { text-align: center; }
+.avance-ejercicio { display: grid; gap: 4px; }
+.avance-ejercicio progress { width: min(100%, 16rem); accent-color: var(--accent); }
+.avance-ejercicio .avance-ejercicio-completo { color: #bbf7d0; }
 
 #view-chat h1 { margin-bottom: 14px; }
 .telemetry-strip {

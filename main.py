@@ -24,7 +24,7 @@ import db
 from historial_formulario import SECCIONES, filas_formulario, generar_historial
 from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, texto_respuesta
-from calendario_mision import ZONA_MISION, calendario, fechas_ejercicio, fechas_mision, rutina_mision
+from calendario_mision import ZONA_MISION, calendario, fechas_mision, resumir_ejercicio, rutina_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
     registro_ejercicio, registro_emociones, registro_f2b, registro_praxis,
@@ -464,8 +464,9 @@ def create_app(database=None):
         mision_seleccionada = formulario["mision_id"]
         rutina = None
         if mision_seleccionada in misiones:
-            rutina = rutina_mision(mision_seleccionada, *misiones[mision_seleccionada], ahora.date(),
-                                   fechas_ejercicio(registros, misiones, ahora))
+            mision = next(m for m in expediente["misiones"] if m["id"] == mision_seleccionada)
+            rutina = rutina_mision(mision, *misiones[mision_seleccionada], ahora.date(),
+                                   resumir_ejercicio(registros, misiones, ahora))
         inicio = ahora.date() - timedelta(days=6)
         semana = [r for r in registros if inicio <= fecha_utc(r["fecha_hora"]).astimezone(ZONA_MISION).date() <= ahora.date()]
         minutos = {}

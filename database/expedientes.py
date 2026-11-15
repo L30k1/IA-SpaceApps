@@ -158,6 +158,11 @@ def leer_expediente(contenido):
             registro[campo] = texto_requerido(registro, campo)
 
     misiones = [mision["id"] for mision in expediente["misiones"]]
+    for mision in expediente["misiones"]:
+        if "ejercicio_min_diarios" in mision:
+            minimo = mision["ejercicio_min_diarios"]
+            if type(minimo) is not int or not 1 <= minimo <= 1440:
+                raise ValueError("El mínimo diario de ejercicio debe ser un número entero de 1 a 1440 minutos.")
     identificadores = set()
     for chequeo in expediente["chequeos"]:
         chequeo["id"] = texto_requerido(chequeo, "id")
