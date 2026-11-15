@@ -143,6 +143,14 @@ def escribir_archivo_json(destino, contenido):
             temporal.unlink(missing_ok=True)
 
 
+def solicitud_json_emergencia():
+    return (
+        request.endpoint == "chat_psicologico"
+        and request.args.get("modo") == "emergencia"
+        and request.accept_mimetypes.best == "application/json"
+    )
+
+
 def create_app(database=None):
     app = Flask(
         __name__,
@@ -166,7 +174,9 @@ def create_app(database=None):
         @app.errorhandler(almacen.ErrorBase)
         def base_no_disponible(_error):
             mensaje = "No se pudo confirmar la operación en la base de datos. Revisa tu historial antes de reintentar."
-            if request.method == "POST" and request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
+            if request.method == "POST" and (
+                request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"} or solicitud_json_emergencia()
+            ):
                 return {"error": mensaje}, 503
             return mensaje, 503
     else:
@@ -238,6 +248,11 @@ def create_app(database=None):
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
                 if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
+                if request.endpoint == "chat_psicologico" and request.args.get("modo") == "emergencia":
+                    if solicitud_json_emergencia():
+                        return {"error": "La sesión cambió o caducó. Vuelve a abrir el chat."}, 403
+                    flash("El formulario caducó. Vuelve a completar el paso.")
+                    return redirect(url_for("chat_psicologico", modo="emergencia"), 303)
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint == "preparar_historial":
                     return redirect(url_for("preparar_historial"), 303)
@@ -505,6 +520,10 @@ def create_app(database=None):
     def voz_chat_script():
         return send_from_directory(ROOT / "static", "voz-chat.js")
 
+    @app.get("/assets/voz-emergencia.js")
+    def voz_emergencia_script():
+        return send_from_directory(ROOT / "static", "voz-emergencia.js")
+
     @app.get("/assets/expediente-local.js")
     def expediente_local_script():
         return send_from_directory(ROOT / "static", "expediente-local.js")
@@ -617,8 +636,13 @@ def create_app(database=None):
 
     @app.route("/psicologia/chat", methods=["GET", "POST"])
     def chat_psicologico():
+        emergencia = request.args.get("modo") == "emergencia"
+        modo = "emergencia" if emergencia else None
+        quiere_json = solicitud_json_emergencia()
         expediente = expediente_actual()
         if expediente is None:
+            if quiere_json:
+                return {"error": "Vuelve a iniciar sesión para conversar con la IA."}, 401
             return redirect(url_for("index"))
         usuario = session["user_id"]
         revision, mensajes = almacen.psych_chat(database, usuario)
@@ -628,25 +652,36 @@ def create_app(database=None):
         if request.method == "POST":
             if request.form.get("revision") != str(revision):
                 error = "La conversación se actualizó. Revisa los mensajes y vuelve a enviarlo."
+                estado = 409
             elif not 1 <= len(texto) <= 2000:
                 error = "Escribe un mensaje de hasta 2000 caracteres."
+                estado = 400
             elif not ia_disponible:
                 error = "La IA aún no está configurada en el servidor."
+                estado = 503
             else:
                 actualizados = [*mensajes, {"role": "user", "text": texto}]
                 try:
                     respuesta = responder_chat_psicologico(actualizados)
                 except ERRORES_GEMINI:
                     error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
+                    estado = 503
                 else:
                     actualizados.append({"role": "ai", "text": respuesta})
                     if almacen.save_psych_chat(database, usuario, revision, actualizados):
-                        return redirect(url_for("chat_psicologico", _anchor="ultimo-mensaje"), 303)
+                        if quiere_json:
+                            return {"revision": revision + 1, "mensajes": actualizados[-2:]}
+                        return redirect(url_for("chat_psicologico", modo=modo, _anchor="ultimo-mensaje"), 303)
                     revision, mensajes = almacen.psych_chat(database, usuario)
                     error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
+                    estado = 409
+            if quiere_json:
+                if estado == 409:
+                    error = "La conversación cambió en otra pestaña. Copia tu mensaje y vuelve a abrir el chat para enviarlo."
+                return {"error": error}, estado
         return render_template(
             "chat-psicologico.html", expediente=expediente, modulo="chat", mensajes=mensajes,
-            revision=revision, texto=texto, error=error, ia_disponible=ia_disponible,
+            revision=revision, texto=texto, error=error, ia_disponible=ia_disponible, emergencia=emergencia,
         )
 
     @app.route("/chequeo.html", methods=["GET", "POST"])
