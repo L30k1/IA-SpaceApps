@@ -4,6 +4,7 @@ import re
 import secrets
 import sqlite3
 from datetime import datetime, timezone
+from math import ceil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from uuid import uuid4
@@ -18,7 +19,7 @@ import db
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from database.expedientes import FASES, SIGNOS, fecha_utc, leer_expediente
 from psicologia import (
-    MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, seguimiento_psicologico,
+    INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
     tramo_mision, validar_registros,
 )
 
@@ -129,7 +130,10 @@ def create_app(database=None):
 
     @app.after_request
     def proteger_paginas(response):
-        if request.endpoint in {"index", "profile", "checkup", "summary", "registro_psicologico", "download_expediente", "logout"}:
+        if request.endpoint in {
+            "index", "profile", "checkup", "summary", "registro_psicologico",
+            "chat_psicologico", "download_expediente", "logout",
+        }:
             response.cache_control.no_store = True
         return response
 
@@ -154,7 +158,7 @@ def create_app(database=None):
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
                 flash("El formulario caducó. Vuelve a completar el paso.")
-                if request.endpoint in {"checkup", "registro_psicologico"} and expediente_actual():
+                if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
@@ -248,6 +252,7 @@ def create_app(database=None):
             abort(422, description=str(exc))
         usuario = session["user_id"]
         campo, reactivos, escala = MODULOS[modulo]
+        intervalo = INTERVALOS[modulo]
         ahora = datetime.now(timezone.utc)
         tramos = {
             mision["id"]: tramo_mision(mision, ahora.date()) for mision in expediente["misiones"]
@@ -261,6 +266,9 @@ def create_app(database=None):
             key=lambda registro: fecha_utc(registro["fecha_hora"]),
             reverse=True,
         )
+        disponible = db.proximo_registro(registros, intervalo)
+        en_espera = disponible is not None and ahora < disponible
+        espera_rechazada = False
         seleccionado = request.args.get("registro")
         actual = next((registro for registro in registros if registro["id"] == seleccionado), None)
         if seleccionado and actual is None:
@@ -281,6 +289,8 @@ def create_app(database=None):
                 if any(registro["id"] == registro_id for registro in registros):
                     return redirect(url_for("registro_psicologico", modulo=modulo, registro=registro_id), 303)
                 try:
+                    if en_espera:
+                        raise db.RegistroPrematuro(disponible)
                     respuestas = leer_respuestas(request.form, modulo)
                     pvt = leer_pvt(request.form)
                     nota = request.form.get("nota", "").strip()
@@ -288,9 +298,6 @@ def create_app(database=None):
                         raise ValueError("La nota admite hasta 600 caracteres.")
                     if modulo == "semanal" and mision_elegida and mision_elegida not in tramos:
                         raise ValueError("Selecciona una misión de tu expediente.")
-                except ValueError as exc:
-                    error = str(exc)
-                else:
                     registro = {
                         "id": registro_id, "version": VERSION,
                         "fecha_hora": ahora.isoformat(),
@@ -300,8 +307,14 @@ def create_app(database=None):
                     if modulo == "semanal":
                         registro["mision_id"] = mision_elegida or None
                         registro["tramo_mision"] = tramos.get(mision_elegida)
-                    if not db.save_psych_report(database, usuario, campo, registro):
+                    if not db.save_psych_report(database, usuario, campo, registro, intervalo):
                         return redirect(url_for("registro_psicologico", modulo=modulo, registro=registro_id), 303)
+                except db.RegistroPrematuro as exc:
+                    disponible = exc.disponible
+                    en_espera = espera_rechazada = True
+                    error = str(exc)
+                except ValueError as exc:
+                    error = str(exc)
             else:
                 abort(400)
             if error is None:
@@ -319,12 +332,51 @@ def create_app(database=None):
                 return redirect(url_for(
                     "registro_psicologico", modulo=modulo, registro=registro["id"], actualizar_archivo=1,
                 ), 303)
-        return render_template(
+        pagina = render_template(
             "diario.html", expediente=expediente, registros=registros, actual=actual,
             modulo=modulo, reactivos=reactivos, escala=escala, registro_id=registro_id, error=error,
             tramos=tramos, mision_elegida=mision_elegida,
+            disponible=disponible if en_espera else None,
             ia_disponible=ia_disponible, formulario=request.form,
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
+        )
+        if espera_rechazada:
+            segundos = max(1, ceil((disponible - datetime.now(timezone.utc)).total_seconds()))
+            return pagina, 429, {"Retry-After": str(segundos)}
+        return pagina
+
+    @app.route("/psicologia/chat", methods=["GET", "POST"])
+    def chat_psicologico():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        usuario = session["user_id"]
+        revision, mensajes = db.psych_chat(database, usuario)
+        ia_disponible = bool(os.getenv("GEMINI_API_KEY", "").strip())
+        texto = request.form.get("mensaje", "").strip()
+        error = None
+        if request.method == "POST":
+            if request.form.get("revision") != str(revision):
+                error = "La conversación se actualizó. Revisa los mensajes y vuelve a enviarlo."
+            elif not 1 <= len(texto) <= 2000:
+                error = "Escribe un mensaje de hasta 2000 caracteres."
+            elif not ia_disponible:
+                error = "La IA aún no está configurada en el servidor."
+            else:
+                actualizados = [*mensajes, {"role": "user", "text": texto}]
+                try:
+                    respuesta = responder_chat_psicologico(actualizados)
+                except ERRORES_GEMINI:
+                    error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
+                else:
+                    actualizados.append({"role": "ai", "text": respuesta})
+                    if db.save_psych_chat(database, usuario, revision, actualizados):
+                        return redirect(url_for("chat_psicologico", _anchor="ultimo-mensaje"), 303)
+                    revision, mensajes = db.psych_chat(database, usuario)
+                    error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
+        return render_template(
+            "chat-psicologico.html", expediente=expediente, modulo="chat", mensajes=mensajes,
+            revision=revision, texto=texto, error=error, ia_disponible=ia_disponible,
         )
 
     @app.route("/chequeo.html", methods=["GET", "POST"])

@@ -3,7 +3,7 @@
 ## 1. Metadatos del test
 
 - **Nombre.** Registro semanal de ánimo, desempeño y cohesión.
-- **Frecuencia.** Una vez por semana. Cada registro abarca los siete días anteriores.
+- **Frecuencia.** El siguiente cuestionario se habilita siete días después del último registro semanal de la cuenta. Cada registro abarca los siete días anteriores.
 - **Tiempo estimado.** Entre 5 y 7 minutos con la nota de contexto. La prueba complementaria se realiza aparte.
 - **Dominios.** Ánimo e interés, estrés operativo, sueño y desempeño, y cohesión de equipo.
 
