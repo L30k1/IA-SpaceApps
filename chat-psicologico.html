@@ -7,6 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='voz-chat.css') }}">
+  <script src="{{ url_for('voz_chat_script') }}" defer></script>
 </head>
 <body>
   <main class="app-frame">
@@ -31,7 +33,7 @@
           {% for mensaje in mensajes %}
           <li{% if mensaje.role == 'user' %} class="mensaje-usuario"{% endif %}{% if loop.last %} id="ultimo-mensaje"{% endif %}>
             <strong>{{ 'Tú' if mensaje.role == 'user' else 'IA' }}</strong>
-            <p>{{ mensaje.text }}</p>
+            <p{% if mensaje.role == 'ai' %} data-voz-respuesta{% endif %}>{{ mensaje.text }}</p>
           </li>
           {% endfor %}
         </ol>
@@ -41,9 +43,12 @@
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="revision" value="{{ revision }}">
           <label class="campo-diario">Tu mensaje
-            <textarea name="mensaje" maxlength="2000" rows="3" required>{{ texto }}</textarea>
+            <textarea name="mensaje" maxlength="2000" rows="3" required data-voz-mensaje>{{ texto }}</textarea>
           </label>
           <p>El proveedor de IA recibe tu mensaje y los turnos recientes. MediSpace guarda la conversación en tu cuenta.</p>
+          {% with chat_voz='psicologico', turno_voz=revision %}
+            {% include '_voz_chat.html' %}
+          {% endwith %}
           <button class="step-pill" type="submit">Enviar mensaje</button>
         </form>
         {% else %}

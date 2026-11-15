@@ -6,6 +6,8 @@
   <title>MediSpace - Evaluación y Análisis de IA</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/chequeo.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='voz-chat.css') }}">
+  <script src="{{ url_for('voz_chat_script') }}" defer></script>
 </head>
 <body>
   <!--{% if false %}-->
@@ -88,14 +90,17 @@
           <div class="chat-container" aria-label="Conversación">
             {% for message in messages %}
             <div class="msg-row {{ message.role }}">
-              <div class="msg-bubble"><strong>{{ 'Asistente' if message.role == 'ai' else 'Tú' }}</strong><br>{{ message.text }}</div>
+              <div class="msg-bubble"><strong>{{ 'Asistente' if message.role == 'ai' else 'Tú' }}</strong><br><span{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text }}</span></div>
             </div>
             {% endfor %}
           </div>
 
           {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+          {% with chat_voz='medico', turno_voz=draft['id'] ~ ':' ~ draft['revision'] %}
+            {% include '_voz_chat.html' %}
+          {% endwith %}
           <div class="chat-input-bar">
-            <input type="text" name="answer" aria-label="Tu respuesta" placeholder="Escribe tu respuesta..." value="{{ answer }}" maxlength="1000" autocomplete="off">
+            <input type="text" name="answer" aria-label="Tu respuesta" placeholder="Escribe tu respuesta..." value="{{ answer }}" maxlength="1000" autocomplete="off" data-voz-mensaje>
             <button type="submit" class="btn-send" name="accion" value="enviar">Enviar</button>
             <button type="submit" class="btn-send" name="accion" value="finalizar">Finalizar chequeo</button>
           </div>
