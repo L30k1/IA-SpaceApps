@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="{{ idioma }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fractal 2-Back (F2B) · MediSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cognicion.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <script src="{{ url_for('idioma_script') }}" defer></script>
+  <script src="{{ url_for('f2b_script') }}" defer></script>
+</head>
+<body>
+  <main class="app-frame">
+    <div class="main-area diario cognicion">
+      <header class="top-header">
+        <div class="brand-title">MediSpace</div>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        {% include '_selector_idioma.html' %}
+      </header>
+      <h1>{{ t('Pruebas cognitivas') }}</h1>
+      {% include '_navegacion_cognitiva.html' %}
+      <section class="info-card" aria-labelledby="f2b-titulo">
+        <h2 id="f2b-titulo">Fractal 2-Back (F2B)</h2>
+        <p>{{ t('Pulsa la barra espaciadora o toca el cuadro solo si la figura coincide con la que viste dos posiciones atrás.') }}</p>
+        <p>{{ t('Por ejemplo, en A → B → A, responde al ver la segunda A.') }}</p>
+        <p>{{ t('Verás {cantidad} figuras, cada una durante 1,75 segundos.', cantidad=datos.secuencia | length) }}</p>
+        <form id="f2b-form" method="post" action="{{ url_for('prueba_f2b') }}" hidden>
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        </form>
+        <button class="step-pill prueba-inicio" id="f2b-iniciar" type="button" disabled>{{ t('Iniciar prueba') }}</button>
+        <noscript><p>{{ t('Activa JavaScript para ver las figuras y medir los tiempos en el navegador.') }}</p></noscript>
+        <div class="f2b-ronda" id="f2b-ronda" hidden>
+          <p id="f2b-avance"></p>
+          <button class="f2b-responder" id="f2b-responder" type="button" aria-keyshortcuts="Space">
+            <canvas width="288" height="288" aria-hidden="true"></canvas>
+            <span>{{ t('Marcar coincidencia') }}</span>
+          </button>
+        </div>
+        <p id="f2b-estado" role="status" hidden></p>
+        <button class="step-pill prueba-inicio" id="f2b-reintentar" type="button" hidden>{{ t('Reintentar guardado') }}</button>
+        <a class="step-pill prueba-inicio" id="f2b-reiniciar" href="{{ url_for('prueba_f2b') }}" hidden>{{ t('Iniciar otra ronda') }}</a>
+        <script id="f2b-datos" type="application/json">{{ datos | tojson }}</script>
+      </section>
+      {% if actual %}
+      <section class="info-card" id="f2b-guardado" aria-labelledby="f2b-guardado-titulo">
+        <h2 id="f2b-guardado-titulo">{{ t('Resultado guardado') }}</h2>
+        <p>{{ actual.fecha_hora | hora_utc }}</p>
+        <dl class="datos-diario">
+          <div><dt>{{ t('Coincidencias detectadas') }}</dt><dd>{{ actual.aciertos }} / {{ coincidencias }}</dd></div>
+          <div><dt>{{ t('Omisiones') }}</dt><dd>{{ actual.omisiones }}</dd></div>
+          <div><dt>{{ t('Falsas alarmas') }}</dt><dd>{{ actual.falsas_alarmas }}</dd></div>
+          <div><dt>{{ t('Mediana de reacción en aciertos') }}</dt>
+            <dd>{{ (actual.mediana_aciertos_ms | round | int) ~ ' ms' if actual.mediana_aciertos_ms is not none else '—' }}</dd>
+          </div>
+        </dl>
+        <a class="diario-link" href="{{ url_for('historial_cognitivo') }}">{{ t('Historial de pruebas cognitivas') }}</a>
+      </section>
+      {% include '_archivo_local.html' %}
+      <script src="{{ url_for('expediente_local_script') }}" defer></script>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>

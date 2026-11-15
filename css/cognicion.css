@@ -56,3 +56,23 @@
 .lot-opciones button { min-width: 44px; min-height: 44px; }
 .lot-opciones button[aria-pressed="true"] { background: #1e5791; color: #fff; outline: 2px solid #7dd3fc; }
 .cognicion button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.f2b-ronda {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.f2b-ronda p { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.f2b-responder {
+  display: grid;
+  width: min(100%, 330px);
+  justify-items: center;
+  border: 1px solid var(--border-glow);
+  border-radius: 12px;
+  background: #040e24;
+  color: var(--text-main);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.f2b-responder canvas { display: block; width: min(100%, 288px); height: auto; }
+.f2b-responder span { padding: 8px 12px 12px; font-weight: 600; }

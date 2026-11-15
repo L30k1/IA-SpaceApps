@@ -1,5 +1,11 @@
 <nav class="step-pills" aria-label="{{ t('Pruebas cognitivas') }}">
-  {% for endpoint, etiqueta in [('pruebas_cognitivas', t('Praxis Motora')), ('prueba_volt', t('Aprendizaje visual de objetos (VOLT)')), ('prueba_lot', t('Orientación de línea (LOT)')), ('historial_cognitivo', t('Historial'))] %}
+  {% for endpoint, etiqueta in [
+    ('pruebas_cognitivas', t('Praxis Motora')),
+    ('prueba_volt', t('Aprendizaje visual de objetos (VOLT)')),
+    ('prueba_lot', t('Orientación de línea (LOT)')),
+    ('prueba_f2b', 'Fractal 2-Back (F2B)'),
+    ('historial_cognitivo', t('Historial'))
+  ] %}
   <a class="step-pill{% if request.endpoint == endpoint %} active{% endif %}" href="{{ url_for(endpoint) }}"{% if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ etiqueta }}</a>
   {% endfor %}
 </nav>

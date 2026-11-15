@@ -3,6 +3,7 @@ import math
 import re
 from datetime import datetime, timezone
 
+from f2b import CAMPO_F2B, VERSION_F2B, puntuar_f2b
 from idioma import traducir as t
 from lot import CAMPO_LOT, VERSION_LOT, puntuar_lot
 from volt import CAMPO_VOLT, ESPERA, VERSION_VOLT, estimulos, puntuar
@@ -107,6 +108,15 @@ def registros_volt(registros):
     return normalizados
 
 
+def registro_f2b(identificador, fecha, respuestas):
+    if not isinstance(identificador, str) or not re.fullmatch(r"[0-9a-f]{32}", identificador):
+        raise ValueError("El identificador de Fractal 2-Back no es válido.")
+    return {
+        "id": identificador, "fecha_hora": fecha_utc(fecha).isoformat(), "version": VERSION_F2B,
+        **puntuar_f2b(identificador, respuestas),
+    }
+
+
 def leer_expediente(contenido):
     try:
         expediente = json.loads(contenido)
@@ -174,4 +184,14 @@ def leer_expediente(contenido):
         if len({registro["id"] for registro in registros}) != len(registros):
             raise ValueError("Los identificadores de orientación de línea deben ser únicos.")
         expediente[CAMPO_LOT] = registros
+    if CAMPO_F2B in expediente:
+        registros = expediente[CAMPO_F2B]
+        if not isinstance(registros, list) or not all(
+            isinstance(r, dict) and r.get("version") == VERSION_F2B for r in registros
+        ):
+            raise ValueError("Fractal 2-Back debe contener una lista de rondas válidas.")
+        registros = [registro_f2b(r.get("id"), r.get("fecha_hora"), r.get("respuestas_ms")) for r in registros]
+        if len({registro["id"] for registro in registros}) != len(registros):
+            raise ValueError("Los identificadores de Fractal 2-Back deben ser únicos.")
+        expediente[CAMPO_F2B] = registros
     return expediente

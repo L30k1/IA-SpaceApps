@@ -21,6 +21,7 @@
     "Permite la escritura en el navegador para actualizar este archivo.": "Allow write access in your browser to update this file.",
     "El navegador no pudo recuperar el archivo vinculado.": "The browser could not retrieve the linked file.",
     "Ya puedes iniciar el reconocimiento diferido.": "You can now start delayed recognition.",
+    "Figura {actual} de {total}": "Figure {actual} of {total}",
     "Tiempo restante: {tiempo}": "Time remaining: {tiempo}",
     "Este navegador no puede dibujar los estímulos de la prueba.": "This browser cannot display the test shapes.",
     "{fase}. Figura {actual} de {total}.": "{fase}. Shape {actual} of {total}.",
