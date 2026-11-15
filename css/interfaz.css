@@ -11,7 +11,7 @@ body {
 .sidebar { flex-shrink: 0; }
 h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .main-area h1 { font-size: clamp(1.4rem, 3vw, 1.9rem); }
-.info-card > p, .mision-calendario > p, .expediente-formulario > p, .checkup-form > p { max-width: 72ch; }
+.info-card > p, .mision-calendario > p, .expediente-formulario > p, .chat-formulario > p { max-width: 72ch; }
 .info-card, .status-banner { justify-content: start; min-width: 0; }
 .two-cols { grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); }
 .view > :is(.two-cols, .status-banner, .info-card, .history-heading) { margin-block: 0; }
@@ -104,7 +104,6 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .avance-ejercicio progress { width: min(100%, 16rem); accent-color: var(--accent); }
 .avance-ejercicio .avance-ejercicio-completo { color: #bbf7d0; }
 
-#view-chat h1 { margin-bottom: 14px; }
 .telemetry-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
@@ -122,13 +121,6 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
   color-scheme: dark;
 }
 .checkup-context { grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr)); }
-.chat-input-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
-.chat-input-bar .btn-send { min-height: 44px; padding: 8px 14px; }
-.chat-input-bar [value="finalizar"] { background: #0c2146; }
-.chat-psicologico:empty { display: none; }
-.chat-psicologico .mensaje-usuario { margin-inline-start: clamp(0px, 6vw, 72px); }
-.chat-psicologico li:not(.mensaje-usuario) { margin-inline-end: clamp(0px, 6vw, 72px); }
-.form-chat-psicologico textarea { resize: vertical; }
 .diario fieldset + fieldset { border-top: 1px solid var(--border-glow); }
 .diario .btn-primary, .file-actions > * { max-width: 100%; }
 .step-pill, .file-actions a { overflow-wrap: anywhere; }
@@ -142,8 +134,6 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 
 @media (max-width: 540px) {
   .main-area { padding: 16px; }
-  .chat-input-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .chat-input-bar input { grid-column: 1 / -1; }
   .top-header .mission-meta { text-align: start; }
   .estadisticas-resumen { grid-template-columns: minmax(0, 1fr); }
   .step-pills { gap: 6px; }

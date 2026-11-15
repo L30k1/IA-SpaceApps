@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ t('MediSpace - Evaluación y Análisis de IA') }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/resumen.css">
   <link rel="stylesheet" href="css/chequeo.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='voz-chat.css') }}">
   <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('audio_ia_script') }}" defer></script>
+  <script src="{{ url_for('chat_ui_script') }}" defer></script>
   <script src="{{ url_for('voz_chat_script') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
@@ -25,39 +28,25 @@
   <template>
   <!--{% endif %}-->
 
-  <div class="app-frame">
-    <aside class="sidebar">
-      <a class="nav-icon" href="{{ url_for('profile') }}" aria-label="Dashboard">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-      </a>
-      <div class="nav-icon active" title="{{ t('Evaluación IA') }}">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </div>
-    </aside>
-
-    <div class="main-area">
+  <main class="app-frame">
+    <div class="main-area diario">
       <header class="top-header">
         <div class="marca-encabezado">
           {% include '_marca.html' %}
-          <span class="marca-texto">Crew Health Assistant</span>
+          <div class="marca-texto">{{ expediente.astronauta.nombre }}</div>
         </div>
-        <div class="mission-meta">
-          <div><strong>{{ expediente.astronauta.nombre }}</strong></div>
-          <div id="utc-clock">{{ utc_clock }}</div>
-        </div>
-
-        <a class="step-pill enlace-perfil-movil" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
         {% include '_selector_idioma.html' %}
       </header>
 
-      <!-- PANTALLA 5: EVALUACIÓN FÍSICA Y EMOCIONAL -->
-      <section id="view-chat" class="view active" data-chat-voz="medico"{% if draft and draft['revision'] == 0 %} data-voz-inicial{% endif %}>
-        <h1>{{ t('Evaluación de salud') }}</h1>
+      {% from '_chat_mensajes.html' import historial_chat %}
+      <h1>{{ t('Evaluación de salud') }}</h1>
+      <section class="info-card chat-ia" data-chat-voz="medico"{% if draft and draft['revision'] == 0 %} data-voz-inicial{% endif %}>
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(message) }}</p>{% endfor %}
         {% if bloqueado %}
         <p role="status">{{ t(bloqueado) }}</p>
         {% else %}
-        <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
+        <form class="chat-formulario" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="turn" value="{{ draft['id'] }}:{{ draft['revision'] }}">
           <p>{{ t('La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.') }}</p>
@@ -98,26 +87,22 @@
             <label>{{ t('Actividad') }} <input name="actividad" value="{{ details.actividad | default('') }}" maxlength="200"></label>
           </fieldset>
 
-          <div class="chat-container" aria-label="{{ t('Conversación') }}">
-            {% for message in messages %}
-            <div class="msg-row {{ message.role }}">
-              <div class="msg-bubble"><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong><br><span{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text | respuesta_ia if message.role == 'ai' else message.text }}</span></div>
-            </div>
-            {% endfor %}
-          </div>
+          {{ historial_chat(messages) }}
 
           {% if error %}<p class="form-error" role="alert">{{ t(error) }}</p>{% endif %}
           {% include '_voz_chat.html' %}
-          <div class="chat-input-bar">
-            <input type="text" name="answer" aria-label="{{ t('Tu respuesta') }}" placeholder="{{ t('Escribe tu respuesta...') }}" value="{{ answer }}" maxlength="1000" autocomplete="off" data-voz-mensaje>
-            <button type="submit" class="btn-send" name="accion" value="enviar">{{ t('Enviar') }}</button>
-            <button type="submit" class="btn-send" name="accion" value="finalizar">{{ t('Finalizar chequeo') }}</button>
+          <div class="chat-compositor">
+            <label class="campo-diario">{{ t('Tu mensaje') }}
+              <textarea name="answer" maxlength="1000" rows="2" data-voz-mensaje>{{ answer }}</textarea>
+            </label>
+            <button type="submit" class="chat-enviar" name="accion" value="enviar">{{ t('Enviar') }}</button>
           </div>
+          <button type="submit" class="step-pill chat-finalizar" name="accion" value="finalizar">{{ t('Finalizar chequeo') }}</button>
         </form>
         {% endif %}
       </section>
     </div>
-  </div>
+  </main>
 
   <!--{% if false %}-->
   </template>

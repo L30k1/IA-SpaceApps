@@ -1,0 +1,10 @@
+{% macro historial_chat(mensajes) %}
+<ol class="chat-mensajes" data-chat-mensajes role="log" aria-label="{{ t('Conversación') }}">
+  {% for mensaje in mensajes %}
+  <li class="chat-turno{% if mensaje.role == 'user' %} chat-turno-usuario{% endif %}"{% if loop.last %} id="ultimo-mensaje"{% endif %}>
+    <strong>{{ t('Tú') if mensaje.role == 'user' else t('IA') }}</strong>
+    <p{% if mensaje.role == 'ai' %} data-voz-respuesta{% endif %}>{{ mensaje.text | respuesta_ia if mensaje.role == 'ai' else mensaje.text }}</p>
+  </li>
+  {% endfor %}
+</ol>
+{% endmacro %}

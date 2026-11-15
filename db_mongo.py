@@ -182,20 +182,36 @@ def save_psych_followup(database, user_id, campo, registro_id, seguimiento):
     return bool(resultado.matched_count)
 
 
-def psych_chat(database, user_id):
-    conversacion = database.chat_psicologico.find_one({"_id": user_id})
-    return (conversacion["revision"], conversacion["mensajes"]) if conversacion else (0, [])
+def psych_chat(database, user_id, emergencia=False):
+    identificador = f"emergencia:{user_id}" if emergencia else user_id
+    conversacion = database.chat_psicologico.find_one({"_id": identificador})
+    if conversacion is None:
+        return 0, []
+    return conversacion["revision"], conversacion["mensajes"][conversacion.get("inicio_visible", 0):]
 
 
-def save_psych_chat(database, user_id, revision, mensajes):
+def save_psych_chat(database, user_id, revision, turnos, emergencia=False):
+    identificador = f"emergencia:{user_id}" if emergencia else user_id
     if revision == 0:
         try:
-            database.chat_psicologico.insert_one({"_id": user_id, "revision": 1, "mensajes": mensajes})
+            database.chat_psicologico.insert_one({
+                "_id": identificador, "user_id": user_id, "canal": "emergencia" if emergencia else "apoyo",
+                "revision": 1, "mensajes": turnos,
+            })
         except DuplicateKeyError:
             return False
         return True
     resultado = database.chat_psicologico.update_one(
-        {"_id": user_id, "revision": revision}, {"$set": {"mensajes": mensajes}, "$inc": {"revision": 1}},
+        {"_id": identificador, "revision": revision},
+        {"$push": {"mensajes": {"$each": turnos}}, "$inc": {"revision": 1}},
+    )
+    return bool(resultado.matched_count)
+
+
+def limpiar_psych_chat(database, user_id, revision):
+    resultado = database.chat_psicologico.update_one(
+        {"_id": user_id, "revision": revision},
+        [{"$set": {"inicio_visible": {"$size": "$mensajes"}, "revision": {"$add": ["$revision", 1]}}}],
     )
     return bool(resultado.matched_count)
 

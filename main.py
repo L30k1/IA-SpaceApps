@@ -737,6 +737,10 @@ def create_app(database=None):
     def voz_chat_script():
         return send_from_directory(ROOT / "static", "voz-chat.js")
 
+    @app.get("/assets/chat-ui.js")
+    def chat_ui_script():
+        return send_from_directory(ROOT / "static", "chat-ui.js")
+
     @app.get("/assets/audio-ia.js")
     def audio_ia_script():
         return send_from_directory(ROOT / "static", "audio-ia.js")
@@ -750,11 +754,11 @@ def create_app(database=None):
         if configuracion is None:
             return {"error": t("ElevenLabs necesita una clave y un Voice ID en Render.")}, 503
         canal = request.form.get("canal")
-        if request.form.get("usar_nube") != "1" or canal not in {"medico", "psicologico"}:
+        if request.form.get("usar_nube") != "1" or canal not in {"medico", "psicologico", "emergencia"}:
             return "", 400
         usuario = session["user_id"]
-        if canal == "psicologico":
-            _, mensajes = almacen.psych_chat(database, usuario)
+        if canal in {"psicologico", "emergencia"}:
+            _, mensajes = almacen.psych_chat(database, usuario, emergencia=canal == "emergencia")
         else:
             borrador = almacen.get_open_checkup(database, usuario, expediente["_id"])
             mensajes = json.loads(borrador["messages"]) if borrador else []
@@ -901,11 +905,19 @@ def create_app(database=None):
                 return {"error": t("Vuelve a iniciar sesión para conversar con la IA.")}, 401
             return redirect(url_for("index"))
         usuario = session["user_id"]
-        revision, mensajes = almacen.psych_chat(database, usuario)
+        revision, mensajes = almacen.psych_chat(database, usuario, emergencia=emergencia)
         ia_disponible = bool(os.getenv("GEMINI_API_KEY", "").strip())
         texto = request.form.get("mensaje", "").strip()
         error = None
         if request.method == "POST":
+            if request.form.get("accion") == "limpiar":
+                if emergencia:
+                    abort(400)
+                if request.form.get("revision") == str(revision) and mensajes and almacen.limpiar_psych_chat(database, usuario, revision):
+                    flash("Conversación limpiada. El historial quedó guardado.")
+                else:
+                    flash("La conversación cambió. Revisa los mensajes antes de limpiar el chat.")
+                return redirect(url_for("chat_psicologico"), 303)
             if request.form.get("revision") != str(revision):
                 error = "La conversación se actualizó. Revisa los mensajes y vuelve a enviarlo."
                 estado = 409
@@ -923,14 +935,19 @@ def create_app(database=None):
                     error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
                     estado = 503
                 else:
-                    actualizados.append({"role": "ai", "text": respuesta})
-                    if almacen.save_psych_chat(database, usuario, revision, actualizados):
+                    nuevo_turno = [actualizados[-1], {"role": "ai", "text": respuesta}]
+                    if almacen.save_psych_chat(database, usuario, revision, nuevo_turno, emergencia=emergencia):
                         if quiere_json:
-                            return {"revision": revision + 1, "mensajes": actualizados[-2:]}
-                        return redirect(url_for("chat_psicologico", modo=modo, _anchor="ultimo-mensaje"), 303)
-                    revision, mensajes = almacen.psych_chat(database, usuario)
-                    error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
-                    estado = 409
+                            return {"revision": revision + 1, "mensajes": nuevo_turno}
+                        if request.headers.get("X-MediSpace-Chat") != "1":
+                            return redirect(url_for("chat_psicologico", modo=modo, _anchor="ultimo-mensaje"), 303)
+                        revision += 1
+                        mensajes = [*mensajes, *nuevo_turno]
+                        texto = ""
+                    else:
+                        revision, mensajes = almacen.psych_chat(database, usuario, emergencia=emergencia)
+                        error = "La conversación se actualizó en otra pestaña. Revisa los mensajes antes de reenviar."
+                        estado = 409
             if quiere_json:
                 if estado == 409:
                     error = "La conversación cambió en otra pestaña. Copia tu mensaje y vuelve a abrir el chat para enviarlo."
@@ -1044,7 +1061,10 @@ def create_app(database=None):
                     if saved and status:
                         sincronizar_archivo_expediente(usuario)
                         return redirect(url_for("summary", registro=f"app-{draft['id']}", actualizar_archivo=1), 303)
-                    return redirect(url_for("checkup"), 303)
+                    if not saved or request.headers.get("X-MediSpace-Chat") != "1":
+                        return redirect(url_for("checkup"), 303)
+                    draft = {**draft, "revision": draft["revision"] + 1}
+                    messages, vitals, answer = updated, medidas, ""
         return render_template(
             "chequeo.html", messages=messages, vitals=vitals, draft=draft, answer=answer, error=error,
             expediente=expediente, details=details,

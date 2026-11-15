@@ -49,7 +49,14 @@ def initialize(path):
             CREATE TABLE IF NOT EXISTS psych_chat (
                 user_id INTEGER PRIMARY KEY REFERENCES users(id),
                 revision INTEGER NOT NULL,
-                mensajes TEXT NOT NULL
+                mensajes TEXT NOT NULL,
+                inicio_visible INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS emergency_chat (
+                user_id INTEGER PRIMARY KEY REFERENCES users(id),
+                revision INTEGER NOT NULL,
+                mensajes TEXT NOT NULL,
+                inicio_visible INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS volt_drafts (
                 user_id INTEGER PRIMARY KEY REFERENCES users(id),
@@ -59,6 +66,8 @@ def initialize(path):
         db.execute("BEGIN IMMEDIATE")
         if "clave_edicion_hash" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
             db.execute("ALTER TABLE users ADD COLUMN clave_edicion_hash TEXT")
+        if "inicio_visible" not in {columna[1] for columna in db.execute("PRAGMA table_info(psych_chat)")}:
+            db.execute("ALTER TABLE psych_chat ADD COLUMN inicio_visible INTEGER NOT NULL DEFAULT 0")
 
 
 def create_user(path, password_hash, expediente, clave_edicion_hash=None):
@@ -208,27 +217,43 @@ def save_psych_followup(path, user_id, campo, registro_id, seguimiento):
         return False
 
 
-def psych_chat(path, user_id):
+def psych_chat(path, user_id, emergencia=False):
+    tabla = "emergency_chat" if emergencia else "psych_chat"
     with closing(sqlite3.connect(path)) as db:
-        row = db.execute("SELECT revision, mensajes FROM psych_chat WHERE user_id = ?", (user_id,)).fetchone()
-        return (row[0], json.loads(row[1])) if row else (0, [])
+        row = db.execute(f"SELECT revision, mensajes, inicio_visible FROM {tabla} WHERE user_id = ?", (user_id,)).fetchone()
+        return (row[0], json.loads(row[1])[row[2]:]) if row else (0, [])
 
 
-def save_psych_chat(path, user_id, revision, mensajes):
+def save_psych_chat(path, user_id, revision, turnos, emergencia=False):
+    tabla = "emergency_chat" if emergencia else "psych_chat"
     with closing(sqlite3.connect(path)) as db, db:
-        contenido = json.dumps(mensajes, ensure_ascii=False)
+        db.execute("BEGIN IMMEDIATE")
         if revision == 0:
             actualizado = db.execute(
-                "INSERT INTO psych_chat (user_id, revision, mensajes) VALUES (?, 1, ?) "
+                f"INSERT INTO {tabla} (user_id, revision, mensajes) VALUES (?, 1, ?) "
                 "ON CONFLICT (user_id) DO NOTHING",
-                (user_id, contenido),
+                (user_id, json.dumps(turnos, ensure_ascii=False)),
             )
         else:
+            row = db.execute(f"SELECT mensajes FROM {tabla} WHERE user_id = ? AND revision = ?",
+                             (user_id, revision)).fetchone()
+            if row is None:
+                return False
+            contenido = json.dumps([*json.loads(row[0]), *turnos], ensure_ascii=False)
             actualizado = db.execute(
-                "UPDATE psych_chat SET mensajes = ?, revision = revision + 1 "
+                f"UPDATE {tabla} SET mensajes = ?, revision = revision + 1 "
                 "WHERE user_id = ? AND revision = ?",
                 (contenido, user_id, revision),
             )
+        return actualizado.rowcount == 1
+
+
+def limpiar_psych_chat(path, user_id, revision):
+    with closing(sqlite3.connect(path)) as db, db:
+        actualizado = db.execute(
+            "UPDATE psych_chat SET inicio_visible = json_array_length(mensajes), revision = revision + 1 "
+            "WHERE user_id = ? AND revision = ?", (user_id, revision),
+        )
         return actualizado.rowcount == 1
 
 
