@@ -142,6 +142,7 @@ def generar_pregunta(conversacion, contexto=None):
         "la persona. Si ya respondió, formula una sola pregunta distinta que "
         "aclare sus respuestas o alguna medición. Si se incluye una diferencia respecto al rango "
         "personal, puedes preguntar si la medición se tomó en condiciones comparables. "
+        "Si contexto_fc indica durante_ejercicio o despues_ejercicio, considera ese momento al preguntar por el pulso. "
         "Evita diagnósticos y recomendaciones médicas.",
         max_output_tokens=512,
         limite=500,
@@ -156,6 +157,8 @@ def evaluar_chequeo(conversacion, contexto):
         "Usa solo datos aportados. Si comparacion_referencias muestra un valor inferior o superior "
         "al rango personal, menciona en los motivos la medición, su unidad y el rango registrado. "
         "Considera los síntomas, la actividad y las condiciones de medición al explicar la diferencia. "
+        "Si contexto_fc indica durante_ejercicio o despues_ejercicio, documenta en qué momento se midió el pulso. "
+        "No compares ese pulso directamente con un rango en reposo ni supongas que el esfuerzo explica los síntomas. "
         "Los rangos personales son información de contexto. No son umbrales diagnósticos y un valor "
         "dentro del rango no descarta un problema. No infieras referencias faltantes. "
         "Decide si los hallazgos descritos merecen revisión prioritaria "

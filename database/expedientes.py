@@ -3,6 +3,7 @@ import math
 import re
 from datetime import datetime, timezone
 
+from ejercicio import CAMPO_EJERCICIO, validar_sesion
 from emociones import CAMPO_EMOCIONES, VERSION_EMOCIONES, puntuar_emociones
 from f2b import CAMPO_F2B, VERSION_F2B, puntuar_f2b
 from idioma import traducir as t
@@ -127,6 +128,12 @@ def registro_emociones(identificador, fecha, respuestas):
     }
 
 
+def registro_ejercicio(identificador, fecha, sesion):
+    if not isinstance(identificador, str) or not re.fullmatch(r"[0-9a-f]{32}", identificador):
+        raise ValueError("El identificador de la sesión de ejercicio no es válido.")
+    return {"id": identificador, "fecha_hora": fecha_utc(fecha).isoformat(), **validar_sesion(sesion)}
+
+
 def leer_expediente(contenido):
     try:
         expediente = json.loads(contenido)
@@ -214,4 +221,12 @@ def leer_expediente(contenido):
         if len({registro["id"] for registro in registros}) != len(registros):
             raise ValueError("Los identificadores de reconocimiento facial deben ser únicos.")
         expediente[CAMPO_EMOCIONES] = registros
+    if CAMPO_EJERCICIO in expediente:
+        sesiones = expediente[CAMPO_EJERCICIO]
+        if not isinstance(sesiones, list) or not all(isinstance(r, dict) for r in sesiones):
+            raise ValueError("El expediente debe incluir las sesiones de ejercicio como una lista.")
+        sesiones = [registro_ejercicio(r.get("id"), r.get("fecha_hora"), r) for r in sesiones]
+        if len({r["id"] for r in sesiones}) != len(sesiones):
+            raise ValueError("Los identificadores de las sesiones de ejercicio deben ser únicos.")
+        expediente[CAMPO_EJERCICIO] = sesiones
     return expediente
