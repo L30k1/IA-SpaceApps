@@ -153,10 +153,7 @@ def create_app(database=None):
     if uri_mongo:
         import db_mongo as almacen
 
-        try:
-            database = almacen.conectar(uri_mongo, os.getenv("MONGODB_DB", "").strip() or "medispace")
-        except (almacen.ErrorBase, ValueError):
-            raise RuntimeError("No se pudo conectar con MongoDB. Revisa la configuración y los permisos del servicio.") from None
+        database = almacen.conectar(uri_mongo, os.getenv("MONGODB_DB", "").strip() or "medispace")
         archivos_expedientes = None
         conflicto_cuenta = almacen.ConflictoCuenta
 

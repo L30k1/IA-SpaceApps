@@ -60,6 +60,8 @@ Si la misión dura menos que un intervalo, la primera evaluación de ese tipo ve
 
 La base Atlas empieza vacía. Los JSON siguen sirviendo para importar y exportar expedientes. Con Atlas, la exportación se genera cuando la solicitas y la app guarda el expediente en MongoDB.
 
+Si falla el arranque, revisa **Render → Logs**. El código `MONGO_RED` apunta a conectividad o al estado del clúster, `MONGO_AUTENTICACION` a las credenciales y `MONGO_PERMISOS` al acceso del usuario a la base. Los mensajes de arranque omiten la URI y las credenciales. [Conectar Render a Atlas](https://render.com/docs/connect-to-mongodb-atlas)
+
 ## Voz en los chats
 
 En el monitoreo médico y el chat de apoyo, mantén presionada la barra espaciadora fuera de un campo editable o mantén pulsado **Mantén pulsado para hablar**. Autoriza el micrófono cuando el navegador lo solicite. Suelta para dejar de escuchar y revisa el texto antes de pulsar **Enviar**.
