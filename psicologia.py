@@ -2,6 +2,7 @@ import json
 from datetime import date, timedelta
 
 from asistente import consultar_gemini, texto_valido
+from idioma import traducir as t
 from database.expedientes import fecha_utc, texto_requerido
 
 
@@ -67,7 +68,7 @@ def validar_registros(expediente, modulo):
     campo, reactivos, _ = MODULOS[modulo]
     registros = expediente.get(campo, [])
     if not isinstance(registros, list) or not all(isinstance(registro, dict) for registro in registros):
-        raise ValueError(f"{campo} debe ser una lista de registros.")
+        raise ValueError(t("{campo} debe ser una lista de registros.", campo=campo))
     ids = set()
     for registro in registros:
         if registro.get("version", VERSION) != VERSION:

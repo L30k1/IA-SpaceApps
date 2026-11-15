@@ -1,0 +1,119 @@
+body {
+  padding: clamp(12px, 3vw, 28px);
+  line-height: 1.55;
+}
+
+.main-area { min-width: 0; padding: clamp(18px, 4vw, 36px); }
+.top-header { flex-wrap: wrap; gap: 12px 20px; }
+.top-header > :first-child { flex: 1 1 auto; min-width: 0; }
+.top-header .mission-meta, .crew-info { overflow-wrap: anywhere; }
+.top-header .brand-logo svg, .crew-avatar, .health-indicator svg { flex-shrink: 0; }
+.sidebar { flex-shrink: 0; }
+h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
+.main-area h1 { font-size: clamp(1.4rem, 3vw, 1.9rem); }
+.info-card > p, .mision-calendario > p, .expediente-formulario > p, .checkup-form > p { max-width: 72ch; }
+.info-card, .status-banner { justify-content: start; min-width: 0; }
+.two-cols { grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); }
+.view > :is(.two-cols, .status-banner, .info-card, .history-heading) { margin-block: 0; }
+.view > :is(.two-cols, .status-banner, .info-card, .history-heading) + * { margin-top: 16px; }
+.history-heading { text-align: start; }
+.history-heading + .step-pill { align-self: start; margin-bottom: 16px; }
+
+.selector-idioma {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-glow);
+  border-radius: 9px;
+  background: #09162e;
+}
+.selector-idioma a {
+  display: grid;
+  place-items: center;
+  min-height: 32px;
+  padding-inline: 9px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.selector-idioma a:hover, .selector-idioma [aria-current] { background: #153764; color: #f0f6ff; }
+.enlace-perfil-movil { display: none; }
+:is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
+#view-auth { gap: 16px; padding: clamp(20px, 5vw, 42px); }
+#view-auth .selector-idioma { align-self: end; }
+#view-auth .brand-logo { margin-bottom: 4px; }
+.auth-box { display: grid; max-width: 440px; gap: 8px; }
+.auth-box h1 { margin-bottom: 6px; font-size: 1.4rem; text-align: center; }
+.auth-box > label { font-size: 0.88rem; font-weight: 600; }
+.auth-box .input-group { margin: 0 0 6px; }
+.auth-box :is(.historial-carga, .btn-primary) { margin-top: 8px; }
+.auth-box .auth-switch { margin-top: 8px; }
+.historial-carga { padding: 14px; border: 1px solid var(--border-glow); border-radius: 10px; }
+.expediente-panel { padding: clamp(14px, 3vw, 20px); }
+
+.acciones-principales {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.acciones-principales .btn-primary { height: 100%; text-align: center; }
+.acciones-principales a.btn-primary { display: grid; place-items: center; }
+.dashboard-grid > * { min-width: 0; }
+.dashboard-grid .health-status-card, .dashboard-grid .action-tile { flex: 0 0 auto; }
+.module-actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
+.action-tile { text-align: center; }
+.mision-evaluacion { padding-block: 12px 4px; }
+.mision-estado { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 8px; background: #152b50; }
+
+#view-chat h1 { margin-bottom: 14px; }
+.telemetry-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  align-items: start;
+  min-width: 0;
+  padding: 10px 14px 14px;
+}
+.telemetry-title { padding-inline: 5px; }
+.telemetry-strip label { display: grid; gap: 4px; min-width: 0; }
+.telemetry-strip :is(input, select) {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px;
+  text-align: start;
+  color-scheme: dark;
+}
+.checkup-context { grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr)); }
+.chat-input-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
+.chat-input-bar .btn-send { min-height: 44px; padding: 8px 14px; }
+.chat-input-bar [value="finalizar"] { background: #0c2146; }
+.chat-psicologico:empty { display: none; }
+.chat-psicologico .mensaje-usuario { margin-inline-start: clamp(0px, 6vw, 72px); }
+.chat-psicologico li:not(.mensaje-usuario) { margin-inline-end: clamp(0px, 6vw, 72px); }
+.form-chat-psicologico textarea { resize: vertical; }
+.diario fieldset + fieldset { border-top: 1px solid var(--border-glow); }
+.diario .btn-primary, .file-actions > * { max-width: 100%; }
+.step-pill, .file-actions a { overflow-wrap: anywhere; }
+.cognicion :is(.lot-diagrama, .volt-figura) { margin-inline: auto; }
+
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+  .enlace-perfil-movil { display: inline-block; }
+}
+
+@media (max-width: 540px) {
+  .main-area { padding: 16px; }
+  .chat-input-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chat-input-bar input { grid-column: 1 / -1; }
+  .top-header .mission-meta { text-align: start; }
+  .estadisticas-resumen { grid-template-columns: minmax(0, 1fr); }
+  .step-pills { gap: 6px; }
+  .step-pill { padding-inline: 10px; }
+}

@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ idioma }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ 'Emergencia por voz' if emergencia else 'Chat de apoyo' }} · MediSpace</title>
+  <title>{{ t('Emergencia por voz') if emergencia else t('Chat de apoyo') }} · MediSpace</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='voz-chat.css') }}">
+  <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('voz_emergencia_script' if emergencia else 'voz_chat_script') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
 </head>
 <body>
   <main class="app-frame">
@@ -18,25 +20,27 @@
           <div class="brand-title">MediSpace</div>
           <div class="brand-sub">{{ expediente.astronauta.nombre }}</div>
         </div>
-        <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+
+        {% include '_selector_idioma.html' %}
       </header>
-      <h1>Atención psicológica</h1>
+      <h1>{{ t('Atención psicológica') }}</h1>
       {% if not emergencia %}{% include '_navegacion_psicologica.html' %}{% endif %}
       <section class="info-card" aria-labelledby="chat-title"{% if emergencia %} data-emergencia{% else %} data-chat-voz="psicologico"{% endif %}>
-        <h2 id="chat-title">{{ 'Emergencia por voz con IA' if emergencia else 'Chat de apoyo con IA' }}</h2>
+        <h2 id="chat-title">{{ t('Emergencia por voz con IA') if emergencia else t('Chat de apoyo con IA') }}</h2>
         {% if emergencia %}
-        <p>Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación. Este chat no envía avisos al equipo.</p>
+        <p>{{ t('Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación. Este chat no envía avisos al equipo.') }}</p>
         {% else %}
-        <p>Habla sobre lo que te preocupa o cómo estás viviendo tu turno. Para atención profesional, acude al equipo de salud.</p>
-        <p>Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación.</p>
+        <p>{{ t('Habla sobre lo que te preocupa o cómo estás viviendo tu turno. Para atención profesional, acude al equipo de salud.') }}</p>
+        <p>{{ t('Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación.') }}</p>
         {% endif %}
-        {% for aviso in get_flashed_messages() %}<p role="status">{{ aviso }}</p>{% endfor %}
-        {% if error %}<p class="diario-error" role="alert">{{ error }}</p>{% endif %}
+        {% for aviso in get_flashed_messages() %}<p role="status">{{ t(aviso) }}</p>{% endfor %}
+        {% if error %}<p class="diario-error" role="alert">{{ t(error) }}</p>{% endif %}
         {% if mensajes or emergencia %}
-        <ol class="chat-psicologico" aria-label="Conversación">
+        <ol class="chat-psicologico" aria-label="{{ t('Conversación') }}">
           {% for mensaje in mensajes %}
           <li{% if mensaje.role == 'user' %} class="mensaje-usuario"{% endif %}{% if loop.last %} id="ultimo-mensaje"{% endif %}>
-            <strong>{{ 'Tú' if mensaje.role == 'user' else 'IA' }}</strong>
+            <strong>{{ t('Tú') if mensaje.role == 'user' else t('IA') }}</strong>
             <p{% if mensaje.role == 'ai' %} data-voz-respuesta{% endif %}>{{ mensaje.text }}</p>
           </li>
           {% endfor %}
@@ -48,22 +52,22 @@
           <input type="hidden" name="revision" value="{{ revision }}">
           {% if emergencia %}
           <div class="voz-chat" data-voz-emergencia>
-            <p id="aviso-emergencia">Cada pausa envía lo que dijiste. El micrófono se reanuda al terminar la respuesta de la IA. El navegador puede usar su servicio de transcripción.</p>
+            <p id="aviso-emergencia">{{ t('Cada pausa envía lo que dijiste. El micrófono se reanuda al terminar la respuesta de la IA. El navegador puede usar su servicio de transcripción.') }}</p>
             <div class="voz-chat-controles">
-              <button type="button" data-emergencia-mic aria-pressed="false" aria-describedby="aviso-emergencia" hidden>Activar micrófono</button>
+              <button type="button" data-emergencia-mic aria-pressed="false" aria-describedby="aviso-emergencia" hidden>{{ t('Activar micrófono') }}</button>
             </div>
-            <p data-voz-estado role="status">También puedes escribir tu mensaje.</p>
+            <p data-voz-estado role="status">{{ t('También puedes escribir tu mensaje.') }}</p>
           </div>
           {% endif %}
-          <label class="campo-diario">Tu mensaje
+          <label class="campo-diario">{{ t('Tu mensaje') }}
             <textarea name="mensaje" maxlength="2000" rows="3" required data-voz-mensaje>{{ texto }}</textarea>
           </label>
-          <p>El proveedor de IA recibe tu mensaje y los turnos recientes. MediSpace guarda la conversación {{ 'en tu chat de apoyo' if emergencia else 'en tu cuenta' }}.</p>
+          <p>{{ t('El proveedor de IA recibe tu mensaje y los turnos recientes. MediSpace guarda la conversación') }} {{ t('en tu chat de apoyo') if emergencia else t('en tu cuenta') }}.</p>
           {% if not emergencia %}{% include '_voz_chat.html' %}{% endif %}
-          <button class="step-pill" type="submit">Enviar mensaje</button>
+          <button class="step-pill" type="submit">{{ t('Enviar mensaje') }}</button>
         </form>
         {% else %}
-        <p role="status">El chat estará disponible cuando se configure la IA en el servidor.</p>
+        <p role="status">{{ t('El chat estará disponible cuando se configure la IA en el servidor.') }}</p>
         {% endif %}
       </section>
     </div>

@@ -1,4 +1,5 @@
 (() => {
+  const { t } = window.mediSpaceLanguage;
   const datos = JSON.parse(document.querySelector('#lot-datos').textContent);
   const formulario = document.querySelector('#lot-form');
   const iniciar = document.querySelector('#lot-iniciar');
@@ -11,7 +12,7 @@
   const contexto = diagrama.getContext('2d');
   if (!contexto) {
     estado.hidden = false;
-    estado.textContent = 'Este navegador no puede dibujar las líneas de la prueba.';
+    estado.textContent = t('Este navegador no puede dibujar las líneas de la prueba.');
     return;
   }
 
@@ -66,14 +67,14 @@
     seleccionadas.clear();
     actualizarSeleccion();
     dibujar();
-    estado.textContent = `Par ${respuestas.length + 1} de ${datos.rondas.length}. Selecciona dos líneas.`;
+    estado.textContent = t('Par {actual} de {total}. Selecciona dos líneas.', { actual: respuestas.length + 1, total: datos.rondas.length });
     inicioPar = performance.now();
     opciones[0].focus();
   }
 
   async function guardar() {
     reintentar.hidden = true;
-    estado.textContent = 'Guardando los resultados…';
+    estado.textContent = t('Guardando los resultados…');
     try {
       const datosEnvio = new FormData(formulario);
       datosEnvio.set('respuestas', JSON.stringify(respuestas));
@@ -83,9 +84,9 @@
         window.location.replace(resultado.url);
         return;
       }
-      estado.textContent = resultado.error || 'No se pudieron guardar los resultados.';
+      estado.textContent = resultado.error || t('No se pudieron guardar los resultados.');
     } catch {
-      estado.textContent = 'No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.';
+      estado.textContent = t('No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.');
     }
     reintentar.hidden = false;
     reintentar.focus();

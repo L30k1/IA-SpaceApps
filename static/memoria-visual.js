@@ -1,4 +1,5 @@
 (() => {
+  const { t } = window.mediSpaceLanguage;
   const reloj = document.querySelector('#volt-espera');
   if (reloj) {
     const boton = document.querySelector('#volt-diferido');
@@ -6,13 +7,13 @@
     function actualizarEspera() {
       const restante = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
       if (restante === 0) {
-        reloj.textContent = 'Ya puedes iniciar el reconocimiento diferido.';
+        reloj.textContent = t('Ya puedes iniciar el reconocimiento diferido.');
         boton.disabled = false;
         return;
       }
       const minutos = Math.floor(restante / 60);
       const segundos = String(restante % 60).padStart(2, '0');
-      reloj.textContent = `Tiempo restante: ${minutos}:${segundos}`;
+      reloj.textContent = t('Tiempo restante: {tiempo}', { tiempo: `${minutos}:${segundos}` });
       setTimeout(actualizarEspera, 1000);
     }
     actualizarEspera();
@@ -29,7 +30,7 @@
   const opciones = document.querySelector('#volt-opciones');
   const reintentar = document.querySelector('#volt-reintentar');
   if (!contexto) {
-    estado.textContent = 'Este navegador no puede dibujar los estímulos de la prueba.';
+    estado.textContent = t('Este navegador no puede dibujar los estímulos de la prueba.');
     return;
   }
 
@@ -81,7 +82,10 @@
   }
 
   function mostrarReconocimiento() {
-    estado.textContent = `${fase === 'diferido' ? 'Reconocimiento diferido' : 'Reconocimiento inmediato'}. Figura ${respuestas.length + 1} de ${reconocimiento.length}.`;
+    estado.textContent = t('{fase}. Figura {actual} de {total}.', {
+      fase: fase === 'diferido' ? t('Reconocimiento diferido') : t('Reconocimiento inmediato'),
+      actual: respuestas.length + 1, total: reconocimiento.length,
+    });
     dibujar(reconocimiento[respuestas.length]);
     opciones.hidden = false;
     presentado = performance.now();
@@ -104,14 +108,14 @@
   }
 
   function mostrarAprendizaje() {
-    estado.textContent = `Aprendizaje. Figura ${figuraAprendida + 1} de ${aprendizaje.length}.`;
+    estado.textContent = t('Aprendizaje. Figura {actual} de {total}.', { actual: figuraAprendida + 1, total: aprendizaje.length });
     dibujar(aprendizaje[figuraAprendida]);
     continuarExposicion();
   }
 
   async function guardar() {
     reintentar.hidden = true;
-    estado.textContent = 'Guardando respuestas…';
+    estado.textContent = t('Guardando respuestas…');
     try {
       const datosEnvio = new FormData(formulario);
       datosEnvio.set('accion', fase === 'diferido' ? 'diferido' : 'inmediato');
@@ -122,9 +126,9 @@
         window.location.replace(resultado.url);
         return;
       }
-      estado.textContent = resultado.error || 'No se pudieron guardar las respuestas.';
+      estado.textContent = resultado.error || t('No se pudieron guardar las respuestas.');
     } catch {
-      estado.textContent = 'No se pudo confirmar el guardado. Puedes reintentar sin responder otra vez.';
+      estado.textContent = t('No se pudo confirmar el guardado. Puedes reintentar sin responder otra vez.');
     }
     reintentar.hidden = false;
     reintentar.focus();

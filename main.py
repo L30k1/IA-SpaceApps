@@ -11,6 +11,7 @@ from statistics import mean
 from sys import float_info
 from tempfile import NamedTemporaryFile
 from unicodedata import normalize
+from urllib.parse import urlencode
 from uuid import uuid4
 
 import httpx2
@@ -21,6 +22,7 @@ from werkzeug.utils import secure_filename
 
 import db
 from historial_formulario import SECCIONES, filas_formulario, generar_historial
+from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
@@ -163,6 +165,8 @@ def create_app(database=None):
         MAX_CONTENT_LENGTH=256 * 1024,
         SESSION_COOKIE_SAMESITE="Lax",
     )
+    app.jinja_env.globals["t"] = t
+    app.add_template_filter(fecha_corta, "fecha_corta")
     uri_mongo = os.getenv("MONGODB_URI", "").strip() if database is None else ""
     if uri_mongo:
         import db_mongo as almacen
@@ -177,8 +181,8 @@ def create_app(database=None):
             if request.method == "POST" and (
                 request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"} or solicitud_json_emergencia()
             ):
-                return {"error": mensaje}, 503
-            return mensaje, 503
+                return {"error": t(mensaje)}, 503
+            return t(mensaje), 503
     else:
         almacen = db
         database = database or os.getenv("MEDISPACE_DATABASE") or ROOT / "medispace.sqlite3"
@@ -188,7 +192,8 @@ def create_app(database=None):
 
     @app.template_filter("hora_utc")
     def hora_utc(fecha):
-        return fecha_utc(fecha).strftime("%d/%m/%Y %H:%M UTC")
+        fecha = fecha_utc(fecha)
+        return f"{fecha_corta(fecha)} {fecha:%H:%M} UTC"
 
     def expediente_actual():
         return almacen.expediente_for_user(database, session.get("user_id"))
@@ -224,7 +229,16 @@ def create_app(database=None):
             "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
+            response.headers["Content-Language"] = idioma_actual()
+            if idioma_elegido():
+                response.set_cookie("medispace_lang", idioma_elegido(), max_age=31536000,
+                                    httponly=True, secure=request.is_secure, samesite="Lax")
         return response
+
+    def url_idioma(codigo):
+        query = request.args.to_dict(flat=False)
+        query["lang"] = [codigo]
+        return f"{url_for(request.endpoint, **(request.view_args or {}))}?{urlencode(query, doseq=True)}"
 
     @app.context_processor
     def page_context():
@@ -233,9 +247,11 @@ def create_app(database=None):
         return {
             "utc_clock": datetime.now(timezone.utc).strftime("%H:%M UTC"),
             "csrf": session["csrf"],
-            "fases": FASES,
+            "fases": {clave: t(etiqueta) for clave, etiqueta in FASES.items()},
             "signos": SIGNOS,
-            "etiquetas_resultado": ETIQUETAS_RESULTADO,
+            "etiquetas_resultado": {clave: t(etiqueta) for clave, etiqueta in ETIQUETAS_RESULTADO.items()},
+            "idioma": idioma_actual(),
+            "url_idioma": url_idioma,
         }
 
     @app.before_request
@@ -247,10 +263,10 @@ def create_app(database=None):
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
                 if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
-                    return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
+                    return {"error": t("La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda.")}, 403
                 if request.endpoint == "chat_psicologico" and request.args.get("modo") == "emergencia":
                     if solicitud_json_emergencia():
-                        return {"error": "La sesión cambió o caducó. Vuelve a abrir el chat."}, 403
+                        return {"error": t("La sesión cambió o caducó. Vuelve a abrir el chat.")}, 403
                     flash("El formulario caducó. Vuelve a completar el paso.")
                     return redirect(url_for("chat_psicologico", modo="emergencia"), 303)
                 flash("El formulario caducó. Vuelve a completar el paso.")
@@ -363,20 +379,20 @@ def create_app(database=None):
         expediente = expediente_actual()
         if expediente is None:
             if request.method == "POST":
-                return {"error": "Inicia sesión para guardar los resultados."}, 401
+                return {"error": t("Inicia sesión para guardar los resultados.")}, 401
             return redirect(url_for("index"))
         if request.method == "POST":
             try:
                 tiempos = json.loads(request.form.get("tiempos_ms", ""))
             except (ValueError, RecursionError):
-                return {"error": "No se pudieron leer los tiempos de la ronda."}, 400
+                return {"error": t("No se pudieron leer los tiempos de la ronda.")}, 400
             try:
                 registro = registro_praxis(request.form.get("registro_id"), datetime.now(timezone.utc).isoformat(), tiempos)
             except ValueError as exc:
-                return {"error": str(exc)}, 400
+                return {"error": t(str(exc))}, 400
             usuario = session["user_id"]
             if not almacen.save_cognitive_report(database, usuario, CAMPO_PRAXIS, registro, "tiempos_ms"):
-                return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
+                return {"error": t("Ya existe un resultado diferente con el identificador de esta ronda.")}, 409
             sincronizar_archivo_expediente(usuario)
             return {"url": url_for("pruebas_cognitivas", registro=registro["id"], actualizar_archivo=1, _anchor="praxis-guardado")}
         registros = sorted(expediente.get(CAMPO_PRAXIS, []), key=lambda registro: registro["fecha_hora"], reverse=True)
@@ -405,7 +421,7 @@ def create_app(database=None):
                 completado = almacen.actualizar_volt(database, usuario, accion, request.form.get("registro_id"), respuestas, ahora)
             except (ValueError, RecursionError) as exc:
                 if ajax:
-                    return {"error": str(exc)}, 400
+                    return {"error": t(str(exc))}, 400
                 flash(str(exc))
                 return redirect(url_for("prueba_volt"), 303)
             destino = url_for("prueba_volt")
@@ -441,20 +457,20 @@ def create_app(database=None):
         expediente = expediente_actual()
         if expediente is None:
             if request.method == "POST":
-                return {"error": "Inicia sesión para guardar los resultados."}, 401
+                return {"error": t("Inicia sesión para guardar los resultados.")}, 401
             return redirect(url_for("index"))
         if request.method == "POST":
             try:
                 respuestas = json.loads(request.form.get("respuestas", ""))
             except (ValueError, RecursionError):
-                return {"error": "No se pudieron leer las respuestas de la ronda."}, 400
+                return {"error": t("No se pudieron leer las respuestas de la ronda.")}, 400
             try:
                 registro = registro_lot(request.form.get("registro_id"), datetime.now(timezone.utc).isoformat(), respuestas)
             except ValueError as exc:
-                return {"error": str(exc)}, 400
+                return {"error": t(str(exc))}, 400
             usuario = session["user_id"]
             if not almacen.save_cognitive_report(database, usuario, CAMPO_LOT, registro, "respuestas"):
-                return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
+                return {"error": t("Ya existe un resultado diferente con el identificador de esta ronda.")}, 409
             sincronizar_archivo_expediente(usuario)
             destino = url_for("prueba_lot", registro=registro["id"], actualizar_archivo=1, _anchor="lot-guardado")
             return {"url": destino}
@@ -519,6 +535,10 @@ def create_app(database=None):
     @app.get("/assets/voz-chat.js")
     def voz_chat_script():
         return send_from_directory(ROOT / "static", "voz-chat.js")
+
+    @app.get("/assets/idioma.js")
+    def idioma_script():
+        return send_from_directory(ROOT / "static", "idioma.js")
 
     @app.get("/assets/voz-emergencia.js")
     def voz_emergencia_script():
@@ -642,7 +662,7 @@ def create_app(database=None):
         expediente = expediente_actual()
         if expediente is None:
             if quiere_json:
-                return {"error": "Vuelve a iniciar sesión para conversar con la IA."}, 401
+                return {"error": t("Vuelve a iniciar sesión para conversar con la IA.")}, 401
             return redirect(url_for("index"))
         usuario = session["user_id"]
         revision, mensajes = almacen.psych_chat(database, usuario)
@@ -678,7 +698,7 @@ def create_app(database=None):
             if quiere_json:
                 if estado == 409:
                     error = "La conversación cambió en otra pestaña. Copia tu mensaje y vuelve a abrir el chat para enviarlo."
-                return {"error": error}, estado
+                return {"error": t(error)}, estado
         return render_template(
             "chat-psicologico.html", expediente=expediente, modulo="chat", mensajes=mensajes,
             revision=revision, texto=texto, error=error, ia_disponible=ia_disponible, emergencia=emergencia,

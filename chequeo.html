@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ idioma }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MediSpace - Evaluación y Análisis de IA</title>
+  <title>{{ t('MediSpace - Evaluación y Análisis de IA') }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/chequeo.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='voz-chat.css') }}">
+  <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('voz_chat_script') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
 </head>
 <body>
   <!--{% if false %}-->
@@ -26,7 +28,7 @@
       <a class="nav-icon" href="{{ url_for('profile') }}" aria-label="Dashboard">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
       </a>
-      <div class="nav-icon active" title="Evaluación IA">
+      <div class="nav-icon active" title="{{ t('Evaluación IA') }}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </div>
     </aside>
@@ -47,60 +49,65 @@
           <div><strong>{{ expediente.astronauta.nombre }}</strong></div>
           <div id="utc-clock">{{ utc_clock }}</div>
         </div>
+
+        <a class="step-pill enlace-perfil-movil" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        {% include '_selector_idioma.html' %}
       </header>
 
       <!-- PANTALLA 5: EVALUACIÓN FÍSICA Y EMOCIONAL -->
       <section id="view-chat" class="view active" data-chat-voz="medico"{% if draft and draft['revision'] == 0 %} data-voz-inicial{% endif %}>
-        {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
+        <h1>{{ t('Evaluación de salud') }}</h1>
+        {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(message) }}</p>{% endfor %}
         {% if bloqueado %}
-        <p role="status">{{ bloqueado }}</p>
+        <p role="status">{{ t(bloqueado) }}</p>
         {% else %}
         <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="turn" value="{{ draft['id'] }}:{{ draft['revision'] }}">
-          <p>La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.</p>
-          <div class="telemetry-strip">
-            <span class="telemetry-title">📡 Telemetría</span>
-            <label>FC (lpm) <input type="number" name="hr" value="{{ vitals.hr if vitals.hr is not none else '' }}" min="1" max="999"></label>
+          <p>{{ t('La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.') }}</p>
+          <fieldset class="telemetry-strip">
+            <legend class="telemetry-title">{{ t('📡 Telemetría') }}</legend>
+            <label>{{ t('FC (lpm)') }} <input type="number" name="hr" value="{{ vitals.hr if vitals.hr is not none else '' }}" min="1" max="999"></label>
             <label>SpO₂ (%) <input type="number" name="spo2" value="{{ vitals.spo2 if vitals.spo2 is not none else '' }}" min="0" max="100"></label>
-            <label>Temp (°C) <input type="number" name="temp" value="{{ vitals.temp if vitals.temp is not none else '' }}" min="0.1" max="99.9" step="any"></label>
-          </div>
+            <label>{{ t('Temp (°C)') }} <input type="number" name="temp" value="{{ vitals.temp if vitals.temp is not none else '' }}" min="0.1" max="99.9" step="any"></label>
+          </fieldset>
 
-          <div class="telemetry-strip checkup-context">
-            <label>Misión
+          <fieldset class="telemetry-strip checkup-context">
+            <legend class="telemetry-title">{{ t('Datos del chequeo') }}</legend>
+            <label>{{ t('Misión') }}
               <select name="mision_id">
-                <option value="">Sin especificar</option>
+                <option value="">{{ t('Sin especificar') }}</option>
                 {% for mision in expediente.misiones %}
                 <option value="{{ mision.id }}"{% if mision.id == details.mision_id %} selected{% endif %}>{{ mision.id }}</option>
                 {% endfor %}
               </select>
             </label>
-            <label>Fase
+            <label>{{ t('Fase') }}
               <select name="fase">
-                <option value="">Sin especificar</option>
+                <option value="">{{ t('Sin especificar') }}</option>
                 {% for clave, etiqueta in fases.items() %}
                 <option value="{{ clave }}"{% if clave == details.fase %} selected{% endif %}>{{ etiqueta }}</option>
                 {% endfor %}
               </select>
             </label>
-            <label>Motivo <input name="motivo" value="{{ details.motivo | default('') }}" maxlength="200"></label>
-            <label>Actividad <input name="actividad" value="{{ details.actividad | default('') }}" maxlength="200"></label>
-          </div>
+            <label>{{ t('Motivo') }} <input name="motivo" value="{{ details.motivo | default('') }}" maxlength="200"></label>
+            <label>{{ t('Actividad') }} <input name="actividad" value="{{ details.actividad | default('') }}" maxlength="200"></label>
+          </fieldset>
 
-          <div class="chat-container" aria-label="Conversación">
+          <div class="chat-container" aria-label="{{ t('Conversación') }}">
             {% for message in messages %}
             <div class="msg-row {{ message.role }}">
-              <div class="msg-bubble"><strong>{{ 'Asistente' if message.role == 'ai' else 'Tú' }}</strong><br><span{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text }}</span></div>
+              <div class="msg-bubble"><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong><br><span{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text }}</span></div>
             </div>
             {% endfor %}
           </div>
 
-          {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+          {% if error %}<p class="form-error" role="alert">{{ t(error) }}</p>{% endif %}
           {% include '_voz_chat.html' %}
           <div class="chat-input-bar">
-            <input type="text" name="answer" aria-label="Tu respuesta" placeholder="Escribe tu respuesta..." value="{{ answer }}" maxlength="1000" autocomplete="off" data-voz-mensaje>
-            <button type="submit" class="btn-send" name="accion" value="enviar">Enviar</button>
-            <button type="submit" class="btn-send" name="accion" value="finalizar">Finalizar chequeo</button>
+            <input type="text" name="answer" aria-label="{{ t('Tu respuesta') }}" placeholder="{{ t('Escribe tu respuesta...') }}" value="{{ answer }}" maxlength="1000" autocomplete="off" data-voz-mensaje>
+            <button type="submit" class="btn-send" name="accion" value="enviar">{{ t('Enviar') }}</button>
+            <button type="submit" class="btn-send" name="accion" value="finalizar">{{ t('Finalizar chequeo') }}</button>
           </div>
         </form>
         {% endif %}

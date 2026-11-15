@@ -1,8 +1,8 @@
 {% if latest.evaluacion_ia %}
 {% set evaluacion = latest.evaluacion_ia %}
 <div class="info-card">
-  <h3>Evaluación de IA</h3>
-  <p>El equipo médico debe revisar estas sugerencias de seguimiento.</p>
+  <h3>{{ t('Evaluación de IA') }}</h3>
+  <p>{{ t('El equipo médico debe revisar estas sugerencias de seguimiento.') }}</p>
   <p>{{ evaluacion.resumen }}</p>
   <ul>
     {% for motivo in evaluacion.motivos %}
@@ -10,7 +10,7 @@
     {% endfor %}
   </ul>
   {% if evaluacion.acciones %}
-  <h3>Recomendaciones y acciones de seguimiento</h3>
+  <h3>{{ t('Recomendaciones y acciones de seguimiento') }}</h3>
   <ol class="acciones-alerta">
     {% for paso in evaluacion.acciones %}
     <li><strong>{{ paso.recomendacion }}</strong><br>{{ paso.accion }}</li>

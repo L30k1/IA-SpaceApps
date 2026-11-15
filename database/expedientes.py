@@ -3,6 +3,7 @@ import math
 import re
 from datetime import datetime, timezone
 
+from idioma import traducir as t
 from lot import CAMPO_LOT, VERSION_LOT, puntuar_lot
 from volt import CAMPO_VOLT, ESPERA, VERSION_VOLT, estimulos, puntuar
 
@@ -21,7 +22,7 @@ OBJETIVOS_PRAXIS = 20
 def texto_requerido(registro, campo):
     valor = registro.get(campo)
     if not isinstance(valor, str) or not valor.strip():
-        raise ValueError(f"Completa el campo {campo} en el expediente.")
+        raise ValueError(t("Completa el campo {campo} en el expediente.", campo=campo))
     return valor.strip()
 
 
@@ -41,7 +42,7 @@ def registro_praxis(identificador, fecha, tiempos):
     if not isinstance(tiempos, list) or len(tiempos) != OBJETIVOS_PRAXIS or any(
         type(tiempo) not in (int, float) or not 0 <= tiempo <= 2**53 - 1 for tiempo in tiempos
     ):
-        raise ValueError(f"La ronda debe contener {OBJETIVOS_PRAXIS} tiempos válidos en milisegundos.")
+        raise ValueError(t("La ronda debe contener {cantidad} tiempos válidos en milisegundos.", cantidad=OBJETIVOS_PRAXIS))
     tiempos = [round(tiempo, 3) for tiempo in tiempos]
     return {
         "id": identificador,
@@ -102,7 +103,7 @@ def leer_expediente(contenido):
     for grupo in GRUPOS:
         registros = expediente.setdefault(grupo, [])
         if not isinstance(registros, list) or not all(isinstance(registro, dict) for registro in registros):
-            raise ValueError(f"{grupo} debe ser una lista de registros.")
+            raise ValueError(t("{campo} debe ser una lista de registros.", campo=grupo))
     for grupo, campo in (("misiones", "id"), ("alergias", "sustancia"),
                          ("antecedentes", "condicion"), ("medicamentos", "nombre")):
         for registro in expediente[grupo]:

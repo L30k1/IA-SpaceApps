@@ -1,5 +1,6 @@
 (() => {
-  const idioma = 'es-MX';
+  const { t, locale } = window.mediSpaceLanguage;
+  const idioma = locale;
   const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
   const sintesis = window.speechSynthesis;
   const puedeLeer = Boolean(sintesis && window.SpeechSynthesisUtterance);
@@ -28,7 +29,7 @@
         fraseActiva = null;
         sintesis.cancel();
       }
-      escuchar.textContent = 'Escuchar última respuesta';
+      escuchar.textContent = t('Escuchar última respuesta');
     }
 
     function leerRespuesta() {
@@ -36,21 +37,21 @@
       detenerLectura();
       const frase = new window.SpeechSynthesisUtterance(ultima);
       frase.lang = idioma;
-      const voces = sintesis.getVoices().filter(voz => voz.localService && /^es(?:-|$)/i.test(voz.lang));
+      const voces = sintesis.getVoices().filter(voz => voz.localService && voz.lang.split('-')[0].toLowerCase() === idioma.split('-')[0]);
       const voz = voces.find(opcion => opcion.lang.toLowerCase() === idioma.toLowerCase()) || voces[0];
       if (voz) frase.voice = voz;
       frase.onend = () => {
         if (fraseActiva !== frase) return;
         fraseActiva = null;
-        escuchar.textContent = 'Escuchar última respuesta';
+        escuchar.textContent = t('Escuchar última respuesta');
       };
       frase.onerror = () => {
         if (fraseActiva !== frase) return;
         detenerLectura();
-        estado.textContent = 'Para oír esta respuesta, pulsa Escuchar última respuesta.';
+        estado.textContent = t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
       };
       fraseActiva = frase;
-      escuchar.textContent = 'Detener lectura';
+      escuchar.textContent = t('Detener lectura');
       sintesis.speak(frase);
     }
 
@@ -75,11 +76,11 @@
       reconocimiento.continuous = true;
       reconocimiento.interimResults = false;
       const errores = {
-        'not-allowed': 'Autoriza el micrófono en el navegador para hablar.',
-        'service-not-allowed': 'El navegador no permite el servicio de dictado.',
-        'audio-capture': 'No se encontró un micrófono disponible.',
-        'no-speech': 'No se detectó voz. Puedes intentar de nuevo.',
-        'network': 'El servicio de dictado no está disponible. Puedes escribir tu mensaje.',
+        'not-allowed': t('Autoriza el micrófono en el navegador para hablar.'),
+        'service-not-allowed': t('El navegador no permite el servicio de dictado.'),
+        'audio-capture': t('No se encontró un micrófono disponible.'),
+        'no-speech': t('No se detectó voz. Puedes intentar de nuevo.'),
+        'network': t('El servicio de dictado no está disponible. Puedes escribir tu mensaje.'),
       };
       let hayResultado;
       let huboError;
@@ -94,9 +95,9 @@
           transcribiendo = true;
           pulsacion = origen;
           dictar.setAttribute('aria-pressed', 'true');
-          estado.textContent = 'Escuchando…';
+          estado.textContent = t('Escuchando…');
         } catch {
-          estado.textContent = 'No se pudo iniciar el dictado.';
+          estado.textContent = t('No se pudo iniciar el dictado.');
         }
       }
 
@@ -113,18 +114,18 @@
         if (agregado) mensaje.value += separador + agregado;
         hayResultado = true;
         estado.textContent = agregado.length < transcrito.length
-          ? 'Se alcanzó el límite de caracteres. Revisa el mensaje.'
-          : 'Revisa el dictado y pulsa Enviar.';
+          ? t('Se alcanzó el límite de caracteres. Revisa el mensaje.')
+          : t('Revisa el dictado y pulsa Enviar.');
       };
       reconocimiento.onerror = (evento) => {
         huboError = true;
-        estado.textContent = errores[evento.error] || 'El navegador no pudo transcribir el mensaje.';
+        estado.textContent = errores[evento.error] || t('El navegador no pudo transcribir el mensaje.');
       };
       reconocimiento.onend = () => {
         transcribiendo = false;
         pulsacion = null;
         dictar.setAttribute('aria-pressed', 'false');
-        if (!hayResultado && !huboError) estado.textContent = 'No se detectó voz. Puedes intentar de nuevo.';
+        if (!hayResultado && !huboError) estado.textContent = t('No se detectó voz. Puedes intentar de nuevo.');
       };
 
       dictar.hidden = false;
@@ -158,13 +159,13 @@
 
     panel.hidden = false;
     if (dictar.hidden && escuchar.hidden && !puedeLeer) {
-      estado.textContent = 'Este navegador no tiene controles de voz disponibles para este chat.';
+      estado.textContent = t('Este navegador no tiene controles de voz disponibles para este chat.');
     }
 
     form.addEventListener('submit', async (evento) => {
       if (transcribiendo || enviando) {
         evento.preventDefault();
-        if (transcribiendo) estado.textContent = 'Suelta para terminar el dictado antes de enviar.';
+        if (transcribiendo) estado.textContent = t('Suelta para terminar el dictado antes de enviar.');
         return;
       }
       if (!puedeLeer || evento.submitter?.value === 'finalizar') return;
@@ -176,7 +177,7 @@
       enviando = true;
       for (const boton of controles) boton.disabled = true;
       detenerLectura();
-      estado.textContent = 'Esperando respuesta de la IA…';
+      estado.textContent = t('Esperando respuesta de la IA…');
       try {
         const respuesta = await fetch(form.action, { method: 'POST', body: datos, signal });
         const pagina = new DOMParser().parseFromString(await respuesta.text(), 'text/html');
@@ -193,10 +194,10 @@
         } else if (respuesta.redirected) {
           window.location.assign(respuesta.url);
         } else {
-          estado.textContent = 'No se pudo confirmar el envío. Revisa la conversación antes de intentar de nuevo.';
+          estado.textContent = t('No se pudo confirmar el envío. Revisa la conversación antes de intentar de nuevo.');
         }
       } catch (error) {
-        if (error.name !== 'AbortError') estado.textContent = 'No se pudo confirmar el envío. Revisa la conversación antes de intentar de nuevo.';
+        if (error.name !== 'AbortError') estado.textContent = t('No se pudo confirmar el envío. Revisa la conversación antes de intentar de nuevo.');
       } finally {
         enviando = false;
         for (const boton of controles) boton.disabled = false;

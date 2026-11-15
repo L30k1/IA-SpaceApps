@@ -2,6 +2,8 @@ from itertools import combinations
 from random import Random
 from statistics import mean
 
+from idioma import traducir as t
+
 
 CAMPO_LOT = "orientacion_linea"
 VERSION_LOT = "medispace-lot-1"
@@ -16,7 +18,7 @@ def pares_lot(identificador):
 
 def puntuar_lot(identificador, respuestas):
     if not isinstance(respuestas, list) or len(respuestas) != ENSAYOS_LOT:
-        raise ValueError(f"Completa los {ENSAYOS_LOT} pares de líneas.")
+        raise ValueError(t("Completa los {cantidad} pares de líneas.", cantidad=ENSAYOS_LOT))
     ensayos = []
     for respuesta, esperado in zip(respuestas, pares_lot(identificador)):
         if not isinstance(respuesta, dict):

@@ -1,39 +1,42 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ idioma }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Historial de pruebas cognitivas · MediSpace</title>
+  <title>{{ t('Historial de pruebas cognitivas · MediSpace') }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario">
       <header class="top-header">
         <div class="brand-title">MediSpace</div>
-        <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+
+        {% include '_selector_idioma.html' %}
       </header>
-      <h1>Historial de pruebas cognitivas</h1>
+      <h1>{{ t('Historial de pruebas cognitivas') }}</h1>
       {% include '_navegacion_cognitiva.html' %}
       {% import '_grafica_estadistica.html' as graficas %}
       <div class="estadisticas-monitoreo">
         {% for prueba in historial %}
         <section class="estadisticas-monitoreo" aria-labelledby="historial-{{ prueba.destino }}">
-          <h2 id="historial-{{ prueba.destino }}">{{ prueba.nombre }}</h2>
+          <h2 id="historial-{{ prueba.destino }}">{{ t(prueba.nombre) }}</h2>
           {% if prueba.registros %}
           <div class="estadisticas-resumen">
             {% for serie in prueba.series %}
             <div class="info-card">
-              <h3>{{ serie.etiqueta }}</h3>
-              {{ graficas.cifras(serie, 'Rondas') }}
+              <h3>{{ t(serie.etiqueta) }}</h3>
+              {{ graficas.cifras(serie, t('Rondas')) }}
               {{ graficas.grafica(serie, serie.etiqueta) }}
             </div>
             {% endfor %}
           </div>
           <details class="info-card">
-            <summary>Ver rondas guardadas ({{ prueba.registros | length }})</summary>
+            <summary>{{ t('Ver rondas guardadas (') }}{{ prueba.registros | length }})</summary>
             <ul>
               {% for registro in prueba.registros %}
               <li><a class="diario-link" href="{{ url_for(prueba.destino, registro=registro.id, _anchor=prueba.ancla) }}">{{ registro.fecha_hora | hora_utc }}</a></li>
@@ -41,7 +44,7 @@
             </ul>
           </details>
           {% else %}
-          <div class="info-card"><p>Sin rondas guardadas. <a class="diario-link" href="{{ url_for(prueba.destino) }}">Abrir prueba</a></p></div>
+          <div class="info-card"><p>{{ t('Sin rondas guardadas.') }} <a class="diario-link" href="{{ url_for(prueba.destino) }}">{{ t('Abrir prueba') }}</a></p></div>
           {% endif %}
         </section>
         {% endfor %}
