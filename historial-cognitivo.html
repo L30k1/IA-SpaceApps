@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario">
       <header class="top-header">
-        <div class="brand-title">MediSpace</div>
+        <div class="marca-encabezado">{% include '_marca.html' %}</div>
         <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
 
         {% include '_selector_idioma.html' %}

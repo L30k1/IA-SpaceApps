@@ -68,9 +68,6 @@ body {
   margin-bottom: 20px;
 }
 
-.brand-logo { display: flex; align-items: center; gap: 12px; }
-.brand-title { font-size: 1.25rem; font-weight: 700; }
-.brand-sub { font-size: 0.8rem; color: var(--accent); }
 .mission-meta { text-align: right; font-size: 0.82rem; color: var(--text-muted); }
 .mission-meta strong { color: var(--text-main); }
 

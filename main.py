@@ -27,8 +27,9 @@ from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
-    registro_f2b, registro_praxis,
+    registro_emociones, registro_f2b, registro_praxis,
 )
+from emociones import CAMPO_EMOCIONES, EMOCIONES, EXPOSICION_EMOCIONES_MS, INTENSIDADES, LAMINAS, estimulos_emociones
 from f2b import CAMPO_F2B, COINCIDENCIAS_F2B, EXPOSICION_F2B_MS, ESTIMULOS_F2B, secuencia_f2b
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from psicologia import (
@@ -40,7 +41,7 @@ from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
 
 ROOT = Path(__file__).resolve().parent
 MODOS_ACCESO = {"login", "register"}
-PRUEBAS_JSON = {"pruebas_cognitivas", "prueba_volt", "prueba_lot", "prueba_f2b"}
+PRUEBAS_JSON = {"pruebas_cognitivas", "prueba_volt", "prueba_lot", "prueba_f2b", "prueba_emociones"}
 ETIQUETAS_RESULTADO = {
     "ALERTA": "Revisión prioritaria sugerida",
     "ESTABLE": "Sin prioridad adicional sugerida",
@@ -533,6 +534,33 @@ def create_app(database=None):
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
         )
 
+    @app.route("/cognicion/emociones", methods=["GET", "POST"])
+    def prueba_emociones():
+        expediente = expediente_actual()
+        if expediente is None:
+            if request.method == "POST":
+                return {"error": t("Inicia sesión para guardar los resultados.")}, 401
+            return redirect(url_for("index"))
+        if request.method == "POST":
+            return guardar_ronda(CAMPO_EMOCIONES, registro_emociones, "respuestas", "emociones-guardado")
+
+        seleccionado = request.args.get("registro")
+        actual = next((r for r in expediente.get(CAMPO_EMOCIONES, []) if r["id"] == seleccionado), None)
+        if seleccionado and actual is None:
+            abort(404)
+        identificador = uuid4().hex
+        ensayos = estimulos_emociones(identificador)
+        datos = {
+            "laminas": {lamina: url_for("lamina_emociones", nombre=lamina) for lamina in LAMINAS},
+            "ensayos": [{"lamina": e["lamina"], "casilla": e["casilla"]} for e in ensayos],
+            "exposicion_ms": EXPOSICION_EMOCIONES_MS,
+        }
+        return render_template(
+            "emociones.html", expediente=expediente, registro_id=identificador, datos=datos,
+            emociones=EMOCIONES, intensidades=INTENSIDADES, actual=actual,
+            actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
+        )
+
     @app.get("/cognicion/historial")
     def historial_cognitivo():
         expediente = expediente_actual()
@@ -559,6 +587,10 @@ def create_app(database=None):
                 ("Falsas alarmas", "respuestas", itemgetter("falsas_alarmas")),
                 ("Mediana de reacción en aciertos", "ms", itemgetter("mediana_aciertos_ms")),
             )),
+            (CAMPO_EMOCIONES, "Reconocimiento facial (ERT)", "prueba_emociones", "emociones-guardado", (
+                ("Precisión", "%", itemgetter("precision_pct")),
+                ("Mediana de reacción en aciertos", "ms", itemgetter("mediana_aciertos_ms")),
+            )),
         )
         historial = []
         for campo, nombre, destino, ancla, metricas in pruebas:
@@ -570,6 +602,18 @@ def create_app(database=None):
                     series.append(serie_estadistica(etiqueta, unidad, lecturas))
             historial.append({"nombre": nombre, "destino": destino, "ancla": ancla, "registros": registros, "series": series})
         return render_template("historial-cognitivo.html", historial=historial)
+
+    @app.get("/assets/marca/<nombre>")
+    def imagen_marca(nombre):
+        return send_from_directory(ROOT / "static" / "marca", nombre)
+
+    @app.get("/assets/emociones/<nombre>")
+    def lamina_emociones(nombre):
+        return send_from_directory(ROOT / "static" / "emociones", nombre)
+
+    @app.get("/assets/reconocimiento-emociones.js")
+    def emociones_script():
+        return send_from_directory(ROOT / "static", "reconocimiento-emociones.js")
 
     @app.get("/assets/orientacion-linea.js")
     def lot_script():

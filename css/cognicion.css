@@ -85,3 +85,27 @@
   color: #bae6fd;
   font-weight: 600;
 }
+.emociones-ronda { display: grid; justify-items: center; gap: 10px; }
+#emociones-rostro {
+  display: block;
+  width: min(100%, 280px);
+  height: auto;
+  aspect-ratio: 1;
+  background: #040e24;
+  border: 1px solid var(--border-glow);
+  border-radius: 12px;
+}
+.emociones-opciones { width: min(100%, 440px); text-align: center; }
+.emociones-opciones > div, .emociones-desglose {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 105px), 1fr));
+  gap: 8px;
+}
+.emociones-opciones button { min-height: 44px; }
+.emociones-desglose > div {
+  padding: 8px 10px;
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+}
+.emociones-desglose dt { color: var(--text-muted); }
+.emociones-desglose dd { font-weight: 600; }

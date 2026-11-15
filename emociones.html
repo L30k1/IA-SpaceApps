@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="{{ idioma }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t('Reconocimiento facial (ERT)') }} · MediSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cognicion.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <script src="{{ url_for('idioma_script') }}" defer></script>
+  <script src="{{ url_for('emociones_script') }}" defer></script>
+</head>
+<body>
+  <main class="app-frame">
+    <div class="main-area diario cognicion">
+      <header class="top-header">
+        <div class="marca-encabezado">{% include '_marca.html' %}</div>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        {% include '_selector_idioma.html' %}
+      </header>
+      <h1>{{ t('Pruebas cognitivas') }}</h1>
+      {% include '_navegacion_cognitiva.html' %}
+      <section class="info-card" aria-labelledby="emociones-titulo">
+        <h2 id="emociones-titulo">{{ t('Reconocimiento facial (ERT)') }}</h2>
+        <p>{{ t('Mira cada rostro. Cuando desaparezca, elige la emoción que viste.') }}</p>
+        <p>{{ t('La ronda incluye {cantidad} imágenes, con expresiones leves e intensas.', cantidad=datos.ensayos | length) }}</p>
+        <form id="emociones-form" method="post" action="{{ url_for('prueba_emociones') }}" hidden>
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        </form>
+        <button class="step-pill prueba-inicio" id="emociones-iniciar" type="button" disabled>{{ t('Iniciar prueba') }}</button>
+        <noscript><p>{{ t('Activa JavaScript para ver las figuras y medir los tiempos en el navegador.') }}</p></noscript>
+        <div class="emociones-ronda" id="emociones-ronda" hidden>
+          <p id="emociones-avance"></p>
+          <canvas id="emociones-rostro" width="360" height="360" role="img" aria-label="{{ t('Área del estímulo facial') }}"></canvas>
+          <fieldset class="emociones-opciones" id="emociones-opciones" disabled>
+            <legend>{{ t('¿Qué emoción viste?') }}</legend>
+            <div>
+              {% for valor, nombre in emociones.items() %}
+              <button class="step-pill" type="button" data-emocion="{{ valor }}">{{ t(nombre) }}</button>
+              {% endfor %}
+            </div>
+          </fieldset>
+        </div>
+        <p id="emociones-estado" role="status" hidden></p>
+        <button class="step-pill prueba-inicio" id="emociones-reintentar" type="button" hidden>{{ t('Reintentar guardado') }}</button>
+        <a class="step-pill prueba-inicio" id="emociones-reiniciar" href="{{ url_for('prueba_emociones') }}" hidden>{{ t('Iniciar otra ronda') }}</a>
+        <script id="emociones-datos" type="application/json">{{ datos | tojson }}</script>
+      </section>
+      {% if actual %}
+      <section class="info-card" id="emociones-guardado" aria-labelledby="emociones-guardado-titulo">
+        <h2 id="emociones-guardado-titulo">{{ t('Resultado guardado') }}</h2>
+        <p>{{ actual.fecha_hora | hora_utc }}</p>
+        <dl class="datos-diario">
+          <div><dt>{{ t('Precisión') }}</dt><dd>{{ actual.aciertos }} / {{ actual.total }} · {{ actual.precision_pct }} %</dd></div>
+          <div><dt>{{ t('Mediana de reacción en aciertos') }}</dt>
+            <dd>{{ (actual.mediana_aciertos_ms | round | int) ~ ' ms' if actual.mediana_aciertos_ms is not none else '—' }}</dd>
+          </div>
+        </dl>
+        <h3>{{ t('Aciertos por emoción') }}</h3>
+        <dl class="emociones-desglose">
+          {% for clave, nombre in emociones.items() %}
+          <div><dt>{{ t(nombre) }}</dt><dd>{{ actual.por_emocion[clave].aciertos }} / {{ actual.por_emocion[clave].total }}</dd></div>
+          {% endfor %}
+        </dl>
+        <h3>{{ t('Aciertos por intensidad') }}</h3>
+        <dl class="emociones-desglose">
+          {% for clave, nombre in intensidades.items() %}
+          <div><dt>{{ t(nombre) }}</dt><dd>{{ actual.por_intensidad[clave].aciertos }} / {{ actual.por_intensidad[clave].total }}</dd></div>
+          {% endfor %}
+        </dl>
+        <p>{{ t('El resultado describe tu desempeño en esta ronda.') }}</p>
+        <a class="diario-link" href="{{ url_for('historial_cognitivo') }}">{{ t('Historial de pruebas cognitivas') }}</a>
+      </section>
+      {% include '_archivo_local.html' %}
+      <script src="{{ url_for('expediente_local_script') }}" defer></script>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>

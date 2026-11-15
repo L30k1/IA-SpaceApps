@@ -9,14 +9,15 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <script src="{{ url_for('idioma_script') }}" defer></script>
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario">
       <header class="top-header">
-        <div>
-          <div class="brand-title">MediSpace</div>
-          <div class="brand-sub">{{ expediente.astronauta.nombre }}</div>
+        <div class="marca-encabezado">
+          {% include '_marca.html' %}
+          <div class="marca-texto">{{ expediente.astronauta.nombre }}</div>
         </div>
         <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
 

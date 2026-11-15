@@ -8,11 +8,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='historial-formulario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame expediente-formulario">
     <header>
-      <div class="brand-title">MediSpace</div>
+      <div class="marca-encabezado">{% include '_marca.html' %}</div>
       <a class="historial-enlace" href="{{ url_for('index', mode='register') }}">{{ t('Volver a Crear cuenta') }}</a>
 
         {% include '_selector_idioma.html' %}

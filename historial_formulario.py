@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from calendario_mision import ZONA_MISION
 from database.expedientes import LIMITES_CAPTURA, SIGNOS, leer_expediente
+from emociones import CAMPO_EMOCIONES
 from f2b import CAMPO_F2B
 
 
@@ -56,7 +57,7 @@ def generar_historial(formulario, filas):
         "_id": formulario.get("astronauta_id", ""), "astronauta": {"nombre": formulario.get("nombre", "")},
         "estado_alergias": formulario.get("estado_alergias", "").strip(),
         "diario_psicologico": [], "semanal_psicologico": [], "praxis_motora": [],
-        "memoria_visual": [], "orientacion_linea": [], CAMPO_F2B: [],
+        "memoria_visual": [], "orientacion_linea": [], CAMPO_F2B: [], CAMPO_EMOCIONES: [],
     }
     referencias = {}
     for tipo in LIMITES_CAPTURA:

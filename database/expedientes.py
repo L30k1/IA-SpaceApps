@@ -3,6 +3,7 @@ import math
 import re
 from datetime import datetime, timezone
 
+from emociones import CAMPO_EMOCIONES, VERSION_EMOCIONES, puntuar_emociones
 from f2b import CAMPO_F2B, VERSION_F2B, puntuar_f2b
 from idioma import traducir as t
 from lot import CAMPO_LOT, VERSION_LOT, puntuar_lot
@@ -117,6 +118,15 @@ def registro_f2b(identificador, fecha, respuestas):
     }
 
 
+def registro_emociones(identificador, fecha, respuestas):
+    if not isinstance(identificador, str) or not re.fullmatch(r"[0-9a-f]{32}", identificador):
+        raise ValueError("El identificador de reconocimiento facial no es válido.")
+    return {
+        "id": identificador, "fecha_hora": fecha_utc(fecha).isoformat(), "version": VERSION_EMOCIONES,
+        **puntuar_emociones(identificador, respuestas),
+    }
+
+
 def leer_expediente(contenido):
     try:
         expediente = json.loads(contenido)
@@ -194,4 +204,14 @@ def leer_expediente(contenido):
         if len({registro["id"] for registro in registros}) != len(registros):
             raise ValueError("Los identificadores de Fractal 2-Back deben ser únicos.")
         expediente[CAMPO_F2B] = registros
+    if CAMPO_EMOCIONES in expediente:
+        registros = expediente[CAMPO_EMOCIONES]
+        if not isinstance(registros, list) or not all(
+            isinstance(r, dict) and r.get("version") == VERSION_EMOCIONES for r in registros
+        ):
+            raise ValueError("Reconocimiento facial debe contener una lista de rondas válidas.")
+        registros = [registro_emociones(r.get("id"), r.get("fecha_hora"), r.get("respuestas")) for r in registros]
+        if len({registro["id"] for registro in registros}) != len(registros):
+            raise ValueError("Los identificadores de reconocimiento facial deben ser únicos.")
+        expediente[CAMPO_EMOCIONES] = registros
     return expediente
