@@ -111,7 +111,49 @@
       }
     }
   ],
-  "semanal_psicologico": [],
+  "semanal_psicologico": [
+    {
+      "id": "2085252c7bfb4cc099cb200fb887528e",
+      "version": 1,
+      "fecha_hora": "2026-11-15T09:01:38.726141+00:00",
+      "respuestas": {
+        "interes": 2,
+        "animo_bajo": 3,
+        "recuperacion_animo": 2,
+        "preocupacion": 2,
+        "tension": 2,
+        "pausas": 2,
+        "energia": 2,
+        "sueno": 2,
+        "atencion": 2,
+        "apoyo": 2,
+        "comunicacion": 2,
+        "retraimiento": 2,
+        "esfuerzo": 2
+      },
+      "nota": "",
+      "pvt": null,
+      "puntuacion": {
+        "dominios": {
+          "Ánimo e interés": 33.33,
+          "Estrés operativo": 58.33,
+          "Sueño y desempeño": 25,
+          "Cohesión de equipo": 41.67
+        },
+        "diferencia_energia": 2
+      },
+      "seguimiento_ia": {
+        "resumen": "Durante los últimos siete días, el astronauta reportó variabilidad en su estado anímico y niveles de energía, con una mayor frecuencia de desánimo afectando la rutina (3 a 4 días). El resto de los indicadores, incluyendo interés en actividades, ritmo de trabajo, calidad del sueño y comunicación con el equipo, mostraron una frecuencia positiva o de recuperación de 1 a 2 días. La puntuación descriptiva refleja una mayor incidencia en los dominios de estrés operativo y una diferencia de 2 unidades en la percepción de energía.",
+        "acciones": [
+          "Documentar la frecuencia reportada de desánimo para su seguimiento en las próximas sesiones de reporte.",
+          "Verificar con el astronauta si la dificultad para relajarse fuera de turno y el desánimo reportado coinciden con tareas específicas.",
+          "Consultar al equipo médico sobre la necesidad de aclarar la relación entre la carga de trabajo actual y la recuperación percibida."
+        ]
+      },
+      "mision_id": null,
+      "tramo_mision": null
+    }
+  ],
   "praxis_motora": [],
   "memoria_visual": [],
   "orientacion_linea": []

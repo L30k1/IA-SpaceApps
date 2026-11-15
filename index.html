@@ -35,40 +35,35 @@
         </div>
       </div>
 
-      <form id="auth-form" class="auth-box" method="post" enctype="multipart/form-data" action="{{ url_for('index', mode=mode) }}">
+      <form id="auth-form" class="auth-box" method="post"{% if mode == 'register' %} enctype="multipart/form-data"{% endif %} action="{{ url_for('index', mode=mode) }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
         {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
-        {% if mode in ['register', 'login-json'] %}
-        <input id="expediente" name="expediente" type="file" accept=".json,application/json" hidden>
-        <button type="button" id="elegir-expediente-local" class="file-action" hidden>Elegir JSON y permitir su actualización</button>
-        <p id="estado-expediente-local" role="status" hidden></p>
-        {% if mode == 'login-json' %}<p>Usa la contraseña de la cuenta vinculada a este expediente.</p>{% endif %}
-        {% endif %}
-
-        {% if mode != 'login-json' %}
         <div class="input-group">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <input type="email" id="input-email" name="email" aria-label="Correo electrónico" value="{{ email }}" maxlength="254" autocomplete="email" placeholder="Correo electrónico" required />
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+          <input type="text" id="input-nombre" name="nombre" aria-label="Nombre completo" value="{{ nombre }}" autocomplete="name" placeholder="Nombre completo" required />
         </div>
-        {% endif %}
+        <div class="input-group">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 9h6m-6 5h6"/><circle cx="7" cy="10" r="1.5"/><path d="M4.5 16a2.5 2.5 0 0 1 5 0"/></svg>
+          <input type="text" id="input-id" name="astronauta_id" aria-label="ID del astronauta" value="{{ identificador }}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="ID del astronauta" required />
+        </div>
 
         <div class="input-group">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <input type="password" id="input-password" name="password" aria-label="Contraseña" maxlength="128" {% if mode == 'register' %}minlength="8"{% endif %} autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" placeholder="Contraseña" required />
         </div>
 
-        <button type="submit" class="btn-primary" id="btn-auth-submit">{{ {'register': 'Crear cuenta', 'login-json': 'Iniciar sesión con JSON', 'login': 'Iniciar sesión'}[mode] }} →</button>
-
-        {% if mode != 'register' %}
-        <div class="auth-switch">
-          {% if mode == 'login-json' %}
-          <a href="{{ url_for('index') }}">Iniciar sesión con correo</a>
-          {% else %}
-          <a href="{{ url_for('index', mode='login-json') }}">Iniciar sesión con JSON</a>
-          {% endif %}
+        {% if mode == 'register' %}
+        <div class="historial-carga">
+          <label for="expediente">Historial médico (.json)</label>
+          <p id="ayuda-expediente">El nombre y el ID deben coincidir con los del archivo.</p>
+          <input id="expediente" name="expediente" type="file" accept=".json,application/json" aria-describedby="ayuda-expediente" required>
+          <button type="button" id="elegir-expediente-local" class="file-action" aria-describedby="ayuda-expediente" hidden>Elegir historial JSON y permitir su actualización</button>
+          <p id="estado-expediente-local" role="status" hidden></p>
         </div>
         {% endif %}
+
+        <button type="submit" class="btn-primary" id="btn-auth-submit">{{ 'Crear cuenta' if mode == 'register' else 'Iniciar sesión' }} →</button>
 
         <div class="auth-switch">
           {% if mode == 'register' %}
@@ -81,7 +76,7 @@
     </section>
 
   </div>
-  <script src="{{ url_for('expediente_local_script') }}" defer></script>
+  {% if mode == 'register' %}<script src="{{ url_for('expediente_local_script') }}" defer></script>{% endif %}
 
   <!--{% if false %}-->
   </template>
