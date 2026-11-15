@@ -27,8 +27,9 @@ from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
-    registro_praxis,
+    registro_f2b, registro_praxis,
 )
+from f2b import CAMPO_F2B, COINCIDENCIAS_F2B, EXPOSICION_F2B_MS, ESTIMULOS_F2B, secuencia_f2b
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from psicologia import (
     INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
@@ -39,6 +40,7 @@ from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
 
 ROOT = Path(__file__).resolve().parent
 MODOS_ACCESO = {"login", "register"}
+PRUEBAS_JSON = {"pruebas_cognitivas", "prueba_volt", "prueba_lot", "prueba_f2b"}
 ETIQUETAS_RESULTADO = {
     "ALERTA": "Revisión prioritaria sugerida",
     "ESTABLE": "Sin prioridad adicional sugerida",
@@ -197,7 +199,7 @@ def create_app(database=None):
         def base_no_disponible(_error):
             mensaje = "No se pudo confirmar la operación en la base de datos. Revisa tu historial antes de reintentar."
             if request.method == "POST" and (
-                request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"} or solicitud_json_emergencia()
+                request.endpoint in PRUEBAS_JSON or solicitud_json_emergencia()
             ):
                 return {"error": t(mensaje)}, 503
             return t(mensaje), 503
@@ -243,9 +245,9 @@ def create_app(database=None):
     def proteger_paginas(response):
         if request.endpoint in {
             "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
-            "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "historial_cognitivo",
+            "chat_psicologico", "historial_cognitivo",
             "download_expediente", "logout",
-        }:
+        } or request.endpoint in PRUEBAS_JSON:
             response.cache_control.no_store = True
             response.headers["Content-Language"] = idioma_actual()
             if idioma_elegido():
@@ -281,7 +283,7 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
-                if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
+                if request.endpoint in PRUEBAS_JSON:
                     return {"error": t("La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda.")}, 403
                 if request.endpoint == "chat_psicologico" and request.args.get("modo") == "emergencia":
                     if solicitud_json_emergencia():
@@ -471,6 +473,21 @@ def create_app(database=None):
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
         )
 
+    def guardar_ronda(campo, crear_registro, campo_respuestas, ancla):
+        try:
+            respuestas = json.loads(request.form.get("respuestas", ""))
+        except (ValueError, RecursionError):
+            return {"error": t("No se pudieron leer las respuestas de la ronda.")}, 400
+        try:
+            registro = crear_registro(request.form.get("registro_id"), datetime.now(timezone.utc).isoformat(), respuestas)
+        except ValueError as exc:
+            return {"error": t(str(exc))}, 400
+        usuario = session["user_id"]
+        if not almacen.save_cognitive_report(database, usuario, campo, registro, campo_respuestas):
+            return {"error": t("Ya existe un resultado diferente con el identificador de esta ronda.")}, 409
+        sincronizar_archivo_expediente(usuario)
+        return {"url": url_for(request.endpoint, registro=registro["id"], actualizar_archivo=1, _anchor=ancla)}
+
     @app.route("/cognicion/lot", methods=["GET", "POST"])
     def prueba_lot():
         expediente = expediente_actual()
@@ -479,20 +496,7 @@ def create_app(database=None):
                 return {"error": t("Inicia sesión para guardar los resultados.")}, 401
             return redirect(url_for("index"))
         if request.method == "POST":
-            try:
-                respuestas = json.loads(request.form.get("respuestas", ""))
-            except (ValueError, RecursionError):
-                return {"error": t("No se pudieron leer las respuestas de la ronda.")}, 400
-            try:
-                registro = registro_lot(request.form.get("registro_id"), datetime.now(timezone.utc).isoformat(), respuestas)
-            except ValueError as exc:
-                return {"error": t(str(exc))}, 400
-            usuario = session["user_id"]
-            if not almacen.save_cognitive_report(database, usuario, CAMPO_LOT, registro, "respuestas"):
-                return {"error": t("Ya existe un resultado diferente con el identificador de esta ronda.")}, 409
-            sincronizar_archivo_expediente(usuario)
-            destino = url_for("prueba_lot", registro=registro["id"], actualizar_archivo=1, _anchor="lot-guardado")
-            return {"url": destino}
+            return guardar_ronda(CAMPO_LOT, registro_lot, "respuestas", "lot-guardado")
 
         registros = sorted(expediente.get(CAMPO_LOT, []), key=lambda registro: registro["fecha_hora"], reverse=True)
         seleccionado = request.args.get("registro")
@@ -504,6 +508,28 @@ def create_app(database=None):
         return render_template(
             "lot.html", expediente=expediente, registro_id=identificador, rondas=rondas, angulos=ANGULOS_LOT,
             opciones=OPCIONES_LOT, ensayos=ENSAYOS_LOT, registros=registros, actual=actual,
+            actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
+        )
+
+    @app.route("/cognicion/f2b", methods=["GET", "POST"])
+    def prueba_f2b():
+        expediente = expediente_actual()
+        if expediente is None:
+            if request.method == "POST":
+                return {"error": t("Inicia sesión para guardar los resultados.")}, 401
+            return redirect(url_for("index"))
+        if request.method == "POST":
+            return guardar_ronda(CAMPO_F2B, registro_f2b, "respuestas_ms", "f2b-guardado")
+
+        seleccionado = request.args.get("registro")
+        actual = next((r for r in expediente.get(CAMPO_F2B, []) if r["id"] == seleccionado), None)
+        if seleccionado and actual is None:
+            abort(404)
+        identificador = uuid4().hex
+        return render_template(
+            "f2b.html", expediente=expediente, registro_id=identificador, actual=actual,
+            datos={"secuencia": secuencia_f2b(identificador), "exposicion_ms": EXPOSICION_F2B_MS},
+            coincidencias=COINCIDENCIAS_F2B,
             actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
         )
 
@@ -528,20 +554,30 @@ def create_app(database=None):
                 ("Líneas correctas", "líneas", itemgetter("lineas_correctas")),
                 ("Tiempo medio por par", "ms", itemgetter("promedio_ms")),
             )),
+            (CAMPO_F2B, "Fractal 2-Back (F2B)", "prueba_f2b", "f2b-guardado", (
+                ("Coincidencias detectadas", "aciertos", itemgetter("aciertos")),
+                ("Falsas alarmas", "respuestas", itemgetter("falsas_alarmas")),
+                ("Mediana de reacción en aciertos", "ms", itemgetter("mediana_aciertos_ms")),
+            )),
         )
         historial = []
         for campo, nombre, destino, ancla, metricas in pruebas:
             registros = sorted(expediente.get(campo, []), key=lambda r: fecha_utc(r["fecha_hora"]), reverse=True)
-            series = [
-                serie_estadistica(etiqueta, unidad, [(r["fecha_hora"], valor(r)) for r in registros])
-                for etiqueta, unidad, valor in metricas
-            ] if registros else []
+            series = []
+            for etiqueta, unidad, valor in metricas:
+                lecturas = [(r["fecha_hora"], dato) for r in registros if (dato := valor(r)) is not None]
+                if lecturas:
+                    series.append(serie_estadistica(etiqueta, unidad, lecturas))
             historial.append({"nombre": nombre, "destino": destino, "ancla": ancla, "registros": registros, "series": series})
         return render_template("historial-cognitivo.html", historial=historial)
 
     @app.get("/assets/orientacion-linea.js")
     def lot_script():
         return send_from_directory(ROOT / "static", "orientacion-linea.js")
+
+    @app.get("/assets/fractal-2-back.js")
+    def f2b_script():
+        return send_from_directory(ROOT / "static", "fractal-2-back.js")
 
     @app.get("/assets/memoria-visual.js")
     def volt_script():
