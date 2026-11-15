@@ -42,3 +42,17 @@
   border-radius: 12px;
 }
 .volt-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.prueba-inicio { align-self: flex-start; }
+.lot-diagrama {
+  display: block;
+  width: min(100%, 480px);
+  height: auto;
+  background: #040e24;
+  border: 1px solid var(--border-glow);
+  border-radius: 12px;
+}
+.lot-opciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.lot-opciones button { min-width: 44px; min-height: 44px; }
+.lot-opciones button[aria-pressed="true"] { background: #1e5791; color: #fff; outline: 2px solid #7dd3fc; }
+.cognicion button:disabled { opacity: 0.55; cursor: not-allowed; }

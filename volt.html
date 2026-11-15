@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Memoria visual · MediSpace</title>
+  <title>Aprendizaje visual de objetos (VOLT) · MediSpace</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
@@ -18,12 +18,9 @@
         <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
       </header>
       <h1>Pruebas cognitivas</h1>
-      <nav class="step-pills" aria-label="Pruebas cognitivas">
-        <a class="step-pill" href="{{ url_for('pruebas_cognitivas') }}">Praxis Motora</a>
-        <a class="step-pill active" href="{{ url_for('prueba_volt') }}" aria-current="page">Memoria visual</a>
-      </nav>
+      {% include '_navegacion_cognitiva.html' %}
       <section class="info-card" aria-labelledby="volt-titulo">
-        <h2 id="volt-titulo">Prueba de memoria visual (VOLT)</h2>
+        <h2 id="volt-titulo">Aprendizaje visual de objetos (VOLT)</h2>
         {% for mensaje in get_flashed_messages() %}<p role="alert">{{ mensaje }}</p>{% endfor %}
         <form id="volt-form" method="post" action="{{ url_for('prueba_volt') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -74,7 +71,7 @@
       {% endif %}
       {% if registros %}
       <section class="info-card" aria-labelledby="volt-historial-titulo">
-        <h2 id="volt-historial-titulo">Historial de memoria visual</h2>
+        <h2 id="volt-historial-titulo">Historial de aprendizaje visual de objetos</h2>
         <ul>
           {% for registro in registros %}
           <li><a class="diario-link" href="{{ url_for('prueba_volt', registro=registro.id, _anchor='volt-guardado') }}">{{ registro.fecha_hora | hora_utc }} · {{ registro.inmediato.correctas }} / {{ figuras * 2 }} inmediato · {{ registro.diferido.correctas }} / {{ figuras * 2 }} diferido</a></li>

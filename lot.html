@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orientación de línea (LOT) · MediSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cognicion.css') }}">
+  <script src="{{ url_for('lot_script') }}" defer></script>
+</head>
+<body>
+  <main class="app-frame">
+    <div class="main-area diario cognicion">
+      <header class="top-header">
+        <div class="brand-title">MediSpace</div>
+        <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
+      </header>
+      <h1>Pruebas cognitivas</h1>
+      {% include '_navegacion_cognitiva.html' %}
+      <section class="info-card" aria-labelledby="lot-titulo">
+        <h2 id="lot-titulo">Prueba de orientación de línea (LOT)</h2>
+        <p>Observa los dos segmentos de arriba. Selecciona las dos líneas del abanico que tengan exactamente las mismas inclinaciones y confirma tu selección. Completa {{ ensayos }} pares.</p>
+        <form id="lot-form" method="post" action="{{ url_for('prueba_lot') }}" hidden>
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        </form>
+        <button class="step-pill prueba-inicio" id="lot-iniciar" type="button" disabled>Iniciar prueba</button>
+        <noscript><p>Activa JavaScript para mostrar los segmentos y registrar tus respuestas.</p></noscript>
+        <p id="lot-estado" role="status" hidden></p>
+        <canvas id="lot-diagrama" class="lot-diagrama" width="480" height="316" aria-label="Dos segmentos arriba y un abanico con 11 líneas numeradas abajo" hidden></canvas>
+        <div id="lot-controles" hidden>
+          <div id="lot-opciones" class="lot-opciones" role="group" aria-label="Líneas del abanico">
+            {% for numero in opciones %}
+            <button class="step-pill" type="button" data-linea="{{ numero }}" aria-label="Línea {{ numero }}" aria-pressed="false">{{ numero }}</button>
+            {% endfor %}
+          </div>
+          <button class="step-pill" id="lot-confirmar" type="button" disabled>Confirmar par</button>
+        </div>
+        <button class="step-pill prueba-inicio" id="lot-reintentar" type="button" hidden>Reintentar guardado</button>
+        <script id="lot-datos" type="application/json">{{ {'rondas': rondas, 'angulos': angulos} | tojson }}</script>
+      </section>
+
+      {% if actual %}
+      <section class="info-card" id="lot-guardado" aria-labelledby="lot-guardado-titulo">
+        <h2 id="lot-guardado-titulo">Resultado guardado</h2>
+        <p>{{ actual.fecha_hora | hora_utc }}</p>
+        <dl class="datos-diario">
+          <div><dt>Pares correctos</dt><dd>{{ actual.pares_correctos }} / {{ ensayos }}</dd></div>
+          <div><dt>Líneas correctas</dt><dd>{{ actual.lineas_correctas }} / {{ ensayos * 2 }}</dd></div>
+          <div><dt>Tiempo medio por par</dt><dd>{{ actual.promedio_ms | round | int }} ms</dd></div>
+        </dl>
+        <details>
+          <summary>Respuestas por par</summary>
+          <ol class="praxis-tiempos">
+            {% for respuesta in actual.respuestas %}
+            <li>{{ respuesta.coincidencias }} / 2 · {{ respuesta.tiempo_ms | round | int }} ms</li>
+            {% endfor %}
+          </ol>
+        </details>
+      </section>
+      {% include '_archivo_local.html' %}
+      <script src="{{ url_for('expediente_local_script') }}" defer></script>
+      {% endif %}
+      {% if registros %}
+      <section class="info-card" aria-labelledby="lot-historial-titulo">
+        <h2 id="lot-historial-titulo">Historial de orientación de línea</h2>
+        <ul>
+          {% for registro in registros %}
+          <li><a class="diario-link" href="{{ url_for('prueba_lot', registro=registro.id, _anchor='lot-guardado') }}">{{ registro.fecha_hora | hora_utc }} · {{ registro.pares_correctos }} / {{ ensayos }} pares correctos</a></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>

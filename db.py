@@ -4,7 +4,7 @@ from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from database.expedientes import CAMPO_PRAXIS, SIGNOS, fecha_utc
+from database.expedientes import SIGNOS, fecha_utc
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, VERSION_VOLT, estimulos, puntuar
 
 
@@ -149,16 +149,16 @@ def actualizar_volt(path, user_id, accion, identificador, respuestas, ahora):
         return None
 
 
-def save_praxis_report(path, user_id, registro):
+def save_cognitive_report(path, user_id, campo, registro, campo_respuestas):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         expediente = read_expediente(db, user_id)
         if expediente is None:
             return False
-        registros = expediente.setdefault(CAMPO_PRAXIS, [])
+        registros = expediente.setdefault(campo, [])
         for anterior in registros:
             if anterior["id"] == registro["id"]:
-                return anterior["tiempos_ms"] == registro["tiempos_ms"]
+                return anterior[campo_respuestas] == registro[campo_respuestas]
         registros.append(registro)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
