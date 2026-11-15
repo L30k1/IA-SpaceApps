@@ -34,6 +34,7 @@
         <h2 id="chat-title">{{ t('Modo manos libres') if emergencia else t('Chat de apoyo con IA') }}</h2>
         {% if emergencia %}
         <p class="chat-aviso-emergencia">{{ t('Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación. Este chat no envía avisos al equipo.') }}</p>
+        <p>{{ t('Describe qué pasó, dónde ocurrió y quién necesita ayuda.') }}</p>
         {% else %}
         <p>{{ t('Habla sobre lo que te preocupa o cómo estás viviendo tu turno. Para atención profesional, acude al equipo de salud.') }}</p>
         <p>{{ t('Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación.') }}</p>

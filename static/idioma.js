@@ -4,6 +4,7 @@
     "El archivo no contiene un identificador de expediente válido.": "The file does not contain a valid medical record ID.",
     "Revisa los registros del archivo original antes de actualizarlo.": "Review the entries in the original file before updating it.",
     "El archivo supera el tamaño admitido.": "The file exceeds the size limit.",
+    "No se pudo generar el historial médico. Inténtalo de nuevo.": "The medical record could not be generated. Please try again.",
     "Expediente de MediSpace": "MediSpace medical record",
     "Elige tu archivo JSON para continuar.": "Choose your JSON file to continue.",
     "Archivo vinculado: {nombre}.": "Linked file: {nombre}.",

@@ -9,6 +9,10 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='historial-formulario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  {% if not editar %}
+  <script src="{{ url_for('idioma_script') }}" defer></script>
+  <script src="{{ url_for('crear_historial_script') }}" defer></script>
+  {% endif %}
 </head>
 <body>
   <main class="app-frame expediente-formulario">
@@ -32,10 +36,11 @@
     <p>{{ t('Completa el nombre y el ID. Añade los registros que correspondan y descarga el JSON para adjuntarlo al crear la cuenta.') }}</p>
     {% endif %}
     {% for mensaje in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(mensaje) }}</p>{% endfor %}
-    {% if error %}<p class="form-error" role="alert">{{ t(error) }}</p>{% endif %}
+    <p class="form-error" role="alert" data-historial-error{% if not error %} hidden{% endif %}>{{ t(error) if error else '' }}</p>
     {% set accion_principal = 'guardar' if editar else 'descargar' %}
     {% set etiqueta_principal = t('Guardar cambios') if editar else t('Generar y descargar JSON') %}
-    <form class="expediente-campos" method="post" action="{{ url_for('editar_expediente' if editar else 'preparar_historial') }}">
+    <form class="expediente-campos" method="post" action="{{ url_for('editar_expediente' if editar else 'preparar_historial') }}"
+          {% if not editar %}data-crear-cuenta="{{ url_for('index', mode='register') }}"{% endif %}>
       <input type="hidden" name="csrf" value="{{ csrf }}">
       {% if editar %}<input type="hidden" name="version" value="{{ version }}">{% endif %}
       <button type="submit" name="accion" value="{{ accion_principal }}" hidden>{{ etiqueta_principal }}</button>

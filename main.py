@@ -35,6 +35,7 @@ from editar_expediente import (
     version_edicion,
 )
 from emociones import CAMPO_EMOCIONES, EMOCIONES, EXPOSICION_EMOCIONES_MS, INTENSIDADES, LAMINAS, estimulos_emociones
+from emergencia import responder_emergencia
 from f2b import CAMPO_F2B, COINCIDENCIAS_F2B, EXPOSICION_F2B_MS, ESTIMULOS_F2B, secuencia_f2b
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from llave_edicion import CAMPO_LLAVE, llave_del_expediente, preparar_llave, verificar_credencial
@@ -312,6 +313,8 @@ def create_app(database=None):
                         return {"error": t("La sesión cambió o caducó. Vuelve a abrir el chat.")}, 403
                     flash("El formulario caducó. Vuelve a completar el paso.")
                     return redirect(url_for("chat_psicologico", modo="emergencia"), 303)
+                if request.endpoint == "preparar_historial" and request.accept_mimetypes.best == "application/json":
+                    return {"error": t("El formulario caducó. Vuelve a completar el paso.")}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint == "preparar_historial":
                     return redirect(url_for("preparar_historial"), 303)
@@ -385,12 +388,16 @@ def create_app(database=None):
                     expediente[CAMPO_LLAVE] = preparar_llave(formulario)
                 except ValueError as exc:
                     error = str(exc)
+                    if request.accept_mimetypes.best == "application/json":
+                        return {"error": t(error)}, 400
                 else:
                     identificador = secure_filename(expediente["_id"])[:80]
                     nombre = f"expediente-{identificador}.json" if identificador else "expediente.json"
                     contenido = json.dumps(expediente, ensure_ascii=False, indent=2) + "\n"
-                    return Response(contenido, mimetype="application/json",
-                                    headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
+                    return Response(contenido, mimetype="application/json", headers={
+                        "Content-Disposition": f'attachment; filename="{nombre}"',
+                        "Cache-Control": "no-store",
+                    })
             elif not ajustar_filas(filas, accion):
                 abort(400)
         return render_template("historial-formulario.html", formulario=formulario, filas=filas, secciones=SECCIONES, error=error)
@@ -788,6 +795,10 @@ def create_app(database=None):
     def expediente_local_script():
         return send_from_directory(ROOT / "static", "expediente-local.js")
 
+    @app.get("/assets/crear-historial.js")
+    def crear_historial_script():
+        return send_from_directory(ROOT / "static", "crear-historial.js")
+
     @app.route("/psicologia/<modulo>", methods=["GET", "POST"])
     def registro_psicologico(modulo):
         if modulo not in MODULOS:
@@ -930,7 +941,8 @@ def create_app(database=None):
             else:
                 actualizados = [*mensajes, {"role": "user", "text": texto}]
                 try:
-                    respuesta = responder_chat_psicologico(actualizados)
+                    responder = responder_emergencia if emergencia else responder_chat_psicologico
+                    respuesta = responder(actualizados)
                 except ERRORES_GEMINI:
                     error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
                     estado = 503
