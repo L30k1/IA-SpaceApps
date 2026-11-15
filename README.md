@@ -29,6 +29,18 @@ Al abrir un HTML directamente o usar un servidor estático como Live Server, ver
 
 Puedes definir `MEDISPACE_SECRET_KEY` con un valor secreto estable para conservar las sesiones al reiniciar el servidor. Si se omite, se genera una clave nueva en cada inicio.
 
+## Calendario de la misión
+
+En **Perfil → Misión y evaluaciones obligatorias**, registra las fechas previstas de inicio y fin. Ambos días cuentan para la duración. MediSpace muestra los plazos en UTC−6 y calcula el cumplimiento con las evaluaciones guardadas durante cada período. La evaluación cognitiva requiere una ronda completa de Praxis Motora, VOLT y LOT dentro del mismo período.
+
+| Duración | Médica | Psicológica | Cognitiva |
+|---|---|---|---|
+| 1 a 7 días | Cada día | Diario | Una vez durante la misión |
+| 8 a 30 días | Cada 3 días | Semanal | Cada 14 días |
+| 31 días o más | Cada 7 días | Semanal | Cada 30 días |
+
+Si la misión dura menos que un intervalo, la primera evaluación de ese tipo vence al finalizar la misión. Los días restantes al final de una misión no agregan otro plazo cuando no completan un intervalo. Esta periodicidad pertenece al calendario inicial de MediSpace y debe confirmarse con el equipo responsable. [Operaciones médicas y planificación de NASA](https://www.nasa.gov/reference/6-0-medical-operations/)
+
 ## Compartir un enlace público con Render
 
 1. Sube los cambios del proyecto a GitHub. Guarda las claves en los ajustes del servicio y conserva la base de datos local fuera del repositorio.
