@@ -74,7 +74,7 @@
               {% endfor %}
             </select>
             {% else %}
-            <input type="{{ tipo }}" name="{{ grupo }}.{{ campo }}" value="{{ fila.get(campo, '') }}"{% if tipo == 'number' %} step="any"{% endif %}>
+            <input type="{{ tipo }}" name="{{ grupo }}.{{ campo }}" value="{{ fila.get(campo, '') }}"{% if campo == 'ejercicio_min_diarios' %} min="1" max="1440"{% elif tipo == 'number' %} step="any"{% endif %}>
             {% endif %}
             </label>
           {% endfor %}

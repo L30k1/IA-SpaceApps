@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% from '_avance_ejercicio.html' import avance_ejercicio %}
 <html lang="{{ idioma }}">
 <head>
   <meta charset="UTF-8">
@@ -24,8 +25,7 @@
       {% if rutina %}
       <section class="info-card" aria-labelledby="ejercicio-rutina">
         <h2 id="ejercicio-rutina">{{ t('Rutina de ejercicio') }} · {{ mision_seleccionada }}</h2>
-        <p>{{ rutina.inicio | fecha_corta }} – {{ rutina.fin | fecha_corta }}</p>
-        <p>{{ t('Registros mínimos del período: {hechos} de {total}', hechos=rutina.completadas, total=rutina.metas | length) }}</p>
+        {{ avance_ejercicio(rutina) }}
         <p>{{ t('Total de sesiones registradas en la misión: {cantidad}', cantidad=rutina.total_sesiones) }}</p>
         <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">{{ t('Ver avance de la misión') }}</a>
       </section>

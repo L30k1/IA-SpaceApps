@@ -1,3 +1,4 @@
+{% from '_avance_ejercicio.html' import avance_ejercicio %}
 {% macro detalle_evaluacion(nombre, fila) %}
 <li>
   <strong>{{ nombre }}</strong>
@@ -45,25 +46,17 @@
     <section class="mision-rutina" aria-label="{{ t('Rutina de ejercicio') }}">
       <div class="mision-encabezado">
         <h4>{{ t('Rutina de ejercicio') }}</h4>
-        <p>{{ plan.rutina.inicio | fecha_corta }} – {{ plan.rutina.fin | fecha_corta }}</p>
         {% if plan.estado != 'Programada' %}
         <a href="{{ url_for('ejercicio', mision=plan.mision.id) }}">{{ t('Registrar sesión de ejercicio') }}</a>
         {% endif %}
       </div>
-      <p>{{ t('Registros mínimos del período: {hechos} de {total}', hechos=plan.rutina.completadas, total=plan.rutina.metas | length) }}</p>
+      {{ avance_ejercicio(plan.rutina) }}
       <p>{{ t('Total de sesiones registradas en la misión: {cantidad}', cantidad=plan.rutina.total_sesiones) }}</p>
-      <ul>
-        {% for meta in plan.rutina.metas %}
-        <li class="mision-meta-ejercicio{% if meta.completada %} mision-meta-ejercicio-hecha{% endif %}">
-          {{ t(meta.tipo) }} · {{ t('Registrada') if meta.completada else t('Pendiente') }}
-        </li>
-        {% endfor %}
-      </ul>
-      <p>{{ t('Son metas de registro. El equipo de la misión define los ejercicios, la carga y los descansos.') }}</p>
+      <p>{{ t('La meta de minutos sirve para el seguimiento. El equipo de la misión define la rutina y su duración.') }}</p>
       <details class="mision-detalles">
         <summary>{{ t('Ejemplos de actividades') }}</summary>
-        {% for meta in plan.rutina.metas %}
-        <p>{{ t(meta.ejemplo) }}</p>
+        {% for ejemplo in plan.rutina.ejemplos %}
+        <p>{{ t(ejemplo) }}</p>
         {% endfor %}
       </details>
     </section>

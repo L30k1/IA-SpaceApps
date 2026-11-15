@@ -14,6 +14,7 @@ from f2b import CAMPO_F2B
 SECCIONES = (
     ("misiones", "Misiones", (
         ("id", "ID de misión", "text"), ("fecha_inicio", "Inicio", "date"), ("fecha_fin", "Fin", "date"),
+        ("ejercicio_min_diarios", "Mínimo diario de ejercicio (min, opcional)", "number"),
     )),
     ("alergias", "Alergias", (
         ("sustancia", "Sustancia", "text"), ("reaccion", "Reacción", "text"), ("gravedad", "Gravedad", "text"),
@@ -84,6 +85,12 @@ def generar_historial(formulario, filas):
                     raise ValueError
             except ValueError:
                 raise ValueError("Escribe la dosis como número y su unidad en el campo separado.") from None
+    for mision in expediente["misiones"]:
+        if "ejercicio_min_diarios" in mision:
+            try:
+                mision["ejercicio_min_diarios"] = int(mision["ejercicio_min_diarios"])
+            except ValueError:
+                raise ValueError("El mínimo diario de ejercicio debe ser un número entero de 1 a 1440 minutos.") from None
     for chequeo in expediente["chequeos"]:
         try:
             fecha = datetime.fromisoformat(chequeo.get("fecha_hora", ""))
