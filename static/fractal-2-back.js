@@ -6,6 +6,7 @@
   const ronda = document.querySelector('#f2b-ronda');
   const responder = document.querySelector('#f2b-responder');
   const avance = document.querySelector('#f2b-avance');
+  const confirmacion = document.querySelector('#f2b-confirmacion');
   const estado = document.querySelector('#f2b-estado');
   const reintentar = document.querySelector('#f2b-reintentar');
   const reiniciar = document.querySelector('#f2b-reiniciar');
@@ -56,6 +57,8 @@
 
   function mostrar() {
     if (!activa) return;
+    responder.removeAttribute('data-registrada');
+    confirmacion.textContent = '';
     avance.textContent = t('Figura {actual} de {total}', { actual: indice + 1, total: respuestas.length });
     dibujar(datos.secuencia[indice]);
     desde = performance.now();
@@ -75,7 +78,10 @@
   function marcar() {
     if (!activa || desde === null || respuestas[indice] !== null) return;
     const tiempo = performance.now() - desde;
-    if (tiempo < datos.exposicion_ms) respuestas[indice] = tiempo;
+    if (tiempo >= datos.exposicion_ms) return;
+    respuestas[indice] = tiempo;
+    responder.setAttribute('data-registrada', '');
+    confirmacion.textContent = confirmacion.dataset.mensaje;
   }
 
   async function guardar() {
