@@ -1,13 +1,8 @@
-<div class="voz-chat" data-voz-chat{% if elevenlabs_disponible %} data-voz-url="{{ url_for('voz_elevenlabs', chat=chat_voz) }}" data-voz-turno="{{ turno_voz }}"{% endif %} hidden>
+<div class="voz-chat" data-voz-chat hidden>
   <div class="voz-chat-controles">
-    <button type="button" data-voz-dictar aria-describedby="aviso-dictado" hidden>Dictar mensaje</button>
+    <button type="button" data-voz-dictar aria-describedby="aviso-dictado" aria-pressed="false" hidden>Mantén pulsado para hablar</button>
     <button type="button" data-voz-escuchar hidden>Escuchar última respuesta</button>
-    {% if elevenlabs_disponible %}<button type="button" data-voz-elevenlabs aria-describedby="aviso-elevenlabs" hidden>Escuchar con ElevenLabs</button>{% endif %}
   </div>
-  <p id="aviso-dictado" data-voz-aviso hidden>El navegador puede enviar el audio a su servicio de transcripción. Revisa el texto antes de enviarlo.</p>
-  {% if elevenlabs_disponible %}
-  <p id="aviso-elevenlabs" data-voz-aviso-elevenlabs hidden>Al pulsar «Escuchar con ElevenLabs», se envía el texto de la última respuesta a ElevenLabs para generar el audio.</p>
-  <audio controls preload="none" data-voz-audio aria-label="Respuesta con voz de ElevenLabs" hidden></audio>
-  {% endif %}
+  <p id="aviso-dictado" data-voz-aviso hidden>Mantén presionada la barra espaciadora fuera del campo de texto o mantén pulsado el botón. Suelta para detener el dictado. El navegador puede usar su servicio de transcripción.</p>
   <p data-voz-estado role="status" aria-live="polite"></p>
 </div>

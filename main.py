@@ -30,7 +30,6 @@ from psicologia import (
     tramo_mision, validar_registros,
 )
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
-from voz import configuracion_elevenlabs, sintetizar_elevenlabs
 
 
 ROOT = Path(__file__).resolve().parent
@@ -185,7 +184,7 @@ def create_app(database=None):
         if request.endpoint in {
             "index", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "pruebas_cognitivas", "prueba_volt", "prueba_lot", "historial_cognitivo",
-            "download_expediente", "voz_elevenlabs", "logout",
+            "download_expediente", "logout",
         }:
             response.cache_control.no_store = True
         return response
@@ -200,7 +199,6 @@ def create_app(database=None):
             "fases": FASES,
             "signos": SIGNOS,
             "etiquetas_resultado": ETIQUETAS_RESULTADO,
-            "elevenlabs_disponible": configuracion_elevenlabs() is not None,
         }
 
     @app.before_request
@@ -211,8 +209,6 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
-                if request.endpoint == "voz_elevenlabs":
-                    return {"error": "Tu sesión cambió o caducó. Recarga la página."}, 403
                 if request.endpoint in {"pruebas_cognitivas", "prueba_volt", "prueba_lot"}:
                     return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
@@ -457,38 +453,6 @@ def create_app(database=None):
     @app.get("/assets/voz-chat.js")
     def voz_chat_script():
         return send_from_directory(ROOT / "static", "voz-chat.js")
-
-    @app.post("/voz/elevenlabs/<chat>")
-    def voz_elevenlabs(chat):
-        expediente = expediente_actual()
-        if expediente is None:
-            return {"error": "Inicia sesión para escuchar la respuesta."}, 401
-        configuracion = configuracion_elevenlabs()
-        if configuracion is None:
-            return {"error": "La voz de ElevenLabs no está configurada."}, 503
-
-        usuario = session["user_id"]
-        if chat == "psicologico":
-            revision, mensajes = db.psych_chat(database, usuario)
-            turno = str(revision)
-        elif chat == "medico":
-            borrador = db.get_open_checkup(database, usuario, expediente["_id"])
-            if borrador is None:
-                return {"error": "Ya no hay un chequeo en curso."}, 404
-            mensajes = json.loads(borrador["messages"])
-            turno = f"{borrador['id']}:{borrador['revision']}"
-        else:
-            abort(404)
-        if request.form.get("turno") != turno:
-            return {"error": "La conversación cambió. Recarga la página para escuchar la última respuesta."}, 409
-        texto = next((mensaje["text"].strip() for mensaje in reversed(mensajes) if mensaje["role"] == "ai"), "")
-        if not 1 <= len(texto) <= 6000:
-            return {"error": "La respuesta no está disponible para la voz de ElevenLabs."}, 422
-        try:
-            audio = sintetizar_elevenlabs(texto, configuracion)
-        except (httpx2.HTTPError, ValueError):
-            return {"error": "ElevenLabs no está disponible o se agotó la cuota. Puedes usar la voz del navegador."}, 503
-        return Response(audio, mimetype="audio/mpeg")
 
     @app.get("/assets/expediente-local.js")
     def expediente_local_script():

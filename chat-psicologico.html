@@ -22,7 +22,7 @@
       </header>
       <h1>Atención psicológica</h1>
       {% include '_navegacion_psicologica.html' %}
-      <section class="info-card" aria-labelledby="chat-title">
+      <section class="info-card" aria-labelledby="chat-title" data-chat-voz="psicologico">
         <h2 id="chat-title">Chat de apoyo con IA</h2>
         <p>Habla sobre lo que te preocupa o cómo estás viviendo tu turno. Para atención profesional, acude al equipo de salud.</p>
         <p>Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación.</p>
@@ -46,9 +46,7 @@
             <textarea name="mensaje" maxlength="2000" rows="3" required data-voz-mensaje>{{ texto }}</textarea>
           </label>
           <p>El proveedor de IA recibe tu mensaje y los turnos recientes. MediSpace guarda la conversación en tu cuenta.</p>
-          {% with chat_voz='psicologico', turno_voz=revision %}
-            {% include '_voz_chat.html' %}
-          {% endwith %}
+          {% include '_voz_chat.html' %}
           <button class="step-pill" type="submit">Enviar mensaje</button>
         </form>
         {% else %}
