@@ -70,8 +70,6 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .dashboard-grid > * { min-width: 0; }
 .dashboard-grid .health-status-card, .dashboard-grid .action-tile { flex: 0 0 auto; }
 .action-tile { text-align: center; }
-.mision-evaluacion { padding-block: 12px 4px; }
-.mision-estado { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 8px; background: #152b50; }
 
 #view-chat h1 { margin-bottom: 14px; }
 .telemetry-strip {

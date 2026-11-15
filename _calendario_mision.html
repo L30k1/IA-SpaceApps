@@ -1,17 +1,15 @@
-{% macro evaluacion(nombre, fila, destino, detalle='') %}
-<div class="mision-evaluacion">
-  <a href="{{ destino }}">{{ nombre }}</a>
-  <span class="mision-estado{% if fila.estado == 'Vencida' %} mision-vencida{% endif %}">{{ t(fila.estado) }}</span>
+{% macro detalle_evaluacion(nombre, fila) %}
+<li>
+  <strong>{{ nombre }}</strong>
   {% if fila.total == 1 %}
-  <p>{{ t('Una evaluación programada · Fecha límite') }} {{ fila.limite | fecha_corta }}</p>
+  <p>{{ t('Una evaluación programada') }}</p>
   {% else %}
-  <p>{{ t('Cada {cantidad} días', cantidad=fila.intervalo) if fila.intervalo > 1 else t('Cada día') }} {{ t('· Fecha límite') }} {{ fila.limite | fecha_corta }}</p>
+  <p>{{ t('Cada {cantidad} días', cantidad=fila.intervalo) if fila.intervalo > 1 else t('Cada día') }}</p>
   {% endif %}
-  {% if detalle %}<p>{{ detalle }}</p>{% endif %}
   {% if fila.previo %}<p>{{ t('Último registro de prevuelo') }} {{ fila.previo | fecha_corta }}</p>{% endif %}
   {% if fila.proxima %}<p>{{ t('Próxima fecha límite') }} {{ fila.proxima | fecha_corta }}</p>{% endif %}
   {% if fila.vencidas %}<p>{{ t('Plazos anteriores incumplidos (') }}{{ fila.vencidas }})</p>{% endif %}
-</div>
+</li>
 {% endmacro %}
 
 <section class="mision-calendario" id="calendario-mision" aria-labelledby="mision-titulo">
@@ -19,16 +17,42 @@
   <p>{{ t('El calendario usa días de misión en UTC−6. El equipo responsable debe confirmar las frecuencias antes de aplicarlas en vuelo.') }}</p>
   {% for plan in planes %}
   <article class="mision-plan">
-    <h3>{{ plan.mision.id }}</h3>
+    <div class="mision-encabezado">
+      <h3>{{ plan.mision.id }}</h3>
+      {% if plan.duracion %}
+      <p>{{ plan.duracion }} {{ t('día') if plan.duracion == 1 else t('días') }} · {{ t(plan.estado) }}</p>
+      {% endif %}
+    </div>
     {% if plan.duracion %}
-    <p>{{ plan.duracion }} {{ t('día') if plan.duracion == 1 else t('días') }} · {{ t(plan.estado) }}</p>
-    {% if plan.estado == 'Programada' %}<p>{{ t('Las evaluaciones de vuelo comienzan el') }} {{ plan.inicio | fecha_corta }}.</p>{% endif %}
-    {{ evaluacion(t('Evaluación médica'), plan.medica, '#iniciar-monitoreo') }}
     {% set cuestionario = t('Cuestionario diario') if plan.psicologia == 'diario' else t('Cuestionario semanal') %}
-    {{ evaluacion(t('Evaluación psicológica'), plan.psicologica, url_for('registro_psicologico', modulo=plan.psicologia), cuestionario) }}
-    {% if plan.ultimo_otro %}<p>{{ t('Otro cuestionario guardado:') }} {{ t(plan.otro_cuestionario | capitalize) }} · {{ plan.ultimo_otro | fecha_corta }}.</p>{% endif %}
     {% set periodo_cognitivo = t('en prevuelo') if plan.estado == 'Programada' else t('en este período') %}
-    {{ evaluacion(t('Evaluación cognitiva'), plan.cognitiva, url_for('pruebas_cognitivas'), t('Praxis Motora, VOLT y LOT') ~ ' · ' ~ t('{cantidad} de 3 pendientes {periodo}', cantidad=plan.cognitiva.restantes, periodo=periodo_cognitivo)) }}
+    {% set avance_cognitivo = t('{cantidad} de 3 pendientes {periodo}', cantidad=plan.cognitiva.restantes, periodo=periodo_cognitivo) %}
+    {% set evaluaciones = [
+      (t('Evaluación médica'), plan.medica, '#iniciar-monitoreo', ''),
+      (t('Evaluación psicológica'), plan.psicologica, url_for('registro_psicologico', modulo=plan.psicologia), cuestionario),
+      (t('Evaluación cognitiva'), plan.cognitiva, url_for('pruebas_cognitivas'), avance_cognitivo)
+    ] %}
+    <div class="mision-evaluaciones">
+      {% for nombre, fila, destino, detalle in evaluaciones %}
+      <div class="mision-evaluacion">
+        <a href="{{ destino }}">{{ nombre }}</a>
+        <p><span class="mision-estado{% if fila.estado == 'Vencida' %} mision-vencida{% endif %}">{{ t(fila.estado) }}</span></p>
+        <p>{{ t('Fecha límite:') }} <time datetime="{{ fila.limite.isoformat() }}">{{ fila.limite | fecha_corta }}</time></p>
+        {% if detalle %}<p>{{ detalle }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <details class="mision-detalles">
+      <summary>{{ t('Frecuencias y fechas adicionales') }}</summary>
+      {% if plan.estado == 'Programada' %}<p>{{ t('Las evaluaciones de vuelo comienzan el') }} {{ plan.inicio | fecha_corta }}.</p>{% endif %}
+      <ul class="mision-evaluaciones">
+        {% for nombre, fila, _, _detalle in evaluaciones %}
+        {{ detalle_evaluacion(nombre, fila) }}
+        {% endfor %}
+      </ul>
+      {% if plan.ultimo_otro %}<p>{{ t('Otro cuestionario guardado:') }} {{ t(plan.otro_cuestionario | capitalize) }} · {{ plan.ultimo_otro | fecha_corta }}.</p>{% endif %}
+      <p>{{ t('Pruebas cognitivas requeridas:') }} {{ t('Praxis Motora, VOLT y LOT') }}.</p>
+    </details>
     {% else %}
     <p>{{ t('El expediente JSON necesita fechas de inicio y fin válidas para calcular la duración y los plazos.') }}</p>
     {% endif %}
