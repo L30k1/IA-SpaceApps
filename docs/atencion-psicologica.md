@@ -54,3 +54,7 @@ Antes de implementar un semáforo, verificar los límites, el redondeo entre int
 4. **Lógica de cálculo y umbrales.** Fórmula y tabla de interpretación con las fuentes y el estado de validación de cada umbral.
 
 MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](modulo-semanal.md). Post-Emergencia queda por desarrollar.
+
+## Chat de apoyo
+
+El chat ofrece apoyo emocional por texto y orienta a la persona hacia el equipo de salud cuando corresponde. Para responder, el proveedor de IA recibe el mensaje y los turnos recientes. MediSpace guarda la conversación en la base de datos de la cuenta, fuera del expediente JSON descargable.

@@ -7,6 +7,12 @@ from uuid import uuid4
 from database.expedientes import SIGNOS, fecha_utc
 
 
+class RegistroPrematuro(Exception):
+    def __init__(self, disponible):
+        self.disponible = disponible
+        super().__init__("El intervalo entre registros aún no ha terminado.")
+
+
 def initialize(path):
     with closing(sqlite3.connect(path)) as db, db:
         db.executescript("""
@@ -39,6 +45,11 @@ def initialize(path):
                 checkup_id INTEGER PRIMARY KEY REFERENCES checkups(id),
                 contenido TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS psych_chat (
+                user_id INTEGER PRIMARY KEY REFERENCES users(id),
+                revision INTEGER NOT NULL,
+                mensajes TEXT NOT NULL
+            );
         """)
 
 
@@ -67,7 +78,12 @@ def read_expediente(db, user_id):
     return json.loads(row[0]) if row else None
 
 
-def save_psych_report(path, user_id, campo, registro):
+def proximo_registro(registros, intervalo):
+    ultimo = max((fecha_utc(registro["fecha_hora"]) for registro in registros), default=None)
+    return ultimo + intervalo if ultimo is not None else None
+
+
+def save_psych_report(path, user_id, campo, registro, intervalo):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         expediente = read_expediente(db, user_id)
@@ -76,6 +92,9 @@ def save_psych_report(path, user_id, campo, registro):
         registros = expediente.setdefault(campo, [])
         if any(previo["id"] == registro["id"] for previo in registros):
             return False
+        disponible = proximo_registro(registros, intervalo)
+        if disponible is not None and fecha_utc(registro["fecha_hora"]) < disponible:
+            raise RegistroPrematuro(disponible)
         registros.append(registro)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
@@ -99,6 +118,30 @@ def save_psych_followup(path, user_id, campo, registro_id, seguimiento):
                 )
                 return True
         return False
+
+
+def psych_chat(path, user_id):
+    with closing(sqlite3.connect(path)) as db:
+        row = db.execute("SELECT revision, mensajes FROM psych_chat WHERE user_id = ?", (user_id,)).fetchone()
+        return (row[0], json.loads(row[1])) if row else (0, [])
+
+
+def save_psych_chat(path, user_id, revision, mensajes):
+    with closing(sqlite3.connect(path)) as db, db:
+        contenido = json.dumps(mensajes, ensure_ascii=False)
+        if revision == 0:
+            actualizado = db.execute(
+                "INSERT INTO psych_chat (user_id, revision, mensajes) VALUES (?, 1, ?) "
+                "ON CONFLICT (user_id) DO NOTHING",
+                (user_id, contenido),
+            )
+        else:
+            actualizado = db.execute(
+                "UPDATE psych_chat SET mensajes = ?, revision = revision + 1 "
+                "WHERE user_id = ? AND revision = ?",
+                (contenido, user_id, revision),
+            )
+        return actualizado.rowcount == 1
 
 
 def find_user(path, email):

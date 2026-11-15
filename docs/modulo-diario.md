@@ -3,7 +3,7 @@
 ## 1. Metadatos del test
 
 - **Nombre.** Registro diario de sueño y desempeño percibido.
-- **Frecuencia.** Una vez al día, preferentemente a una hora comparable respecto al inicio de turno.
+- **Frecuencia.** El siguiente cuestionario se habilita 24 horas después del último registro diario de la cuenta. Se recomienda completarlo a una hora comparable respecto al inicio de turno.
 - **Tiempo estimado.** Menos de 90 segundos para los cinco reactivos. La medición complementaria se realiza aparte.
 - **Variables.** Sueño percibido, energía, interferencia del estrés, claridad y atención percibidas, y esfuerzo para sostener el desempeño habitual.
 

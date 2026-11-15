@@ -310,5 +310,89 @@
         ]
       }
     }
+  ],
+  "semanal_psicologico": [
+    {
+      "id": "68754828038a422991934ef0f63a0249",
+      "version": 1,
+      "fecha_hora": "2026-11-15T04:43:22.586404+00:00",
+      "respuestas": {
+        "interes": 1,
+        "animo_bajo": 2,
+        "recuperacion_animo": 2,
+        "preocupacion": 2,
+        "tension": 2,
+        "pausas": 2,
+        "energia": 2,
+        "sueno": 2,
+        "atencion": 2,
+        "apoyo": 2,
+        "comunicacion": 2,
+        "retraimiento": 2,
+        "esfuerzo": 2
+      },
+      "nota": "",
+      "pvt": null,
+      "puntuacion": {
+        "dominios": {
+          "Ánimo e interés": 33.33,
+          "Estrés operativo": 58.33,
+          "Sueño y desempeño": 25,
+          "Cohesión de equipo": 41.67
+        },
+        "diferencia_energia": 2
+      },
+      "seguimiento_ia": {
+        "resumen": "Durante los últimos siete días, el astronauta reporta una baja frecuencia en el interés por actividades y una interferencia moderada del desánimo en su rutina. Se observa que el estrés operativo, el desempeño, la calidad del sueño y la cohesión de equipo han mostrado respuestas variables, con una mayor proporción de reportes en la frecuencia de 1 a 2 días para la mayoría de los indicadores evaluados. Se identificó una diferencia de 2 unidades en el reporte de niveles de energía habituales.",
+        "acciones": [
+          "Documentar las variaciones reportadas en los niveles de energía y ánimo para el seguimiento clínico.",
+          "Solicitar al astronauta que aclare la percepción sobre la dificultad para desconectar de posibles fallas operativas tras el turno.",
+          "Consultar al equipo de salud conductual para revisar las tendencias en la cohesión de equipo y el estrés operativo."
+        ]
+      },
+      "mision_id": "MS-091",
+      "tramo_mision": null
+    },
+    {
+      "id": "dfc3b8909d73482aa848f33163d85575",
+      "version": 1,
+      "fecha_hora": "2026-11-15T04:43:52.545204+00:00",
+      "respuestas": {
+        "interes": 3,
+        "animo_bajo": 3,
+        "recuperacion_animo": 3,
+        "preocupacion": 3,
+        "tension": 3,
+        "pausas": 3,
+        "energia": 3,
+        "sueno": 3,
+        "atencion": 3,
+        "apoyo": 3,
+        "comunicacion": 3,
+        "retraimiento": 3,
+        "esfuerzo": 3
+      },
+      "nota": "",
+      "pvt": null,
+      "puntuacion": {
+        "dominios": {
+          "Ánimo e interés": 50,
+          "Estrés operativo": 50,
+          "Sueño y desempeño": 50,
+          "Cohesión de equipo": 50
+        },
+        "diferencia_energia": 0
+      },
+      "seguimiento_ia": {
+        "resumen": "Durante los últimos siete días, el astronauta reportó una frecuencia constante de 3 a 4 días en todos los indicadores evaluados, que abarcan áreas de ánimo, estrés operativo, sueño, desempeño y cohesión de equipo. Los dominios presentan una puntuación descriptiva uniforme del 50.0 por ciento, sin registrarse variaciones en los niveles de energía reportados.",
+        "acciones": [
+          "Documentar la consistencia en las respuestas reportadas para el seguimiento longitudinal.",
+          "Solicitar al astronauta que aclare si la frecuencia constante en todos los indicadores refleja una tendencia observada o requiere revisión de las mediciones.",
+          "Verificar con el equipo responsable si se requiere una entrevista para profundizar en la autopercepción de los dominios reportados."
+        ]
+      },
+      "mision_id": null,
+      "tramo_mision": null
+    }
   ]
 }
