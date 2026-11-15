@@ -14,9 +14,28 @@ SIGNOS = {
     "spo2": ("SpO₂", "%"),
     "temperatura": ("Temperatura", "°C"),
 }
+# Límites de captura de la aplicación, no rangos clínicos.
+LIMITES_CAPTURA = {"frecuencia_cardiaca": (1, 999), "spo2": (0, 100), "temperatura": (0.1, 99.9)}
 FASES = {"preflight": "Prevuelo", "vuelo": "Vuelo", "posvuelo": "Posvuelo"}
 CAMPO_PRAXIS = "praxis_motora"
 OBJETIVOS_PRAXIS = 20
+
+
+def validar_referencias_monitoreo(referencias):
+    if not isinstance(referencias, dict) or referencias.keys() - SIGNOS.keys():
+        raise ValueError("Las referencias del monitoreo deben corresponder a los signos vitales del expediente.")
+    rangos = {}
+    for tipo, rango in referencias.items():
+        if rango is None:
+            continue
+        minimo, maximo = (rango.get("minimo"), rango.get("maximo")) if isinstance(rango, dict) else (None, None)
+        inferior, superior = LIMITES_CAPTURA[tipo]
+        if (type(minimo) not in (int, float) or type(maximo) not in (int, float)
+                or not inferior <= minimo <= maximo <= superior):
+            raise ValueError(t("Revisa el mínimo y el máximo de {signo}. Completa ambos dentro de los límites de captura.",
+                               signo=t(SIGNOS[tipo][0])))
+        rangos[tipo] = {"minimo": minimo, "maximo": maximo}
+    return rangos
 
 
 def texto_requerido(registro, campo):
@@ -100,6 +119,8 @@ def leer_expediente(contenido):
     astronauta = expediente["astronauta"]
     astronauta["nombre"] = texto_requerido(astronauta, "nombre")
     astronauta["rol"] = "Astronauta"
+    if "referencias_monitoreo" in expediente:
+        expediente["referencias_monitoreo"] = validar_referencias_monitoreo(expediente["referencias_monitoreo"])
     for grupo in GRUPOS:
         registros = expediente.setdefault(grupo, [])
         if not isinstance(registros, list) or not all(isinstance(registro, dict) for registro in registros):

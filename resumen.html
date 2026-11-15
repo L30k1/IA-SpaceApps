@@ -131,6 +131,17 @@
           <div class="info-card">
             <h3>{{ t('Mediciones') }}</h3>
             <ul>{{ mediciones(latest) }}</ul>
+            {% if latest.clave.startswith('app-') and latest.comparacion_referencias %}
+            <h3>{{ t('Comparación con tus rangos personales') }}</h3>
+            <ul>
+              {% set etiquetas_comparacion = {'inferior': 'Por debajo del rango personal', 'superior': 'Por encima del rango personal', 'dentro': 'Dentro del rango personal'} %}
+              {% for tipo, comparacion in latest.comparacion_referencias.items() %}
+              <li><strong>{{ t(signos[tipo][0]) }}</strong> · {{ t(etiquetas_comparacion[comparacion.posicion]) }}
+                ({{ comparacion.minimo }}–{{ comparacion.maximo }} {{ t(comparacion.unidad) }})
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
           </div>
         </div>
         {% include '_seguimiento_alerta.html' %}

@@ -26,7 +26,8 @@ from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
-    CAMPO_PRAXIS, FASES, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot, registro_praxis,
+    CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
+    registro_praxis,
 )
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
 from psicologia import (
@@ -45,6 +46,23 @@ ETIQUETAS_RESULTADO = {
 }
 ERRORES_GEMINI = (APIError, httpx2.HTTPError, ValueError)
 MENSAJE_GEMINI = "La IA no devolvió una respuesta válida. Vuelve a intentarlo."
+MEDICIONES_MONITOREO = {
+    "hr": ("frecuencia_cardiaca", "frecuencia_cardiaca_lpm", int),
+    "spo2": ("spo2", "spo2_pct", int),
+    "temp": ("temperatura", "temperatura_c", float),
+}
+
+
+def comparar_referencias(medidas, referencias):
+    comparacion = {}
+    for clave, (tipo, _, _) in MEDICIONES_MONITOREO.items():
+        valor, rango = medidas.get(clave), referencias.get(tipo)
+        if valor is None or not rango:
+            continue
+        minimo, maximo = rango["minimo"], rango["maximo"]
+        posicion = "inferior" if valor < minimo else "superior" if valor > maximo else "dentro"
+        comparacion[tipo] = {**rango, "valor": valor, "unidad": SIGNOS[tipo][1], "posicion": posicion}
+    return comparacion
 
 
 def leer_expediente_subido():
@@ -249,6 +267,7 @@ def create_app(database=None):
             "csrf": session["csrf"],
             "fases": {clave: t(etiqueta) for clave, etiqueta in FASES.items()},
             "signos": SIGNOS,
+            "limites_captura": LIMITES_CAPTURA,
             "etiquetas_resultado": {clave: t(etiqueta) for clave, etiqueta in ETIQUETAS_RESULTADO.items()},
             "idioma": idioma_actual(),
             "url_idioma": url_idioma,
@@ -751,9 +770,8 @@ def create_app(database=None):
             misiones = {mision["id"] for mision in expediente["misiones"]}
             medidas = {}
             try:
-                for key, convertir, minimo, maximo in (
-                    ("hr", int, 1, 999), ("spo2", int, 0, 100), ("temp", float, 0.1, 99.9),
-                ):
+                for key, (tipo, _, convertir) in MEDICIONES_MONITOREO.items():
+                    minimo, maximo = LIMITES_CAPTURA[tipo]
                     valor = convertir(vitals[key]) if vitals[key] else None
                     if valor is not None and not minimo <= valor <= maximo:
                         raise ValueError
@@ -772,17 +790,21 @@ def create_app(database=None):
                 status = None
                 details["telemetria"] = medidas
                 contexto = {
-                    "telemetria": {etiqueta: medidas[key] for key, etiqueta in (
-                        ("hr", "frecuencia_cardiaca_lpm"), ("spo2", "spo2_pct"), ("temp", "temperatura_c"),
-                    ) if medidas[key] is not None},
+                    "telemetria": {etiqueta: medidas[key] for key, (_, etiqueta, _) in MEDICIONES_MONITOREO.items()
+                                   if medidas[key] is not None},
                     "fase": details["fase"], "actividad": details["actividad"], "motivo": details["motivo"],
                 }
+                comparacion = comparar_referencias(medidas, expediente.get("referencias_monitoreo", {}))
+                if comparacion:
+                    contexto["comparacion_referencias"] = comparacion
                 try:
                     conversacion, memoria = preparar_conversacion(updated, datos_guardados.get("memoria_ia"))
                     if accion == "finalizar":
                         evaluacion = evaluar_chequeo(conversacion, contexto)
                         status = evaluacion["estado"]
                         details["evaluacion_ia"] = evaluacion
+                        if comparacion:
+                            details["comparacion_referencias"] = comparacion
                     else:
                         pregunta = generar_pregunta(conversacion, contexto)
                         updated.append({"role": "ai", "text": pregunta})

@@ -5,7 +5,7 @@ from math import isfinite
 from uuid import uuid4
 
 from calendario_mision import ZONA_MISION
-from database.expedientes import SIGNOS, leer_expediente
+from database.expedientes import LIMITES_CAPTURA, SIGNOS, leer_expediente
 
 
 SECCIONES = (
@@ -57,6 +57,17 @@ def generar_historial(formulario, filas):
         "diario_psicologico": [], "semanal_psicologico": [], "praxis_motora": [],
         "memoria_visual": [], "orientacion_linea": [],
     }
+    referencias = {}
+    for tipo in LIMITES_CAPTURA:
+        valores = {limite: formulario.get(f"referencias.{tipo}.{limite}", "").strip()
+                   for limite in ("minimo", "maximo")}
+        if any(valores.values()):
+            try:
+                referencias[tipo] = {limite: float(valor) for limite, valor in valores.items()}
+            except ValueError:
+                raise ValueError("Escribe ambos límites como números o déjalos vacíos.") from None
+    if referencias:
+        expediente["referencias_monitoreo"] = referencias
     for grupo, _, _ in SECCIONES:
         expediente[grupo] = [
             {campo: valor.strip() for campo, valor in fila.items() if valor.strip()}
