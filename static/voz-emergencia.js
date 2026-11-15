@@ -94,8 +94,6 @@
       botonLeer.textContent = t('Escuchar última respuesta');
       estado.textContent = exito ? '' : t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
       escuchar();
-    }, () => {
-      estado.textContent = t('ElevenLabs no está disponible. Se intenta usar la voz del navegador.');
     });
   }
 

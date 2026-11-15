@@ -43,7 +43,7 @@ from psicologia import (
     tramo_mision, validar_registros,
 )
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
-from voz_ia import configuracion_elevenlabs, sintetizar_elevenlabs
+from voz_ia import ErrorElevenLabs, MENSAJES_ELEVENLABS, configuracion_elevenlabs, sintetizar_elevenlabs
 
 
 ROOT = Path(__file__).resolve().parent
@@ -304,7 +304,7 @@ def create_app(database=None):
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
                 if request.endpoint == "audio_elevenlabs":
-                    return "", 403
+                    return {"error": t("Recarga el chat para renovar la sesión de voz.")}, 403
                 if request.endpoint in PRUEBAS_JSON:
                     return {"error": t("La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda.")}, 403
                 if request.endpoint == "chat_psicologico" and request.args.get("modo") == "emergencia":
@@ -745,10 +745,10 @@ def create_app(database=None):
     def audio_elevenlabs():
         expediente = expediente_actual()
         if expediente is None:
-            return "", 401
+            return {"error": t("Vuelve a iniciar sesión para escuchar la respuesta.")}, 401
         configuracion = configuracion_elevenlabs()
         if configuracion is None:
-            return "", 503
+            return {"error": t("ElevenLabs necesita una clave y un Voice ID en Render.")}, 503
         canal = request.form.get("canal")
         if request.form.get("usar_nube") != "1" or canal not in {"medico", "psicologico"}:
             return "", 400
@@ -764,11 +764,12 @@ def create_app(database=None):
         except ValueError:
             return "", 404
         if request.form.get("texto") != texto:
-            return "", 409
+            return {"error": t("La respuesta más reciente cambió. Recarga el chat para escucharla.")}, 409
         try:
             audio = sintetizar_elevenlabs(texto, configuracion)
-        except (httpx2.HTTPError, ValueError):
-            return "", 502
+        except ErrorElevenLabs as exc:
+            app.logger.warning("Voz ElevenLabs %s, HTTP del proveedor: %s", exc.codigo, exc.estado_http or "-")
+            return {"error": t(MENSAJES_ELEVENLABS[exc.codigo]), "codigo": exc.codigo}, 502
         return Response(audio, mimetype="audio/mpeg")
 
     @app.get("/assets/idioma.js")
