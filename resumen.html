@@ -42,83 +42,117 @@
           </div>
         </div>
         <div class="mission-meta">
-          <div>Misión: <strong>STS-427</strong></div>
+          <div><strong>{{ expediente.astronauta.nombre }}</strong></div>
           <div id="utc-clock">{{ utc_clock }}</div>
         </div>
       </header>
 
-      <nav class="step-pills" aria-label="Resumen del chequeo">
-        {% for key, label in [('resultados', 'Resultados'), ('alertas', 'Alertas simuladas'), ('historial', 'Historial')] %}
-        <a class="step-pill{{ ' active' if view == key else '' }}" href="{{ url_for('summary', vista=key) }}">{{ label }}</a>
+      {% macro mediciones(registro) %}
+        {% for medida in registro.mediciones %}
+        <li>{{ signos[medida.tipo][0] if medida.tipo in signos else medida.tipo }}: {{ medida.valor }} {{ medida.unidad }}</li>
+        {% else %}
+        <li>Sin mediciones registradas</li>
         {% endfor %}
+      {% endmacro %}
+      <nav class="step-pills" aria-label="Resumen del chequeo">
+        <a class="step-pill{{ ' active' if view == 'resultados' else '' }}" href="{{ url_for('summary', registro=latest.clave if latest else none) }}">Resultados</a>
+        {% if latest and latest.estado in ['ALERTA', 'INDETERMINADO'] %}
+        <a class="step-pill{{ ' active' if view == 'alertas' else '' }}" href="{{ url_for('summary', vista='alertas', registro=latest.clave) }}">Seguimiento</a>
+        {% endif %}
+        <a class="step-pill{{ ' active' if view == 'historial' else '' }}" href="{{ url_for('summary', vista='historial') }}">Historial clínico</a>
       </nav>
 
       <section class="view active">
-        {% if not latest %}
+        {% if view == 'historial' %}
+        <h2 class="history-heading">Historial clínico de {{ expediente.astronauta.nombre }}</h2>
+        {% include '_datos_expediente.html' %}
+        <h3>Chequeos</h3>
+        {% for registro in records %}
+        <article class="info-card">
+          <h3><a href="{{ url_for('summary', registro=registro.clave) }}">{{ registro.fecha_hora | hora_utc }}</a></h3>
+          <p>{{ registro.motivo or 'Motivo sin registrar' }}{% if registro.mision_id %} · {{ registro.mision_id }}{% endif %}{% if registro.fase %} · {{ fases[registro.fase] }}{% endif %}</p>
+          <ul>{{ mediciones(registro) }}</ul>
+          {% if registro.evaluacion and registro.evaluacion.estado_revision %}
+          <p>Revisión: {{ registro.evaluacion.estado_revision }}</p>
+          {% endif %}
+        </article>
+        {% else %}
+        <p>Sin chequeos guardados.</p>
+        {% endfor %}
+        <a class="btn-primary" href="{{ url_for('profile') }}">Volver al perfil</a>
+        {% elif not latest %}
         <div class="info-card">
           <h2>Sin chequeos guardados</h2>
           <a class="btn-primary" href="{{ url_for('checkup') }}">Iniciar chequeo</a>
         </div>
-        {% elif view == 'resultados' %}
-        <div class="status-banner{{ ' alert' if latest.status == 'ALERTA' else '' }}">
+        {% elif view == 'alertas' %}
+        <div class="status-banner{{ ' alert' if latest.estado == 'ALERTA' else '' }}">
           <div>
-            <h2>Chequeo simulado: {{ latest.status }}</h2>
-            <p>Registro del {{ latest.finished_at }}</p>
+            {% if latest.estado == 'ALERTA' %}
+            <h2>Alerta de demostración</h2>
+            {% elif latest.estado == 'INDETERMINADO' %}
+            <h2>Chequeo indeterminado</h2>
+            {% elif latest.estado == 'ESTABLE' %}
+            <h2>Sin alertas simuladas</h2>
+            <p>El chequeo se guardó con estado estable.</p>
+            {% else %}
+            <h2>Sin seguimiento registrado</h2>
+            {% endif %}
+          </div>
+        </div>
+        {% if not latest.evaluacion_ia and latest.estado == 'ALERTA' %}
+        <p>Este chequeo se guardó antes de habilitar la evaluación de Gemini.</p>
+        {% endif %}
+        {% include '_seguimiento_alerta.html' %}
+        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">Ver historial</a>
+        {% else %}
+        <div class="status-banner{{ ' alert' if latest.estado == 'ALERTA' else '' }}">
+          <div>
+            <h2>Resultados del chequeo</h2>
+            <p>{{ latest.fecha_hora | hora_utc }}{% if latest.estado in ['ESTABLE', 'ALERTA', 'INDETERMINADO'] %} · {{ 'Evaluación simulada de Gemini' if latest.evaluacion_ia else 'Resultado previo' }}: {{ latest.estado }}{% endif %}</p>
           </div>
         </div>
         <div class="two-cols">
           <div class="info-card">
-            <h3>Telemetría registrada</h3>
+            <h3>Datos del chequeo</h3>
             <ul>
-              <li>FC: {{ latest.hr }} lpm</li>
-              <li>SpO₂: {{ latest.spo2 }}%</li>
-              <li>Temperatura: {{ latest.temp }} °C</li>
+              <li>Misión: {{ latest.mision_id or 'Sin registrar' }}</li>
+              <li>Fase: {{ fases.get(latest.fase, 'Sin registrar') }}</li>
+              <li>Motivo: {{ latest.motivo or 'Sin registrar' }}</li>
+              <li>Actividad: {{ latest.actividad or 'Sin registrar' }}</li>
             </ul>
           </div>
           <div class="info-card">
-            <h3>Conversación del chequeo</h3>
-            <ul>
-              {% for message in messages %}
-              <li><strong>{{ 'Asistente' if message.role == 'ai' else 'Tú' }}</strong> {{ message.text }}</li>
-              {% endfor %}
-            </ul>
+            <h3>Mediciones</h3>
+            <ul>{{ mediciones(latest) }}</ul>
           </div>
         </div>
-        <a class="btn-primary" href="{{ url_for('summary', vista='alertas' if latest.status == 'ALERTA' else 'historial') }}">Continuar →</a>
-        {% elif view == 'alertas' %}
-        <div class="status-banner{{ ' alert' if latest.status == 'ALERTA' else '' }}">
-          <div>
-            {% if latest.status == 'ALERTA' %}
-            <h2>Alerta de demostración</h2>
-            <p>Los datos del chequeo activaron las reglas del simulador. La alerta solo aparece en esta aplicación.</p>
-            {% else %}
-            <h2>Sin alertas simuladas</h2>
-            <p>El último chequeo se guardó con estado estable.</p>
-            {% endif %}
-          </div>
+        {% include '_seguimiento_alerta.html' %}
+        {% if latest.evaluacion %}
+        <div class="info-card">
+          <h3>Evaluación y seguimiento</h3>
+          <ul>
+            <li>Revisión: {{ latest.evaluacion.estado_revision or 'Sin registrar' }}</li>
+            <li>Acción: {{ latest.evaluacion.accion_acordada or 'Sin registrar' }}</li>
+            <li>Fecha de seguimiento: {{ latest.evaluacion.fecha_seguimiento or 'Sin registrar' }}</li>
+          </ul>
         </div>
-        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">Ver historial →</a>
-        {% else %}
-        <h2 class="history-heading">Historial de chequeos simulados</h2>
-        <div class="history-table-scroll">
-          <table class="history-table">
-            <thead>
-              <tr><th>Fecha UTC</th><th>FC</th><th>SpO₂</th><th>Temp.</th><th>Estado simulado</th></tr>
-            </thead>
-            <tbody>
-              {% for record in records %}
-              <tr>
-                <td>{{ record.finished_at }}</td>
-                <td>{{ record.hr }} lpm</td>
-                <td>{{ record.spo2 }}%</td>
-                <td>{{ record.temp }} °C</td>
-                <td class="{{ 'status-alert' if record.status == 'ALERTA' else 'status-stable' }}">{{ record.status }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        {% endif %}
+        {% if latest.conversacion %}
+        <div class="info-card">
+          <h3>Conversación del chequeo</h3>
+          <ul>
+            {% for message in latest.conversacion %}
+            <li><strong>{{ 'Asistente' if message.role == 'ai' else 'Tú' }}</strong> {{ message.text }}</li>
+            {% endfor %}
+          </ul>
         </div>
-        <a class="btn-primary" href="{{ url_for('profile') }}">← Volver al dashboard</a>
+        {% endif %}
+        <details class="info-card">
+          <summary>Consultar antecedentes del expediente</summary>
+          {% include '_datos_expediente.html' %}
+        </details>
+        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">Ver historial</a>
         {% endif %}
       </section>
     </div>

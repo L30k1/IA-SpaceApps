@@ -42,28 +42,56 @@
           </div>
         </div>
         <div class="mission-meta">
-          <div>Misión: <strong>STS-427</strong></div>
+          <div><strong>{{ expediente.astronauta.nombre }}</strong></div>
           <div id="utc-clock">{{ utc_clock }}</div>
         </div>
       </header>
 
       <!-- PANTALLA 5: EVALUACIÓN FÍSICA Y EMOCIONAL -->
       <section id="view-chat" class="view active">
+        {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
+        {% if bloqueado %}
+        <p role="status">{{ bloqueado }}</p>
+        {% elif not draft %}
+        <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <p>Usa datos ficticios. Gemini recibe la conversación y la telemetría para evaluar el chequeo de demostración.</p>
+          {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+          <button name="iniciar" value="1" type="submit" class="btn-send">Iniciar con Gemini</button>
+        </form>
+        {% else %}
         <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="turn" value="{{ draft['id'] }}:{{ draft['revision'] }}">
           <div class="telemetry-strip">
-            <span class="telemetry-title">📡 Telemetría simulada</span>
-            <label>FC (lpm) <input type="number" name="hr" value="{{ vitals.hr }}" min="40" max="180" required></label>
-            <label>SpO₂ (%) <input type="number" name="spo2" value="{{ vitals.spo2 }}" min="80" max="100" required></label>
-            <label>Temp (°C) <input type="number" name="temp" value="{{ vitals.temp }}" min="30" max="45" step="0.1" required></label>
+            <span class="telemetry-title">📡 Telemetría</span>
+            <label>FC (lpm) <input type="number" name="hr" value="{{ vitals.hr }}" min="1" max="999" required></label>
+            <label>SpO₂ (%) <input type="number" name="spo2" value="{{ vitals.spo2 }}" min="0" max="100" required></label>
+            <label>Temp (°C) <input type="number" name="temp" value="{{ vitals.temp }}" min="0.1" max="99.9" step="0.1" required></label>
           </div>
 
-          {% if use_gemini %}
-          <p>Usa datos ficticios. Gemini recibe las respuestas para generar las preguntas de seguimiento.</p>
-          {% else %}
-          <p>Modo demostración con preguntas predefinidas. Usa datos ficticios.</p>
-          {% endif %}
+          <div class="telemetry-strip checkup-context">
+            <label>Misión
+              <select name="mision_id">
+                <option value="">Sin especificar</option>
+                {% for mision in expediente.misiones %}
+                <option value="{{ mision.id }}"{% if mision.id == details.mision_id %} selected{% endif %}>{{ mision.id }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Fase
+              <select name="fase">
+                <option value="">Sin especificar</option>
+                {% for clave, etiqueta in fases.items() %}
+                <option value="{{ clave }}"{% if clave == details.fase %} selected{% endif %}>{{ etiqueta }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Motivo <input name="motivo" value="{{ details.motivo | default('') }}" maxlength="200"></label>
+            <label>Actividad <input name="actividad" value="{{ details.actividad | default('') }}" maxlength="200"></label>
+          </div>
+
+          <p>Chequeo ficticio con Gemini.</p>
           <div class="chat-container" aria-label="Conversación">
             {% for message in messages %}
             <div class="msg-row {{ message.role }}">
@@ -72,20 +100,13 @@
             {% endfor %}
           </div>
 
-          {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
           {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
           <div class="chat-input-bar">
             <input type="text" name="answer" aria-label="Tu respuesta" placeholder="Escribe tu respuesta..." value="{{ answer }}" maxlength="1000" autocomplete="off">
-            <button type="submit" class="btn-send">{{ 'Guardar chequeo' if draft.revision == 2 else 'Enviar' }}</button>
+            <button type="submit" class="btn-send">{{ 'Evaluar con Gemini' if draft.revision >= 2 else 'Enviar' }}</button>
           </div>
-          {% if draft.revision == 0 %}
-          <div class="quick-replies">
-            {% for reply in ['Me siento bien y con energía', 'Fatiga leve tras EVA', 'Tengo dolor de cabeza y algo de ansiedad'] %}
-            <button class="chip" type="submit" name="quick_reply" value="{{ reply }}">{{ reply }}</button>
-            {% endfor %}
-          </div>
-          {% endif %}
         </form>
+        {% endif %}
       </section>
     </div>
   </div>

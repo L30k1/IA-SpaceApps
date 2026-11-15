@@ -183,6 +183,16 @@ body {
 }
 
 .telemetry-strip { flex-wrap: wrap; }
+.checkup-context input,
+.checkup-context select {
+  width: auto;
+  max-width: 100%;
+  color: var(--text-main);
+  background: rgba(15, 35, 75, 0.9);
+  border: 1px solid var(--border-glow);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
 .checkup-form > p { margin-bottom: 14px; }
 .form-error { color: #fca5a5; margin-top: 10px; }
 .msg-bubble { overflow-wrap: anywhere; }

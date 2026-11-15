@@ -1,0 +1,20 @@
+{% if latest.evaluacion_ia %}
+{% set evaluacion = latest.evaluacion_ia %}
+<div class="info-card">
+  <h3>Evaluación de Gemini</h3>
+  <p>{{ evaluacion.resumen }}</p>
+  <ul>
+    {% for motivo in evaluacion.motivos %}
+    <li>{{ motivo }}</li>
+    {% endfor %}
+  </ul>
+  {% if evaluacion.acciones %}
+  <h3>Recomendaciones y acciones de seguimiento</h3>
+  <ol class="acciones-alerta">
+    {% for paso in evaluacion.acciones %}
+    <li><strong>{{ paso.recomendacion }}</strong><br>{{ paso.accion }}</li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</div>
+{% endif %}
