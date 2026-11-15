@@ -4,7 +4,7 @@ from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from database.expedientes import SIGNOS, fecha_utc
+from database.expedientes import CAMPO_PRAXIS, SIGNOS, fecha_utc
 
 
 class RegistroPrematuro(Exception):
@@ -76,6 +76,24 @@ def expediente_for_user(path, user_id):
 def read_expediente(db, user_id):
     row = db.execute("SELECT contenido FROM expedientes WHERE user_id = ?", (user_id,)).fetchone()
     return json.loads(row[0]) if row else None
+
+
+def save_praxis_report(path, user_id, registro):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        expediente = read_expediente(db, user_id)
+        if expediente is None:
+            return False
+        registros = expediente.setdefault(CAMPO_PRAXIS, [])
+        for anterior in registros:
+            if anterior["id"] == registro["id"]:
+                return anterior["tiempos_ms"] == registro["tiempos_ms"]
+        registros.append(registro)
+        db.execute(
+            "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
+            (json.dumps(expediente, ensure_ascii=False), user_id),
+        )
+        return True
 
 
 def proximo_registro(registros, intervalo):

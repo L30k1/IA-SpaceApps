@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 
 import db
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
-from database.expedientes import FASES, SIGNOS, fecha_utc, leer_expediente
+from database.expedientes import CAMPO_PRAXIS, FASES, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_praxis
 from psicologia import (
     INTERVALOS, MODULOS, VERSION, leer_pvt, leer_respuestas, puntuar, responder_chat_psicologico, seguimiento_psicologico,
     tramo_mision, validar_registros,
@@ -157,6 +157,8 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
+                if request.endpoint == "pruebas_cognitivas":
+                    return {"error": "La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda."}, 403
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico"} and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
@@ -235,11 +237,37 @@ def create_app(database=None):
         records = registros_clinicos(database, session["user_id"], expediente)
         return render_template("perfil.htm", expediente=expediente, latest=records[0] if records else None)
 
-    @app.get("/cognicion")
+    @app.route("/cognicion", methods=["GET", "POST"])
     def pruebas_cognitivas():
-        if expediente_actual() is None:
+        expediente = expediente_actual()
+        if expediente is None:
+            if request.method == "POST":
+                return {"error": "Inicia sesión para guardar los resultados."}, 401
             return redirect(url_for("index"))
-        return render_template("cognicion.html")
+        if request.method == "POST":
+            try:
+                tiempos = json.loads(request.form.get("tiempos_ms", ""))
+            except (ValueError, RecursionError):
+                return {"error": "No se pudieron leer los tiempos de la ronda."}, 400
+            try:
+                registro = registro_praxis(request.form.get("registro_id"), datetime.now(timezone.utc).isoformat(), tiempos)
+            except ValueError as exc:
+                return {"error": str(exc)}, 400
+            usuario = session["user_id"]
+            if not db.save_praxis_report(database, usuario, registro):
+                return {"error": "Ya existe un resultado diferente con el identificador de esta ronda."}, 409
+            sincronizar_archivo_expediente(usuario)
+            return {"url": url_for("pruebas_cognitivas", registro=registro["id"], actualizar_archivo=1, _anchor="praxis-guardado")}
+        registros = sorted(expediente.get(CAMPO_PRAXIS, []), key=lambda registro: registro["fecha_hora"], reverse=True)
+        seleccionado = request.args.get("registro")
+        actual = next((registro for registro in registros if registro["id"] == seleccionado), None)
+        if seleccionado and actual is None:
+            abort(404)
+        actualizar_archivo = actual is not None and request.args.get("actualizar_archivo") == "1"
+        return render_template(
+            "cognicion.html", expediente=expediente, objetivos=OBJETIVOS_PRAXIS, registro_id=uuid4().hex,
+            registros=registros, actual=actual, actualizar_archivo=actualizar_archivo,
+        )
 
     @app.get("/assets/praxis-motora.js")
     def praxis_motora_script():

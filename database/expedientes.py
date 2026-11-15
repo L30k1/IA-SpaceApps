@@ -1,5 +1,6 @@
 import json
 import math
+import re
 from datetime import datetime, timezone
 
 
@@ -10,6 +11,8 @@ SIGNOS = {
     "temperatura": ("Temperatura", "°C"),
 }
 FASES = {"preflight": "Prevuelo", "vuelo": "Vuelo", "posvuelo": "Posvuelo"}
+CAMPO_PRAXIS = "praxis_motora"
+OBJETIVOS_PRAXIS = 20
 
 
 def texto_requerido(registro, campo):
@@ -27,6 +30,23 @@ def fecha_utc(fecha):
     except (TypeError, ValueError, OverflowError):
         pass
     raise ValueError("La fecha del chequeo debe incluir la zona horaria, por ejemplo 2026-11-14T21:30:00Z.")
+
+
+def registro_praxis(identificador, fecha, tiempos):
+    if not isinstance(identificador, str) or not re.fullmatch(r"[0-9a-f]{32}", identificador):
+        raise ValueError("El identificador de la ronda de Praxis Motora no es válido.")
+    if not isinstance(tiempos, list) or len(tiempos) != OBJETIVOS_PRAXIS or any(
+        type(tiempo) not in (int, float) or not 0 <= tiempo <= 2**53 - 1 for tiempo in tiempos
+    ):
+        raise ValueError(f"La ronda debe contener {OBJETIVOS_PRAXIS} tiempos válidos en milisegundos.")
+    tiempos = [round(tiempo, 3) for tiempo in tiempos]
+    return {
+        "id": identificador,
+        "fecha_hora": fecha_utc(fecha).isoformat(),
+        "tiempos_ms": tiempos,
+        "promedio_ms": round(sum(tiempos) / len(tiempos), 3),
+        "mejor_ms": min(tiempos),
+    }
 
 
 def leer_expediente(contenido):
@@ -74,4 +94,12 @@ def leer_expediente(contenido):
             valor = medicion.get("valor")
             if type(valor) not in (int, float) or (isinstance(valor, float) and not math.isfinite(valor)):
                 raise ValueError("Cada medición debe tener un valor numérico.")
+    if CAMPO_PRAXIS in expediente:
+        registros = expediente[CAMPO_PRAXIS]
+        if not isinstance(registros, list) or not all(isinstance(registro, dict) for registro in registros):
+            raise ValueError("Praxis Motora debe contener una lista de rondas.")
+        registros = [registro_praxis(r.get("id"), r.get("fecha_hora"), r.get("tiempos_ms")) for r in registros]
+        if len({registro["id"] for registro in registros}) != len(registros):
+            raise ValueError("Los identificadores de Praxis Motora deben ser únicos.")
+        expediente[CAMPO_PRAXIS] = registros
     return expediente
