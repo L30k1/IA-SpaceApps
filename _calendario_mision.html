@@ -51,6 +51,7 @@
         {% endif %}
       </div>
       <p>{{ t('Registros mínimos del período: {hechos} de {total}', hechos=plan.rutina.completadas, total=plan.rutina.metas | length) }}</p>
+      <p>{{ t('Total de sesiones registradas en la misión: {cantidad}', cantidad=plan.rutina.total_sesiones) }}</p>
       <ul>
         {% for meta in plan.rutina.metas %}
         <li class="mision-meta-ejercicio{% if meta.completada %} mision-meta-ejercicio-hecha{% endif %}">

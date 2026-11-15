@@ -3,7 +3,7 @@ TIPOS_EJERCICIO = {
     "aerobico": "Aeróbico",
     "fuerza": "Fuerza",
     "movilidad": "Movilidad",
-    "mixto": "Mixto",
+    "mixto": "Mixto (aeróbico y fuerza)",
 }
 CONTEXTOS_FC = {
     "reposo": "En reposo",
