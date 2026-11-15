@@ -241,6 +241,10 @@ def create_app(database=None):
             return redirect(url_for("index"))
         return render_template("cognicion.html")
 
+    @app.get("/assets/praxis-motora.js")
+    def praxis_motora_script():
+        return send_from_directory(ROOT / "static", "praxis-motora.js")
+
     @app.get("/assets/expediente-local.js")
     def expediente_local_script():
         return send_from_directory(ROOT / "static", "expediente-local.js")

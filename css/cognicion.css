@@ -1,6 +1,31 @@
-.cognicion .info-card ul, .cognicion .info-card ol { padding-inline-start: 1.25rem; }
-.cognicion .info-card ul { list-style: disc; display: block; font-size: inherit; }
-.cognicion li + li { margin-top: 8px; }
-.cognicion .info-card a { color: var(--accent); }
-.cognicion details + details { border-top: 1px solid var(--border-glow); padding-top: 10px; }
-.cognicion summary { font-weight: 600; }
+.cognicion [hidden] { display: none; }
+.cognicion #praxis-inicio { align-self: flex-start; }
+
+.praxis-tablero {
+  position: relative;
+  height: clamp(224px, 52vh, 432px);
+  background: #040e24;
+  border: 1px solid var(--border-glow);
+  border-radius: 12px;
+  user-select: none;
+}
+
+.praxis-objetivo {
+  position: absolute;
+  width: var(--lado);
+  height: var(--lado);
+  left: calc((100% - var(--lado)) * var(--x));
+  top: calc((100% - var(--lado)) * var(--y));
+  border: 2px solid #bae6fd;
+  border-radius: 2px;
+  background: #38bdf8;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.praxis-tiempos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px 32px;
+  padding-inline-start: 1.5rem;
+}
