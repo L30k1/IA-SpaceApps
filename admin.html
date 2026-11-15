@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="{{ idioma }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t('Administración') }} · MediSpace</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='perfil.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+</head>
+<body>
+  {% macro datos(valor, profundidad=0) %}
+    {% if valor is mapping and valor and profundidad < 10 %}
+    <dl class="admin-datos">
+      {% for campo, contenido in valor.items() %}
+        {% if campo|lower not in ('es_admin', 'password_hash', 'clave_edicion_hash', 'password', 'contraseña', 'contrasena', 'llave_edicion', 'confirmar_llave') %}
+        <div>
+          <dt>{{ t(campo) | replace('_', ' ') }}</dt>
+          <dd>{{ datos(contenido, profundidad + 1) }}</dd>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </dl>
+    {% elif valor is sequence and valor is not string and valor and profundidad < 10 %}
+    <ol class="admin-valores">
+      {% for elemento in valor %}<li>{{ datos(elemento, profundidad + 1) }}</li>{% endfor %}
+    </ol>
+    {% elif valor is boolean %}
+    {{ t('Sí') if valor else t('No') }}
+    {% elif (valor is string and valor) or valor is number %}
+    <span class="admin-valor">{{ valor }}</span>
+    {% else %}
+    <span class="admin-secundario">—</span>
+    {% endif %}
+  {% endmacro %}
+
+  {% macro expedientes_guardados(registros) %}
+    {% for registro in registros %}
+    <details class="admin-registro">
+      <summary>
+        {{ t('Registro {numero}', numero=loop.index) }}
+        {% if registro is mapping and registro.fecha_hora %}
+        <span>{{ registro.fecha_hora }}</span>
+        {% endif %}
+        {% if registro is mapping and registro.resultado and registro.resultado is string %}
+        <span>{{ etiquetas_resultado.get(registro.resultado, registro.resultado) }}</span>
+        {% endif %}
+      </summary>
+      {{ datos(registro) }}
+    </details>
+    {% endfor %}
+  {% endmacro %}
+
+  <main class="app-frame admin">
+    <div class="main-area admin-contenido">
+      <header class="top-header">
+        <div class="marca-encabezado">{% include '_marca.html' %}</div>
+        <a class="admin-enlace" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        {% include '_selector_idioma.html' %}
+      </header>
+
+      {% if cuenta is defined %}
+      <a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t('Volver a las cuentas') }}</a>
+      <div class="admin-titulo">
+        <h1>{{ cuenta.name }}</h1>
+        <p>{{ t('ID del astronauta') }} · {{ cuenta.astronauta_id or '—' }}
+          {% if cuenta.es_admin %}<span class="admin-rol">{{ t('Administrador') }}</span>{% endif %}
+        </p>
+        {% if cuenta.email and not cuenta.email.startswith('astronauta:') %}<p>{{ cuenta.email }}</p>{% endif %}
+      </div>
+      <nav class="admin-secciones" aria-label="{{ t('Secciones de la cuenta') }}">
+        {% for clave, nombre in secciones.items() %}
+        <a href="{{ url_for('admin_cuenta', user_id=cuenta.id, seccion=clave) }}"
+           {% if clave == seccion %}aria-current="page"{% endif %}>{{ t(nombre) }}</a>
+        {% endfor %}
+      </nav>
+      {% for nombre, registros in grupos %}
+      <section class="admin-panel" aria-labelledby="grupo-{{ loop.index }}">
+        <h2 id="grupo-{{ loop.index }}">{{ t(nombre) }}
+          {% if registros is sequence and registros is not string and registros is not mapping %}
+          <span class="admin-cantidad">{{ registros | length }}</span>
+          {% endif %}
+        </h2>
+        {% if not registros %}
+        <p class="admin-secundario">{{ t('Sin registros guardados.') }}</p>
+        {% elif seccion == 'chats' %}
+        <ol class="admin-turnos">
+          {% for mensaje in registros %}
+          <li>
+            <strong>{{ t('IA') if mensaje.role == 'ai' else t('Astronauta') }}</strong>
+            <p>{{ mensaje.text | respuesta_ia if mensaje.role == 'ai' else mensaje.text }}</p>
+          </li>
+          {% endfor %}
+        </ol>
+        {% elif registros is mapping %}
+        {{ datos(registros) }}
+        {% else %}
+        {{ expedientes_guardados(registros) }}
+        {% endif %}
+      </section>
+      {% else %}
+      <p class="admin-panel admin-secundario">{{ t('Sin registros guardados.') }}</p>
+      {% endfor %}
+      {% else %}
+      <div class="admin-titulo">
+        <h1>{{ t('Administración') }}</h1>
+        <p>{{ t('Cuentas registradas') }}</p>
+      </div>
+      <form class="admin-filtro" method="get" action="{{ url_for('admin_cuentas') }}">
+        <label for="astronauta-id">{{ t('Buscar por ID del astronauta') }}</label>
+        <input id="astronauta-id" name="astronauta_id" type="search" value="{{ identificador }}" autocomplete="off">
+        <button type="submit">{{ t('Buscar') }}</button>
+        {% if identificador %}<a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t('Ver todas') }}</a>{% endif %}
+      </form>
+      <ul class="admin-lista">
+        {% for fila in cuentas %}
+        <li>
+          <a class="admin-cuenta" href="{{ url_for('admin_cuenta', user_id=fila.id) }}">
+            <div><strong>{{ fila.name }}</strong><p>{{ t('ID del astronauta') }} · {{ fila.astronauta_id or '—' }}</p></div>
+            {% if fila.es_admin %}<span class="admin-rol">{{ t('Administrador') }}</span>{% endif %}
+          </a>
+        </li>
+        {% else %}
+        <li class="admin-panel admin-secundario">{{ t('No se encontraron cuentas.') }}</li>
+        {% endfor %}
+      </ul>
+      {% if pagina > 1 or siguiente %}
+      <nav class="admin-secciones" aria-label="{{ t('Páginas de cuentas') }}">
+        {% if pagina > 1 %}
+        <a href="{{ url_for('admin_cuentas', pagina=pagina - 1, astronauta_id=identificador or none) }}">{{ t('Anterior') }}</a>
+        {% endif %}
+        <span>{{ t('Página {numero}', numero=pagina) }}</span>
+        {% if siguiente %}
+        <a href="{{ url_for('admin_cuentas', pagina=pagina + 1, astronauta_id=identificador or none) }}">{{ t('Siguiente') }}</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>
