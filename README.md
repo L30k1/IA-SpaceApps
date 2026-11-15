@@ -15,13 +15,13 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-Abre [MediSpace](http://127.0.0.1:5000/) y crea una cuenta con tu expediente JSON. El registro toma el identificador y el nombre del archivo, y asigna el rol de astronauta. Las cuentas antiguas sin expediente pueden adjuntar su JSON desde **Crear cuenta** con su correo y contraseña actuales.
+Abre [MediSpace](http://127.0.0.1:5000/). En **Crear cuenta**, escribe el nombre, el ID del astronauta y una contraseña de 8 a 128 caracteres. Adjunta el historial médico en formato JSON. El nombre y el ID deben coincidir con los del archivo. Para iniciar sesión escribe esos tres datos.
 
-Los campos obligatorios del JSON son `_id`, con el identificador único, y `astronauta.nombre`. Las listas `misiones`, `alergias`, `antecedentes`, `medicamentos` y `chequeos` pueden quedar vacías. Las mediciones se pueden introducir en el chequeo cuando estén disponibles.
+El historial usa el formato del [expediente de astronauta](database/expediente-astronauta-nuevo.json). Los campos obligatorios son `_id`, el identificador único, y `astronauta.nombre`. Las listas `misiones`, `alergias`, `antecedentes`, `medicamentos` y `chequeos` pueden quedar vacías si todavía no hay registros.
 
 Cada chequeo completado aparece en la lista `chequeos` del expediente exportado. Con SQLite, el servidor también reescribe una copia al iniciar sesión y al terminar un chequeo. La copia queda en `medispace.sqlite3.expedientes`, junto a la base de datos. Si cambias `MEDISPACE_DATABASE`, la carpeta se crea junto al archivo de SQLite con el sufijo `.expedientes`.
 
-En Chrome o Edge, usa **Elegir JSON y permitir su actualización** al iniciar sesión con JSON o al crear tu cuenta. Autoriza la escritura en el navegador. Al terminar un chequeo, MediSpace incorpora los registros al mismo archivo. Si se pierde el permiso, usa **Actualizar archivo original** en Resultados. En **Historial clínico** también puedes vincular el archivo original o descargar una copia.
+En un navegador compatible, usa **Elegir historial JSON y permitir su actualización** al crear la cuenta y autoriza la escritura si deseas actualizar ese mismo archivo. En **Historial clínico** también puedes vincular el archivo original o descargar una copia.
 
 Para habilitar los chequeos, ejecuta `$env:GEMINI_API_KEY = "<tu clave de IA>"` en PowerShell antes de iniciar el servidor. La IA recibe los mensajes y las mediciones ingresadas. Pulsa **Enviar** para seguir conversando o **Finalizar chequeo** cuando quieras ver el resultado. Las recomendaciones se basan en el cuestionario y las mediciones disponibles, y quedan para revisión del equipo médico. MediSpace guarda la conversación completa y resume los turnos anteriores cuando la conversación es larga. Si la IA falla, puedes reintentar sin perder los turnos guardados.
 
@@ -31,7 +31,7 @@ Puedes definir `MEDISPACE_SECRET_KEY` con un valor secreto estable para conserva
 
 ## Calendario de la misión
 
-En el JSON del astronauta, incluye cada misión en `misiones` con su `id`, `fecha_inicio` y `fecha_fin`. Usa fechas en formato `AAAA-MM-DD` y prepara el expediente antes de crear la cuenta. El perfil muestra el calendario en modo de solo lectura y el inicio de sesión con JSON consulta el expediente ya registrado. Ambos días cuentan para la duración. MediSpace muestra los plazos en UTC−6 y calcula el cumplimiento con las evaluaciones guardadas durante cada período. La evaluación cognitiva requiere una ronda completa de Praxis Motora, VOLT y LOT dentro del mismo período.
+En el JSON del astronauta, incluye cada misión en `misiones` con su `id`, `fecha_inicio` y `fecha_fin`. Usa fechas en formato `AAAA-MM-DD` y prepara el expediente antes de crear la cuenta. El perfil muestra el calendario en modo de solo lectura. Ambos días cuentan para la duración. MediSpace muestra los plazos en UTC−6 y calcula el cumplimiento con las evaluaciones guardadas durante cada período. La evaluación cognitiva requiere una ronda completa de Praxis Motora, VOLT y LOT dentro del mismo período.
 
 | Duración | Médica | Psicológica | Cognitiva |
 |---|---|---|---|
@@ -56,7 +56,7 @@ Si la misión dura menos que un intervalo, la primera evaluación de ese tipo ve
 2. Copia los rangos de salida de tu servicio en **Render → Connect → Outbound** y agrégalos a **Network Access** en Atlas. [Direcciones de salida de Render](https://render.com/docs/outbound-ip-addresses)
 3. En **Atlas → Connect → Drivers → Python**, copia la URI completa con las credenciales del usuario de base de datos. Guárdala como `MONGODB_URI` en **Render → Environment**. MediSpace utiliza la base `medispace`. Si eliges otro nombre, agrega `MONGODB_DB` y concede permisos sobre esa base. Conserva `MEDISPACE_SECRET_KEY` en la configuración de Render. [Conexión con PyMongo](https://www.mongodb.com/docs/atlas/driver-connection/) · [Variables de Render](https://render.com/docs/configure-environment-variables)
 4. Despliega. MediSpace comprueba la conexión y crea sus índices al arrancar. Con `MONGODB_URI`, las cuentas, expedientes, monitoreos y chats se guardan en Atlas. Sin esa variable, el servidor usa SQLite.
-5. Abre **Crear cuenta** y sube `database/expediente-astronauta-nuevo.json` para hacer una prueba con datos ficticios. Guarda un monitoreo y una prueba cognitiva. Después de reiniciar el servicio, abre el historial para confirmar que sigan ahí.
+5. Abre **Crear cuenta**, escribe el nombre y el ID de `database/expediente-astronauta-nuevo.json`, elige una contraseña y adjunta el archivo. Guarda un monitoreo y una prueba cognitiva. Reinicia el servicio e inicia sesión con los tres campos para verificar que sigan en el historial. En Atlas, las cuentas se guardan en `usuarios` y los monitoreos en `monitoreos`, vinculados por el ID interno de la cuenta.
 
 La base Atlas empieza vacía. Los JSON siguen sirviendo para importar y exportar expedientes. Con Atlas, la exportación se genera cuando la solicitas y la app guarda el expediente en MongoDB.
 

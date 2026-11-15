@@ -106,10 +106,7 @@
     const input = document.getElementById("expediente");
     const boton = document.getElementById("elegir-expediente-local");
     const estado = document.getElementById("estado-expediente-local");
-    if (!input) {
-      formulario.addEventListener("submit", () => sessionStorage.removeItem(storageKey));
-      return;
-    }
+    if (!input) return;
 
     const mostrar = mensaje => {
       estado.hidden = false;
@@ -122,6 +119,8 @@
         boton.focus();
       }
     });
+    input.required = false;
+    input.hidden = true;
     boton.hidden = false;
     const enviar = document.getElementById("btn-auth-submit");
     boton.addEventListener("click", async () => {
@@ -138,7 +137,13 @@
           ? `Archivo vinculado: ${seleccion.archivo.name}.`
           : "Archivo seleccionado. Podrás autorizar la escritura desde Resultados.");
       } catch (error) {
-        if (error.name !== "AbortError") mostrar(error.message || "No se pudo vincular el archivo.");
+        if (error.name !== "AbortError") {
+          input.hidden = false;
+          input.required = true;
+          boton.hidden = true;
+          mostrar("Puedes seleccionar el JSON aquí y vincular el archivo original más adelante desde Resultados.");
+          input.focus();
+        }
       } finally {
         boton.disabled = false;
         enviar.disabled = false;
@@ -251,12 +256,6 @@
   }
 
   if (soportado && document.getElementById("auth-form")) prepararFormulario();
-  else if (document.getElementById("expediente")) {
-    const estado = document.getElementById("estado-expediente-local");
-    estado.hidden = false;
-    estado.textContent = "Abre MediSpace en Chrome o Edge para elegir y actualizar tu archivo JSON.";
-    document.getElementById("btn-auth-submit").disabled = true;
-  }
   const panel = document.getElementById("archivo-local");
   if (panel) prepararResultados(panel).catch(() => {
     document.getElementById("estado-archivo-local").textContent = "El navegador no pudo recuperar el archivo vinculado.";

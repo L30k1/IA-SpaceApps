@@ -55,29 +55,25 @@ def conectar(uri, nombre):
     return database
 
 
-def create_user(database, email, name, password_hash, expediente, *, existing_user=None):
-    datos = {"astronauta_id": expediente["_id"], "expediente": expediente, "revision_expediente": 0}
-    if existing_user is not None:
-        resultado = database.usuarios.update_one({"_id": existing_user, "expediente": {"$exists": False}}, {"$set": datos})
-        if not resultado.matched_count:
-            raise DuplicateKeyError("La cuenta ya tiene un expediente.")
-        return existing_user
+def create_user(database, password_hash, expediente):
     usuario = uuid4().hex
-    database.usuarios.insert_one({"_id": usuario, "email": email, "name": name, "password_hash": password_hash, **datos})
+    # El índice único de email sigue presente en despliegues anteriores.
+    database.usuarios.insert_one({
+        "_id": usuario, "email": f"astronauta:{expediente['_id']}", "name": expediente["astronauta"]["nombre"],
+        "password_hash": password_hash, "astronauta_id": expediente["_id"],
+        "expediente": expediente, "revision_expediente": 0,
+    })
     return usuario
 
 
-def _buscar_usuario(database, filtro):
-    usuario = database.usuarios.find_one(filtro, {"password_hash": 1})
-    return {"id": usuario["_id"], "password_hash": usuario["password_hash"]} if usuario else None
-
-
-def find_user(database, email):
-    return _buscar_usuario(database, {"email": email})
-
-
 def find_user_by_astronauta(database, astronauta_id):
-    return _buscar_usuario(database, {"astronauta_id": astronauta_id})
+    usuario = database.usuarios.find_one(
+        {"astronauta_id": astronauta_id}, {"password_hash": 1, "name": 1, "expediente.astronauta.nombre": 1},
+    )
+    if usuario is None:
+        return None
+    nombre = usuario.get("expediente", {}).get("astronauta", {}).get("nombre") or usuario["name"]
+    return {"id": usuario["_id"], "name": nombre, "password_hash": usuario["password_hash"]}
 
 
 def expediente_for_user(database, user_id):

@@ -10,6 +10,7 @@ from pathlib import Path
 from statistics import mean
 from sys import float_info
 from tempfile import NamedTemporaryFile
+from unicodedata import normalize
 from uuid import uuid4
 
 import httpx2
@@ -33,7 +34,7 @@ from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
 
 
 ROOT = Path(__file__).resolve().parent
-MODOS_ACCESO = {"login", "login-json", "register"}
+MODOS_ACCESO = {"login", "register"}
 ETIQUETAS_RESULTADO = {
     "ALERTA": "Revisión prioritaria sugerida",
     "ESTABLE": "Sin prioridad adicional sugerida",
@@ -51,6 +52,10 @@ def leer_expediente_subido():
     for modulo in MODULOS:
         validar_registros(expediente, modulo)
     return expediente
+
+
+def nombre_normalizado(nombre):
+    return normalize("NFC", " ".join(nombre.split())).casefold()
 
 
 def historial_expediente(expediente, filas):
@@ -225,7 +230,7 @@ def create_app(database=None):
     @app.before_request
     def validate_form():
         if request.method == "POST":
-            if request.endpoint == "index" and request.args.get("mode") in {"register", "login-json"}:
+            if request.endpoint == "index" and request.args.get("mode") == "register":
                 request.max_content_length = 8 * 1024 * 1024
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
@@ -242,60 +247,48 @@ def create_app(database=None):
     @app.route("/index.html", methods=["GET", "POST"])
     def index():
         mode = request.args.get("mode", "login")
+        if mode == "login-json":
+            return redirect(url_for("index"), 303)
         if mode not in MODOS_ACCESO:
             abort(404)
         if expediente_actual():
             return redirect(url_for("profile"), 303)
 
-        email = request.form.get("email", "").strip().lower()
+        nombre = request.form.get("nombre", "").strip()
+        identificador = request.form.get("astronauta_id", "").strip()
         error = None
         if request.method == "POST":
             password = request.form.get("password", "")
-            if mode == "login-json":
+            if not nombre or not identificador:
+                error = "Escribe tu nombre y el ID del astronauta."
+            elif mode == "register":
                 try:
+                    if not 8 <= len(password) <= 128:
+                        raise ValueError("Escribe una contraseña de 8 a 128 caracteres.")
                     expediente = leer_expediente_subido()
+                    if expediente["_id"] != identificador:
+                        raise ValueError("El ID debe coincidir con el campo _id de tu historial JSON.")
+                    if nombre_normalizado(expediente["astronauta"]["nombre"]) != nombre_normalizado(nombre):
+                        raise ValueError("El nombre debe coincidir con el del astronauta en tu historial JSON.")
+                    user_id = almacen.create_user(database, generate_password_hash(password), expediente)
                 except ValueError as exc:
                     error = str(exc)
-                else:
-                    user = almacen.find_user_by_astronauta(database, expediente["_id"])
-                    if user and len(password) <= 128 and check_password_hash(user["password_hash"], password):
-                        user_id = user["id"]
-                    else:
-                        error = "El expediente o la contraseña son incorrectos."
-            elif not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 254:
-                error = "Escribe un correo electrónico válido."
+                except conflicto_cuenta:
+                    error = "El identificador del astronauta ya está registrado."
             else:
-                user = almacen.find_user(database, email)
-                valid_password = bool(user and len(password) <= 128 and check_password_hash(user["password_hash"], password))
-                if mode == "register":
-                    try:
-                        if not 8 <= len(password) <= 128:
-                            raise ValueError("Escribe una contraseña de 8 a 128 caracteres.")
-                        if user and (not valid_password or almacen.expediente_for_user(database, user["id"])):
-                            raise ValueError("No se puede registrar esa cuenta.")
-                        expediente = leer_expediente_subido()
-                        user_id = almacen.create_user(
-                            database, email, expediente["astronauta"]["nombre"], generate_password_hash(password),
-                            expediente, existing_user=user["id"] if user else None,
-                        )
-                    except ValueError as exc:
-                        error = str(exc)
-                    except conflicto_cuenta:
-                        error = "La cuenta o el identificador del astronauta ya está registrado."
-                elif not valid_password:
-                    error = "El correo o la contraseña son incorrectos."
-                elif not almacen.expediente_for_user(database, user["id"]):
-                    flash("Agrega tu expediente JSON con el mismo correo y contraseña para habilitar tu cuenta.")
-                    return redirect(url_for("index", mode="register"), 303)
-                else:
+                user = almacen.find_user_by_astronauta(database, identificador)
+                if (user and 0 < len(password) <= 128 and check_password_hash(user["password_hash"], password)
+                        and nombre_normalizado(user["name"]) == nombre_normalizado(nombre)):
                     user_id = user["id"]
+                else:
+                    error = "El nombre, el ID o la contraseña son incorrectos."
 
             if not error:
                 session.clear()
                 session["user_id"] = user_id
                 sincronizar_archivo_expediente(user_id)
                 return redirect(url_for("profile"), 303)
-        return render_template("index.html", mode=mode, email=email, error=error)
+        return render_template("index.html", mode=mode, nombre=nombre, identificador=identificador, error=error)
 
     @app.post("/salir")
     def logout():

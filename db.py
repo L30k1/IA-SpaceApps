@@ -58,14 +58,13 @@ def initialize(path):
         """)
 
 
-def create_user(path, email, name, password_hash, expediente, *, existing_user=None):
+def create_user(path, password_hash, expediente):
     with closing(sqlite3.connect(path)) as db, db:
-        user_id = existing_user
-        if user_id is None:
-            user_id = db.execute(
-                "INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)",
-                (email, name, password_hash),
-            ).lastrowid
+        # La columna email es obligatoria en las bases SQLite existentes.
+        user_id = db.execute(
+            "INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)",
+            (f"astronauta:{expediente['_id']}", expediente["astronauta"]["nombre"], password_hash),
+        ).lastrowid
         db.execute(
             "INSERT INTO expedientes (user_id, astronauta_id, contenido) VALUES (?, ?, ?)",
             (user_id, expediente["_id"], json.dumps(expediente)),
@@ -203,17 +202,12 @@ def save_psych_chat(path, user_id, revision, mensajes):
         return actualizado.rowcount == 1
 
 
-def find_user(path, email):
-    with closing(sqlite3.connect(path)) as db:
-        db.row_factory = sqlite3.Row
-        return db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-
-
 def find_user_by_astronauta(path, astronauta_id):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
         return db.execute(
-            "SELECT users.id, users.password_hash FROM expedientes "
+            "SELECT users.id, users.password_hash, "
+            "COALESCE(json_extract(expedientes.contenido, '$.astronauta.nombre'), users.name) AS name FROM expedientes "
             "JOIN users ON users.id = expedientes.user_id WHERE expedientes.astronauta_id = ?",
             (astronauta_id,),
         ).fetchone()
