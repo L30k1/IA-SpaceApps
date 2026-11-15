@@ -66,6 +66,8 @@ def initialize(path):
         db.execute("BEGIN IMMEDIATE")
         if "clave_edicion_hash" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
             db.execute("ALTER TABLE users ADD COLUMN clave_edicion_hash TEXT")
+        if "es_admin" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
+            db.execute("ALTER TABLE users ADD COLUMN es_admin INTEGER NOT NULL DEFAULT 0")
         if "inicio_visible" not in {columna[1] for columna in db.execute("PRAGMA table_info(psych_chat)")}:
             db.execute("ALTER TABLE psych_chat ADD COLUMN inicio_visible INTEGER NOT NULL DEFAULT 0")
 
@@ -102,6 +104,42 @@ def configurar_llave_edicion(path, user_id, clave_hash):
 def expediente_for_user(path, user_id):
     with closing(sqlite3.connect(path)) as db:
         return read_expediente(db, user_id)
+
+
+def es_administrador(path, user_id):
+    with closing(sqlite3.connect(path)) as db:
+        return db.execute("SELECT 1 FROM users WHERE id = ? AND es_admin = 1", (user_id,)).fetchone() is not None
+
+
+def cuentas_administracion(path, identificador, desplazamiento, limite):
+    with closing(sqlite3.connect(path)) as db:
+        db.row_factory = sqlite3.Row
+        consulta = """
+            SELECT users.id, users.name, users.email, users.es_admin, expedientes.astronauta_id
+            FROM users LEFT JOIN expedientes ON expedientes.user_id = users.id
+        """
+        parametros = ()
+        if identificador:
+            consulta += " WHERE expedientes.astronauta_id = ?"
+            parametros = (identificador,)
+        return db.execute(consulta + " ORDER BY users.id DESC LIMIT ? OFFSET ?",
+                          (*parametros, limite, desplazamiento)).fetchall()
+
+
+def cuenta_administracion(path, user_id):
+    with closing(sqlite3.connect(path)) as db:
+        db.row_factory = sqlite3.Row
+        fila = db.execute("""
+            SELECT users.id, users.name, users.email, users.es_admin, expedientes.astronauta_id,
+                   expedientes.contenido
+            FROM users LEFT JOIN expedientes ON expedientes.user_id = users.id
+            WHERE users.id = ?
+        """, (user_id,)).fetchone()
+        if fila is None:
+            return None
+        cuenta = dict(fila)
+        cuenta["expediente"] = json.loads(cuenta.pop("contenido") or "null")
+        return cuenta
 
 
 def actualizar_datos_expediente(path, user_id, aplicar):
@@ -217,11 +255,13 @@ def save_psych_followup(path, user_id, campo, registro_id, seguimiento):
         return False
 
 
-def psych_chat(path, user_id, emergencia=False):
+def psych_chat(path, user_id, emergencia=False, *, incluir_archivo=False):
     tabla = "emergency_chat" if emergencia else "psych_chat"
     with closing(sqlite3.connect(path)) as db:
         row = db.execute(f"SELECT revision, mensajes, inicio_visible FROM {tabla} WHERE user_id = ?", (user_id,)).fetchone()
-        return (row[0], json.loads(row[1])[row[2]:]) if row else (0, [])
+        if row is None:
+            return 0, []
+        return row[0], json.loads(row[1])[0 if incluir_archivo else row[2]:]
 
 
 def save_psych_chat(path, user_id, revision, turnos, emergencia=False):

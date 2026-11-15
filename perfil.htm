@@ -67,6 +67,7 @@
           <div id="utc-clock">{{ utc_clock }}</div>
         </div>
 
+        {% if es_admin %}<a class="btn-primary admin-acceso" href="{{ url_for('admin_cuentas') }}">{{ t('Administración') }}</a>{% endif %}
         {% include '_selector_idioma.html' %}
       </header>
 

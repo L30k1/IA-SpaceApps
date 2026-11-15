@@ -243,6 +243,7 @@ body {
   transition: 0.25s;
 }
 .btn-primary:hover { filter: brightness(1.1); }
+.admin-acceso { width: auto; padding: 9px 12px; }
 .btn-emergencia {
   background: #a51d38;
   border-color: #f68b9e;

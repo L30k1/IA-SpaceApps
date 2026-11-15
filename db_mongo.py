@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from bson import ObjectId
 from pymongo import MongoClient
 from pymongo.errors import ConfigurationError, ConnectionFailure, DuplicateKeyError, InvalidURI, OperationFailure, PyMongoError
 
@@ -97,6 +98,28 @@ def expediente_for_user(database, user_id):
     return usuario.get("expediente") if usuario else None
 
 
+def es_administrador(database, user_id):
+    cuenta = database.usuarios.find_one({"_id": user_id}, {"es_admin": 1})
+    return cuenta is not None and cuenta.get("es_admin") is True
+
+
+CAMPOS_CUENTA_ADMIN = {"name": 1, "email": 1, "astronauta_id": 1, "es_admin": 1}
+
+
+def cuentas_administracion(database, identificador, desplazamiento, limite):
+    filtro = {"astronauta_id": identificador} if identificador else {}
+    cuentas = database.usuarios.find(filtro, CAMPOS_CUENTA_ADMIN).sort("_id", -1).skip(desplazamiento).limit(limite)
+    return [{**cuenta, "id": cuenta["_id"], "es_admin": cuenta.get("es_admin") is True} for cuenta in cuentas]
+
+
+def cuenta_administracion(database, user_id):
+    campos = {**CAMPOS_CUENTA_ADMIN, "expediente": 1}
+    cuenta = database.usuarios.find_one({"_id": user_id}, campos)
+    if cuenta is None and ObjectId.is_valid(user_id):
+        cuenta = database.usuarios.find_one({"_id": ObjectId(user_id)}, campos)
+    return {**cuenta, "id": cuenta["_id"], "es_admin": cuenta.get("es_admin") is True} if cuenta else None
+
+
 def volt_draft(database, user_id):
     usuario = database.usuarios.find_one({"_id": user_id}, {"volt_draft": 1})
     return usuario.get("volt_draft") if usuario else None
@@ -182,12 +205,13 @@ def save_psych_followup(database, user_id, campo, registro_id, seguimiento):
     return bool(resultado.matched_count)
 
 
-def psych_chat(database, user_id, emergencia=False):
+def psych_chat(database, user_id, emergencia=False, *, incluir_archivo=False):
     identificador = f"emergencia:{user_id}" if emergencia else user_id
     conversacion = database.chat_psicologico.find_one({"_id": identificador})
     if conversacion is None:
         return 0, []
-    return conversacion["revision"], conversacion["mensajes"][conversacion.get("inicio_visible", 0):]
+    inicio = 0 if incluir_archivo else conversacion.get("inicio_visible", 0)
+    return conversacion["revision"], conversacion["mensajes"][inicio:]
 
 
 def save_psych_chat(database, user_id, revision, turnos, emergencia=False):

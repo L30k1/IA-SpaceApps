@@ -64,6 +64,21 @@ En **Atlas → Data Explorer → `medispace` → `usuarios`**, busca el document
 
 Si falla el arranque, revisa **Render → Logs**. El código `MONGO_RED` apunta a conectividad o al estado del clúster, `MONGO_AUTENTICACION` a las credenciales y `MONGO_PERMISOS` al acceso del usuario a la base. Los mensajes de arranque omiten la URI y las credenciales. [Conectar Render a Atlas](https://render.com/docs/connect-to-mongodb-atlas)
 
+## Panel de administración
+
+El panel `/admin` permite consultar las cuentas, expedientes, monitoreos, formularios psicológicos, pruebas cognitivas, ejercicio y conversaciones. También incluye los mensajes archivados del chat de apoyo. Concede acceso únicamente al personal autorizado para consultar esos datos. El panel es de solo lectura.
+
+En MongoDB Atlas, abre **Data Explorer → medispace → usuarios**, localiza la cuenta existente por `astronauta_id` y añade al documento de usuario el campo `es_admin` de tipo **Boolean** con valor `true`. Ponlo en `false` para revocar el acceso. El campo va al mismo nivel que `astronauta_id`.
+
+En SQLite, con el servidor detenido, abre la base configurada en un editor de SQLite y ejecuta esta consulta sustituyendo `ID-DEL-ASTRONAUTA` por el ID de la cuenta. La base debe haberse abierto al menos una vez con la versión que incluye el panel para que exista la columna `es_admin`.
+
+```sql
+UPDATE users SET es_admin = 1
+WHERE id = (SELECT user_id FROM expedientes WHERE astronauta_id = 'ID-DEL-ASTRONAUTA');
+```
+
+Usa `es_admin = 0` para revocar el acceso en SQLite. Después de conceder acceso, entra con la cuenta habitual y abre **Administración** desde su perfil.
+
 ## Voz en los chats
 
 En el monitoreo médico y el chat de apoyo, mantén presionada la barra espaciadora fuera de un campo editable o mantén pulsado **Mantén pulsado para hablar**. Autoriza el micrófono cuando el navegador lo solicite. Suelta para dejar de escuchar y revisa el texto antes de pulsar **Enviar**.

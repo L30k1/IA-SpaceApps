@@ -62,6 +62,23 @@ MEDICIONES_MONITOREO = {
     "spo2": ("spo2", "spo2_pct", int),
     "temp": ("temperatura", "temperatura_c", float),
 }
+SECCIONES_ADMIN = {
+    "expediente": "Expediente",
+    "monitoreos": "Monitoreos",
+    "psicologia": "Formularios psicológicos",
+    "cognicion": "Pruebas cognitivas",
+    "ejercicio": "Ejercicio",
+    "chats": "Conversaciones",
+}
+GRUPOS_ADMIN = {
+    "psicologia": (("diario_psicologico", "Diario"), ("semanal_psicologico", "Semanal")),
+    "cognicion": (
+        (CAMPO_PRAXIS, "Praxis Motora (PM)"), (CAMPO_VOLT, "Aprendizaje visual de objetos (VOLT)"),
+        (CAMPO_LOT, "Orientación de línea (LOT)"), (CAMPO_F2B, "Fractal 2-Back (F2B)"),
+        (CAMPO_EMOCIONES, "Reconocimiento facial de emociones"),
+    ),
+    "ejercicio": ((CAMPO_EJERCICIO, "Sesiones de ejercicio"),),
+}
 
 
 def comparar_referencias(medidas, referencias):
@@ -263,12 +280,16 @@ def create_app(database=None):
             "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "historial_cognitivo",
             "download_expediente", "logout", "ejercicio", "editar_expediente", "audio_elevenlabs",
+            "admin_cuentas", "admin_cuenta",
         } or request.endpoint in PRUEBAS_JSON:
             response.cache_control.no_store = True
             response.headers["Content-Language"] = idioma_actual()
             if idioma_elegido():
                 response.set_cookie("medispace_lang", idioma_elegido(), max_age=31536000,
                                     httponly=True, secure=request.is_secure, samesite="Lax")
+        if request.endpoint in {"admin_cuentas", "admin_cuenta"}:
+            response.headers["Referrer-Policy"] = "no-referrer"
+            response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
         return response
 
     def url_idioma(codigo):
@@ -416,6 +437,71 @@ def create_app(database=None):
         return render_template(
             "perfil.htm", expediente=expediente, latest=records[0] if records else None,
             planes=calendario(expediente, records, datetime.now(timezone.utc)),
+            es_admin=almacen.es_administrador(database, session["user_id"]),
+        )
+
+    def comprobar_acceso_admin():
+        usuario = session.get("user_id")
+        if usuario is None:
+            return redirect(url_for("index"))
+        if not almacen.es_administrador(database, usuario):
+            abort(403)
+        return None
+
+    @app.get("/admin")
+    def admin_cuentas():
+        acceso = comprobar_acceso_admin()
+        if acceso is not None:
+            return acceso
+        identificador = request.args.get("astronauta_id", "").strip()
+        pagina = request.args.get("pagina", 1, type=int)
+        if not 1 <= pagina <= 1000000:
+            abort(404)
+        limite = 25
+        cuentas = almacen.cuentas_administracion(database, identificador, (pagina - 1) * limite, limite + 1)
+        return render_template(
+            "admin.html", cuentas=cuentas[:limite], siguiente=len(cuentas) > limite,
+            pagina=pagina, identificador=identificador,
+        )
+
+    @app.get("/admin/cuentas/<user_id>")
+    def admin_cuenta(user_id):
+        acceso = comprobar_acceso_admin()
+        if acceso is not None:
+            return acceso
+        seccion = request.args.get("seccion", "expediente")
+        if seccion not in SECCIONES_ADMIN:
+            abort(404)
+        cuenta = almacen.cuenta_administracion(database, user_id)
+        if cuenta is None:
+            abort(404)
+
+        usuario = cuenta["id"]
+        expediente = cuenta.get("expediente") or {}
+        grupos = []
+        if seccion == "expediente" and expediente:
+            apartados = {"chequeos", *(campo for campos in GRUPOS_ADMIN.values() for campo, _ in campos)}
+            grupos = [("Historial médico", {k: v for k, v in expediente.items() if k not in apartados})]
+        elif seccion == "monitoreos" and expediente:
+            filas = almacen.history(database, usuario, expediente["_id"])
+            grupos = [("Monitoreos guardados", [registro for _, registro in historial_expediente(expediente, filas)])]
+            borrador = almacen.get_open_checkup(database, usuario, expediente["_id"])
+            if borrador:
+                detalle = json.loads(borrador["details"] or "{}")
+                grupos.append(("Monitoreo en curso", {**detalle, "conversacion": json.loads(borrador["messages"])}))
+        elif seccion in GRUPOS_ADMIN:
+            grupos = [(etiqueta, expediente.get(campo, [])) for campo, etiqueta in GRUPOS_ADMIN[seccion]]
+            if seccion == "cognicion":
+                borrador = almacen.volt_draft(database, usuario)
+                if borrador:
+                    grupos.append(("VOLT en curso", borrador))
+        elif seccion == "chats":
+            grupos = [
+                ("Chat de apoyo (incluye el archivo)", almacen.psych_chat(database, usuario, incluir_archivo=True)[1]),
+                ("Emergencia por voz", almacen.psych_chat(database, usuario, emergencia=True)[1]),
+            ]
+        return render_template(
+            "admin.html", cuenta=cuenta, seccion=seccion, secciones=SECCIONES_ADMIN, grupos=grupos,
         )
 
     @app.route("/ejercicio", methods=["GET", "POST"])

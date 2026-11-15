@@ -1,0 +1,97 @@
+.app-frame.admin {
+  max-width: 1050px;
+  min-height: auto;
+}
+
+.admin-contenido { gap: 18px; }
+.admin-titulo { display: grid; gap: 5px; }
+.admin-titulo p, .admin-cuenta p, .admin-secundario, .admin-registro summary span {
+  color: var(--text-muted);
+}
+.admin-enlace { color: #a6dcff; width: fit-content; }
+.admin-filtro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.admin-filtro label { flex-basis: 100%; font-weight: 600; }
+.admin-filtro input {
+  flex: 1 1 13rem;
+  max-width: 23rem;
+  min-width: 0;
+  color: var(--text-main);
+  background: #071229;
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.admin-filtro button, .admin-secciones a {
+  padding: 8px 12px;
+  color: var(--text-main);
+  background: #10294d;
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.admin-filtro button:hover, .admin-secciones a:hover, .admin-secciones [aria-current] {
+  background: #1a4d82;
+  border-color: #93c5fd;
+}
+.admin-secciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.admin-lista, .admin-turnos { display: grid; gap: 8px; list-style: none; }
+.admin-cuenta, .admin-panel {
+  border: 1px solid var(--border-glow);
+  background: #0a1835;
+  border-radius: 12px;
+  padding: clamp(11px, 2vw, 18px);
+  overflow-wrap: anywhere;
+}
+.admin-cuenta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  text-decoration: none;
+  color: var(--text-main);
+}
+.admin-cuenta:hover { background: #11294d; }
+.admin-rol, .admin-cantidad {
+  display: inline-block;
+  padding-inline: 8px;
+  background: #153764;
+  border-radius: 8px;
+  color: #bce5ff;
+  font-size: .8rem;
+}
+.admin-titulo .admin-rol { margin-inline-start: 6px; }
+.admin-panel { display: grid; gap: 9px; }
+.admin-panel h2 { color: #bce5ff; font-size: 1.05rem; }
+.admin-registro, .admin-turnos li {
+  border: 1px solid #254470;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.admin-registro summary { cursor: pointer; }
+.admin-registro summary span { margin-inline-start: 8px; font-size: .85rem; }
+.admin-registro[open] summary { margin-bottom: 8px; }
+.admin-datos { display: grid; }
+.admin-datos > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 4px 12px;
+  padding-block: 5px;
+  border-bottom: 1px solid #203c63;
+}
+.admin-datos > div:last-child { border-bottom: 0; }
+.admin-datos dt { color: #bce5ff; font-weight: 600; }
+.admin-datos dd { min-width: 0; }
+.admin-valores { margin-inline-start: 1.35rem; }
+.admin-turnos p, .admin-valor { white-space: pre-wrap; }
+
+@media (max-width: 650px) {
+  .admin-datos > div { grid-template-columns: minmax(0, 1fr); }
+  .admin-datos dd { padding-inline-start: 8px; }
+}
