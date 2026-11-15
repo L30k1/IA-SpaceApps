@@ -1,5 +1,6 @@
 (() => {
   "use strict";
+  const { t } = window.mediSpaceLanguage;
 
   const storageKey = "medispace.archivo-local";
   const escritura = { mode: "readwrite" };
@@ -42,7 +43,7 @@
     } catch {
       // Solo se aceptan archivos JSON que identifiquen un expediente.
     }
-    throw new Error("El archivo no contiene un identificador de expediente válido.");
+    throw new Error(t("El archivo no contiene un identificador de expediente válido."));
   }
 
   async function huella(contenido) {
@@ -54,7 +55,7 @@
     const previos = local[campo] ?? [];
     const actuales = servidor[campo] ?? [];
     if (!Array.isArray(previos) || !Array.isArray(actuales)) {
-      throw new Error("Revisa los registros del archivo original antes de actualizarlo.");
+      throw new Error(t("Revisa los registros del archivo original antes de actualizarlo."));
     }
     const ids = new Set(actuales.map(registro => registro.id));
     return [...actuales, ...previos.filter(registro => !ids.has(registro?.id))];
@@ -63,7 +64,7 @@
   async function leerArchivo(handle) {
     const archivo = await handle.getFile();
     if (archivo.size > limiteBytes) {
-      throw new Error("El archivo supera el tamaño admitido.");
+      throw new Error(t("El archivo supera el tamaño admitido."));
     }
     return { archivo, contenido: await archivo.arrayBuffer() };
   }
@@ -72,7 +73,7 @@
     const [handle] = await window.showOpenFilePicker({
       multiple: false,
       excludeAcceptAllOption: true,
-      types: [{ description: "Expediente de MediSpace", accept: { "application/json": [".json"] } }],
+      types: [{ description: t("Expediente de MediSpace"), accept: { "application/json": [".json"] } }],
     });
     const { archivo, contenido } = await leerArchivo(handle);
     return {
@@ -115,7 +116,7 @@
     formulario.addEventListener("submit", evento => {
       if (!input.files.length) {
         evento.preventDefault();
-        mostrar("Elige tu archivo JSON para continuar.");
+        mostrar(t("Elige tu archivo JSON para continuar."));
         boton.focus();
       }
     });
@@ -134,14 +135,14 @@
         await vincular(seleccion);
         input.files = carga.files;
         mostrar(autorizado
-          ? `Archivo vinculado: ${seleccion.archivo.name}.`
-          : "Archivo seleccionado. Podrás autorizar la escritura desde Resultados.");
+          ? t('Archivo vinculado: {nombre}.', { nombre: seleccion.archivo.name })
+          : t("Archivo seleccionado. Podrás autorizar la escritura desde Resultados."));
       } catch (error) {
         if (error.name !== "AbortError") {
           input.hidden = false;
           input.required = true;
           boton.hidden = true;
-          mostrar("Puedes seleccionar el JSON aquí y vincular el archivo original más adelante desde Resultados.");
+          mostrar(t("Puedes seleccionar el JSON aquí y vincular el archivo original más adelante desde Resultados."));
           input.focus();
         }
       } finally {
@@ -159,7 +160,7 @@
     const mostrar = mensaje => { estado.textContent = mensaje; };
     panel.hidden = false;
     if (!soportado) {
-      mostrar("Para actualizar el archivo original desde la página, abre MediSpace en Chrome o Edge.");
+      mostrar(t("Para actualizar el archivo original desde la página, abre MediSpace en Chrome o Edge."));
       return;
     }
 
@@ -168,28 +169,28 @@
     let enlace = previo?.expedienteId === expedienteId ? previo : null;
     guardarBoton.hidden = !enlace;
     vincularBoton.hidden = false;
-    mostrar(enlace ? `Archivo vinculado: ${enlace.handle.name}.` : "Vincula el archivo que subiste para actualizarlo.");
+    mostrar(enlace ? t('Archivo vinculado: {nombre}.', { nombre: enlace.handle.name }) : t("Vincula el archivo que subiste para actualizarlo."));
 
     async function guardar() {
       if (await enlace.handle.queryPermission(escritura) !== "granted") {
-        mostrar("Pulsa «Actualizar archivo original» para autorizar la escritura.");
+        mostrar(t("Pulsa «Actualizar archivo original» para autorizar la escritura."));
         return;
       }
       await navigator.locks.request(`medispace-expediente-${expedienteId}`, async () => {
         const claveActual = sessionStorage.getItem(storageKey);
         const guardado = await archivos("readonly", almacen => almacen.get(claveActual));
         if (!guardado || guardado.expedienteId !== expedienteId) {
-          throw new Error("Vuelve a vincular el archivo de este expediente.");
+          throw new Error(t("Vuelve a vincular el archivo de este expediente."));
         }
         const respuesta = await fetch(url, { cache: "no-store", redirect: "error" });
         if (!respuesta.ok || !respuesta.headers.get("Content-Type")?.includes("application/json")) {
-          throw new Error("No se pudo obtener el expediente. Comprueba tu sesión.");
+          throw new Error(t("No se pudo obtener el expediente. Comprueba tu sesión."));
         }
         const servidor = leerDocumento(await respuesta.arrayBuffer());
         const { contenido } = await leerArchivo(guardado.handle);
         const local = leerDocumento(contenido);
         if (servidor._id.trim() !== expedienteId || local._id.trim() !== expedienteId) {
-          throw new Error("El archivo seleccionado pertenece a otro expediente.");
+          throw new Error(t("El archivo seleccionado pertenece a otro expediente."));
         }
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
         for (const campo of ["diario_psicologico", "semanal_psicologico", "praxis_motora", "memoria_visual", "orientacion_linea"]) {
@@ -201,7 +202,7 @@
         const hash = await huella(actualizado);
         const hashLocal = await huella(contenido);
         if (hashLocal !== hash && hashLocal !== guardado.huella) {
-          throw new Error("El archivo cambió fuera de MediSpace. Revísalo y vuelve a vincularlo para actualizarlo.");
+          throw new Error(t("El archivo cambió fuera de MediSpace. Revísalo y vuelve a vincularlo para actualizarlo."));
         }
         if (hashLocal !== hash) {
           const flujo = await guardado.handle.createWritable({ mode: "exclusive" });
@@ -214,7 +215,7 @@
           }
           await archivos("readwrite", almacen => almacen.put({ ...guardado, huella: hash }, claveActual));
         }
-        mostrar(`Archivo original actualizado: ${guardado.handle.name}.`);
+        mostrar(t('Archivo original actualizado: {nombre}.', { nombre: guardado.handle.name }));
       });
     }
 
@@ -224,7 +225,7 @@
       try {
         await operacion();
       } catch (error) {
-        if (error.name !== "AbortError") mostrar(error.message || "No se pudo actualizar el archivo original.");
+        if (error.name !== "AbortError") mostrar(error.message || t("No se pudo actualizar el archivo original."));
       } finally {
         guardarBoton.disabled = false;
         vincularBoton.disabled = false;
@@ -235,13 +236,13 @@
       if (await permisoEscritura(enlace.handle)) {
         await guardar();
       } else {
-        mostrar("Permite la escritura en el navegador para actualizar este archivo.");
+        mostrar(t("Permite la escritura en el navegador para actualizar este archivo."));
       }
     }));
     vincularBoton.addEventListener("click", () => ejecutar(async () => {
       const seleccion = await elegirArchivo();
       if (seleccion.expedienteId !== expedienteId) {
-        throw new Error("El archivo seleccionado pertenece a otro expediente.");
+        throw new Error(t("El archivo seleccionado pertenece a otro expediente."));
       }
       const autorizado = await permisoEscritura(seleccion.handle);
       enlace = await vincular(seleccion);
@@ -249,7 +250,7 @@
       if (autorizado) {
         await guardar();
       } else {
-        mostrar("Pulsa «Actualizar archivo original» para autorizar la escritura.");
+        mostrar(t("Pulsa «Actualizar archivo original» para autorizar la escritura."));
       }
     }));
     if (enlace && auto === "1") await ejecutar(guardar);
@@ -258,6 +259,6 @@
   if (soportado && document.getElementById("auth-form")) prepararFormulario();
   const panel = document.getElementById("archivo-local");
   if (panel) prepararResultados(panel).catch(() => {
-    document.getElementById("estado-archivo-local").textContent = "El navegador no pudo recuperar el archivo vinculado.";
+    document.getElementById("estado-archivo-local").textContent = t("El navegador no pudo recuperar el archivo vinculado.");
   });
 })();

@@ -1,11 +1,11 @@
 {% import '_grafica_estadistica.html' as graficas %}
-{% set nombres = {'frecuencia_cardiaca': 'Frecuencia cardíaca', 'spo2': 'Saturación de oxígeno (SpO₂)', 'temperatura': 'Temperatura'} %}
+{% set nombres = {'frecuencia_cardiaca': t('Frecuencia cardíaca'), 'spo2': t('Saturación de oxígeno (SpO₂)'), 'temperatura': t('Temperatura')} %}
 <div class="estadisticas-monitoreo">
-  <h2>Estadísticas del monitoreo</h2>
+  <h2>{{ t('Estadísticas del monitoreo') }}</h2>
   {% if mediciones_historicas %}
-  <p>Mediciones de los chequeos guardados en tu expediente.</p>
+  <p>{{ t('Mediciones de los chequeos guardados en tu expediente.') }}</p>
   {% else %}
-  <p>Cuando guardes un chequeo con mediciones, aquí aparecerán tus estadísticas.</p>
+  <p>{{ t('Cuando guardes un chequeo con mediciones, aquí aparecerán tus estadísticas.') }}</p>
   {% endif %}
 
   <div class="estadisticas-resumen">
@@ -17,7 +17,7 @@
       {{ graficas.cifras(dato) }}
       {{ graficas.grafica(dato, nombres[tipo]) }}
       {% else %}
-      <p>Sin mediciones registradas.</p>
+      <p>{{ t('Sin mediciones registradas.') }}</p>
       {% endif %}
     </section>
     {% endfor %}
@@ -25,13 +25,13 @@
 
   {% if mediciones_historicas %}
   <section class="info-card" aria-labelledby="estadisticas-por-chequeo">
-    <h3 id="estadisticas-por-chequeo">Mediciones por chequeo</h3>
+    <h3 id="estadisticas-por-chequeo">{{ t('Mediciones por chequeo') }}</h3>
     <div class="estadisticas-tabla" role="region" aria-labelledby="estadisticas-por-chequeo" tabindex="0">
       <table aria-labelledby="estadisticas-por-chequeo">
         <thead>
           <tr>
-            <th scope="col">Fecha</th>
-            {% for etiqueta, unidad in signos.values() %}<th scope="col">{{ etiqueta }} ({{ unidad }})</th>{% endfor %}
+            <th scope="col">{{ t('Fecha') }}</th>
+            {% for etiqueta, unidad in signos.values() %}<th scope="col">{{ t(etiqueta) }} ({{ t(unidad) }})</th>{% endfor %}
           </tr>
         </thead>
         <tbody>

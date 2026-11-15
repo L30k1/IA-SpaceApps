@@ -4,20 +4,20 @@
 {%- endmacro %}
 
 {% macro grafica(serie, titulo) %}
-<figure class="grafica-estadistica" aria-label="Evolución de {{ titulo }}">
+<figure class="grafica-estadistica" aria-label="{{ t('Evolución de {titulo}', titulo=t(titulo)) }}">
   <div class="grafica-area">
     <div class="grafica-escala">
-      <span>{{ numero(serie.maximo) }} {{ serie.unidad }}</span>
-      {% if serie.minimo != serie.maximo %}<span>{{ numero(serie.minimo) }} {{ serie.unidad }}</span>{% endif %}
+      <span>{{ numero(serie.maximo) }} {{ t(serie.unidad) }}</span>
+      {% if serie.minimo != serie.maximo %}<span>{{ numero(serie.minimo) }} {{ t(serie.unidad) }}</span>{% endif %}
     </div>
-    <svg viewBox="0 0 560 128" role="img" aria-label="{{ serie.cantidad }} mediciones ordenadas por fecha" preserveAspectRatio="none">
+    <svg viewBox="0 0 560 128" role="img" aria-label="{{ t('{cantidad} mediciones ordenadas por fecha', cantidad=serie.cantidad) }}" preserveAspectRatio="none">
       <path class="grafica-guia" d="M12 12H548 M12 64H548 M12 116H548" />
       {% if serie.cantidad > 1 %}
       <polyline class="grafica-linea" points="{% for punto in serie.puntos %}{{ punto.x }},{{ punto.y }} {% endfor %}" />
       {% endif %}
       {% for punto in serie.puntos %}
       <circle class="grafica-punto" cx="{{ punto.x }}" cy="{{ punto.y }}" r="3.5">
-        <title>{{ punto.fecha | hora_utc }} · {{ numero(punto.valor) }} {{ serie.unidad }}</title>
+        <title>{{ punto.fecha | hora_utc }} · {{ numero(punto.valor) }} {{ t(serie.unidad) }}</title>
       </circle>
       {% endfor %}
     </svg>
@@ -29,12 +29,12 @@
 </figure>
 {% endmacro %}
 
-{% macro cifras(serie, conteo='Mediciones') %}
+{% macro cifras(serie, conteo=t('Mediciones')) %}
 <dl>
-  <div><dt>Último valor</dt><dd class="estadisticas-ultima">{{ numero(serie.ultimo) }} {{ serie.unidad }}</dd></div>
-  <div><dt>Promedio</dt><dd>{{ numero(serie.promedio) }} {{ serie.unidad }}</dd></div>
-  <div><dt>Mínimo</dt><dd>{{ numero(serie.minimo) }} {{ serie.unidad }}</dd></div>
-  <div><dt>Máximo</dt><dd>{{ numero(serie.maximo) }} {{ serie.unidad }}</dd></div>
+  <div><dt>{{ t('Último valor') }}</dt><dd class="estadisticas-ultima">{{ numero(serie.ultimo) }} {{ t(serie.unidad) }}</dd></div>
+  <div><dt>{{ t('Promedio') }}</dt><dd>{{ numero(serie.promedio) }} {{ t(serie.unidad) }}</dd></div>
+  <div><dt>{{ t('Mínimo') }}</dt><dd>{{ numero(serie.minimo) }} {{ t(serie.unidad) }}</dd></div>
+  <div><dt>{{ t('Máximo') }}</dt><dd>{{ numero(serie.maximo) }} {{ t(serie.unidad) }}</dd></div>
   <div><dt>{{ conteo }}</dt><dd>{{ serie.cantidad }}</dd></div>
 </dl>
 {% endmacro %}

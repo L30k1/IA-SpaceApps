@@ -1,0 +1,5 @@
+<nav class="selector-idioma" aria-label="{{ t('Idioma') }}">
+  {% for codigo, etiqueta in [('es', 'Español'), ('en', 'English')] %}
+  <a href="{{ url_idioma(codigo) }}" lang="{{ codigo }}" hreflang="{{ codigo }}"{% if codigo == idioma %} aria-current="true"{% endif %}>{{ etiqueta }}</a>
+  {% endfor %}
+</nav>

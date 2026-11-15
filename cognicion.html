@@ -1,62 +1,66 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ idioma }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pruebas cognitivas · MediSpace</title>
+  <title>{{ t('Pruebas cognitivas · MediSpace') }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='cognicion.css') }}">
+  <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('praxis_motora_script') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario cognicion">
       <header class="top-header">
         <div class="brand-title">MediSpace</div>
-        <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+
+        {% include '_selector_idioma.html' %}
       </header>
-      <h1>Pruebas cognitivas</h1>
+      <h1>{{ t('Pruebas cognitivas') }}</h1>
       {% include '_navegacion_cognitiva.html' %}
       <section class="info-card" aria-labelledby="praxis-titulo">
-        <h2 id="praxis-titulo">Prueba de Praxis Motora (PM)</h2>
-        <p>Haz clic o toca cada cuadrado tan pronto como aparezca. Completa los {{ objetivos }} objetivos consecutivos. Cada cuadrado será más pequeño que el anterior y aparecerá en una posición aleatoria.</p>
+        <h2 id="praxis-titulo">{{ t('Prueba de Praxis Motora (PM)') }}</h2>
+        <p>{{ t('Haz clic o toca cada cuadrado tan pronto como aparezca. Completa los') }} {{ objetivos }} {{ t('objetivos consecutivos. Cada cuadrado será más pequeño que el anterior y aparecerá en una posición aleatoria.') }}</p>
         <form id="praxis-envio" method="post" action="{{ url_for('pruebas_cognitivas') }}" data-objetivos="{{ objetivos }}" hidden>
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="registro_id" value="{{ registro_id }}">
         </form>
-        <button class="step-pill" id="praxis-inicio" type="button" disabled>Iniciar prueba</button>
-        <noscript><p>Activa JavaScript para medir los tiempos de respuesta en el navegador.</p></noscript>
+        <button class="step-pill" id="praxis-inicio" type="button" disabled>{{ t('Iniciar prueba') }}</button>
+        <noscript><p>{{ t('Activa JavaScript para medir los tiempos de respuesta en el navegador.') }}</p></noscript>
         <p id="praxis-estado" role="status" hidden></p>
-        <div id="praxis-tablero" class="praxis-tablero" aria-label="Área de prueba" hidden>
-          <button id="praxis-objetivo" class="praxis-objetivo" type="button" tabindex="-1" aria-label="Cuadrado objetivo" hidden></button>
+        <div id="praxis-tablero" class="praxis-tablero" aria-label="{{ t('Área de prueba') }}" hidden>
+          <button id="praxis-objetivo" class="praxis-objetivo" type="button" tabindex="-1" aria-label="{{ t('Cuadrado objetivo') }}" hidden></button>
         </div>
 
         <section aria-labelledby="praxis-resultados-titulo" id="praxis-resultados" hidden>
-          <h3 id="praxis-resultados-titulo">Resultados de la ronda</h3>
+          <h3 id="praxis-resultados-titulo">{{ t('Resultados de la ronda') }}</h3>
           <dl class="datos-diario">
-            <div><dt>Tiempo medio de reacción</dt><dd id="praxis-promedio"></dd></div>
-            <div><dt>Respuesta más rápida</dt><dd id="praxis-mejor"></dd></div>
+            <div><dt>{{ t('Tiempo medio de reacción') }}</dt><dd id="praxis-promedio"></dd></div>
+            <div><dt>{{ t('Respuesta más rápida') }}</dt><dd id="praxis-mejor"></dd></div>
           </dl>
           <details>
-            <summary>Tiempos por objetivo</summary>
+            <summary>{{ t('Tiempos por objetivo') }}</summary>
             <ol id="praxis-tiempos" class="praxis-tiempos"></ol>
           </details>
-          <button class="step-pill" id="praxis-reintentar" type="button" hidden>Reintentar guardado</button>
+          <button class="step-pill" id="praxis-reintentar" type="button" hidden>{{ t('Reintentar guardado') }}</button>
         </section>
       </section>
       {% if actual %}
       <section class="info-card" id="praxis-guardado" aria-labelledby="praxis-guardado-titulo">
-        <h2 id="praxis-guardado-titulo">Resultado guardado</h2>
-        <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">Ver avance de la misión</a>
+        <h2 id="praxis-guardado-titulo">{{ t('Resultado guardado') }}</h2>
+        <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">{{ t('Ver avance de la misión') }}</a>
         <p>{{ actual.fecha_hora | hora_utc }}</p>
         <dl class="datos-diario">
-          <div><dt>Tiempo medio de reacción</dt><dd>{{ actual.promedio_ms | round | int }} ms</dd></div>
-          <div><dt>Respuesta más rápida</dt><dd>{{ actual.mejor_ms | round | int }} ms</dd></div>
+          <div><dt>{{ t('Tiempo medio de reacción') }}</dt><dd>{{ actual.promedio_ms | round | int }} ms</dd></div>
+          <div><dt>{{ t('Respuesta más rápida') }}</dt><dd>{{ actual.mejor_ms | round | int }} ms</dd></div>
         </dl>
         <details>
-          <summary>Tiempos por objetivo</summary>
+          <summary>{{ t('Tiempos por objetivo') }}</summary>
           <ol class="praxis-tiempos">
             {% for tiempo in actual.tiempos_ms %}<li>{{ tiempo | round | int }} ms</li>{% endfor %}
           </ol>
@@ -67,10 +71,10 @@
       {% endif %}
       {% if registros %}
       <section class="info-card" aria-labelledby="praxis-historial-titulo">
-        <h2 id="praxis-historial-titulo">Historial de Praxis Motora</h2>
+        <h2 id="praxis-historial-titulo">{{ t('Historial de Praxis Motora') }}</h2>
         <ul>
           {% for registro in registros %}
-          <li><a class="diario-link" href="{{ url_for('pruebas_cognitivas', registro=registro.id, _anchor='praxis-guardado') }}">{{ registro.fecha_hora | hora_utc }} · {{ registro.promedio_ms | round | int }} ms de promedio</a></li>
+          <li><a class="diario-link" href="{{ url_for('pruebas_cognitivas', registro=registro.id, _anchor='praxis-guardado') }}">{{ registro.fecha_hora | hora_utc }} · {{ registro.promedio_ms | round | int }} {{ t('ms de promedio') }}</a></li>
           {% endfor %}
         </ul>
       </section>

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ idioma }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Atención psicológica {{ 'diaria' if modulo == 'diario' else 'semanal' }} · MediSpace</title>
+  <title>{{ t('Cuestionario diario') if modulo == 'diario' else t('Cuestionario semanal') }} · MediSpace</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
+  <script src="{{ url_for('idioma_script') }}" defer></script>
 </head>
 <body>
   <main class="app-frame">
@@ -16,105 +18,107 @@
           <div class="brand-title">MediSpace</div>
           <div class="brand-sub">{{ expediente.astronauta.nombre }}</div>
         </div>
-        <a class="step-pill" href="{{ url_for('profile') }}">Volver al perfil</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+
+        {% include '_selector_idioma.html' %}
       </header>
-      <h1>Atención psicológica</h1>
+      <h1>{{ t('Atención psicológica') }}</h1>
       {% include '_navegacion_psicologica.html' %}
-      {% for mensaje in get_flashed_messages() %}<p role="status">{{ mensaje }}</p>{% endfor %}
-      {% if error %}<p class="diario-error" role="alert">{{ error }}</p>{% endif %}
+      {% for mensaje in get_flashed_messages() %}<p role="status">{{ t(mensaje) }}</p>{% endfor %}
+      {% if error %}<p class="diario-error" role="alert">{{ t(error) }}</p>{% endif %}
       {% if disponible %}
       <p class="info-card" role="status">
-        Podrás hacer el próximo registro {{ modulo }} el
-        <time datetime="{{ disponible.isoformat() }}">{{ disponible.strftime('%d/%m/%Y a las %H:%M:%S UTC') }}</time>.
+        {{ t('Próximo registro disponible:') }}
+        <time datetime="{{ disponible.isoformat() }}">{{ disponible | fecha_corta }} {{ disponible.strftime('%H:%M:%S UTC') }}</time>.
       </p>
       {% endif %}
 
       {% if actual %}
       <section class="info-card">
-        <h2>Registro guardado</h2>
+        <h2>{{ t('Registro guardado') }}</h2>
         <p>{{ actual.fecha_hora | hora_utc }}</p>
         <dl class="datos-diario">
           {% if modulo == 'semanal' %}
           {% if actual.mision_id %}
-          <div><dt>Misión</dt><dd>{{ actual.mision_id }}</dd></div>
-          <div><dt>Cuarto de misión</dt>
-            <dd>{% if actual.tramo_mision %}{{ actual.tramo_mision.cuarto }} de 4 · {{ actual.tramo_mision.avance_pct }} %{% else %}Sin fechas suficientes o fuera del periodo{% endif %}</dd>
+          <div><dt>{{ t('Misión') }}</dt><dd>{{ actual.mision_id }}</dd></div>
+          <div><dt>{{ t('Cuarto de misión') }}</dt>
+            <dd>{% if actual.tramo_mision %}{{ actual.tramo_mision.cuarto }} {{ t('de 4 ·') }} {{ actual.tramo_mision.avance_pct }} %{% else %}{{ t('Sin fechas suficientes o fuera del periodo') }}{% endif %}</dd>
           </div>
           {% endif %}
           {% for dominio, valor in actual.puntuacion.dominios.items() %}
-          <div><dt>{{ dominio }}</dt><dd>{{ valor }} / 100</dd></div>
+          <div><dt>{{ t(dominio) }}</dt><dd>{{ valor }} / 100</dd></div>
           {% endfor %}
           {% else %}
-          <div><dt>Índice descriptivo</dt><dd>{{ actual.puntuacion.indice }} / 100</dd></div>
+          <div><dt>{{ t('Índice descriptivo') }}</dt><dd>{{ actual.puntuacion.indice }} / 100</dd></div>
           {% endif %}
-          <div><dt>Diferencia entre energía y esfuerzo invertido</dt><dd>{{ actual.puntuacion.diferencia_energia }} / 4 puntos</dd></div>
+          <div><dt>{{ t('Diferencia entre energía y esfuerzo invertido') }}</dt><dd>{{ actual.puntuacion.diferencia_energia }} {{ t('/ 4 puntos') }}</dd></div>
           {% if actual.pvt %}
-          <div><dt>Mediana PVT-B</dt><dd>{{ actual.pvt.mediana_ms }} ms</dd></div>
-          <div><dt>Mediana de referencia</dt><dd>{{ actual.pvt.mediana_base_ms }} ms</dd></div>
-          <div><dt>Cambio respecto a la referencia</dt><dd>{{ '%+.2f' | format(actual.pvt.cambio_pct) }} %</dd></div>
+          <div><dt>{{ t('Mediana PVT-B') }}</dt><dd>{{ actual.pvt.mediana_ms }} ms</dd></div>
+          <div><dt>{{ t('Mediana de referencia') }}</dt><dd>{{ actual.pvt.mediana_base_ms }} ms</dd></div>
+          <div><dt>{{ t('Cambio respecto a la referencia') }}</dt><dd>{{ '%+.2f' | format(actual.pvt.cambio_pct) }} %</dd></div>
           {% endif %}
         </dl>
         <details>
-          <summary>Ver respuestas</summary>
+          <summary>{{ t('Ver respuestas') }}</summary>
           <ul>
             {% for clave, texto in reactivos %}
-            <li>{{ texto }} <strong>{{ dict(escala)[actual.respuestas[clave]] if modulo == 'semanal' else (actual.respuestas[clave] ~ ' / 5') }}</strong></li>
+            <li>{{ t(texto) }} <strong>{{ t(dict(escala)[actual.respuestas[clave]]) if modulo == 'semanal' else (actual.respuestas[clave] ~ ' / 5') }}</strong></li>
             {% endfor %}
           </ul>
           {% if actual.nota %}<p>{{ actual.nota }}</p>{% endif %}
         </details>
       </section>
       <section class="info-card">
-        <h2>Seguimiento</h2>
+        <h2>{{ t('Seguimiento') }}</h2>
         {% if actual.seguimiento_ia %}
         <p>{{ actual.seguimiento_ia.resumen }}</p>
         <ul>
           {% for accion in actual.seguimiento_ia.acciones %}<li>{{ accion }}</li>{% endfor %}
         </ul>
-        <p>El equipo responsable debe revisar estas sugerencias.</p>
+        <p>{{ t('El equipo responsable debe revisar estas sugerencias.') }}</p>
         {% elif ia_disponible %}
         <form method="post" action="{{ url_for('registro_psicologico', modulo=modulo, registro=actual.id) }}">
           <input name="csrf" type="hidden" value="{{ csrf }}">
-          <p>Al solicitar seguimiento, la IA recibe tus respuestas, la nota y las mediciones de este registro.</p>
-          <button class="step-pill" name="accion" value="seguimiento" type="submit">Generar seguimiento con IA</button>
+          <p>{{ t('Al solicitar seguimiento, la IA recibe tus respuestas, la nota y las mediciones de este registro.') }}</p>
+          <button class="step-pill" name="accion" value="seguimiento" type="submit">{{ t('Generar seguimiento con IA') }}</button>
         </form>
         {% else %}
-        <p>Seguimiento con IA disponible cuando se configure el servidor.</p>
+        <p>{{ t('Seguimiento con IA disponible cuando se configure el servidor.') }}</p>
         {% endif %}
       </section>
       {% include '_archivo_local.html' %}
       {% if not disponible %}
-      <a class="btn-primary" href="{{ url_for('registro_psicologico', modulo=modulo) }}">Nuevo registro {{ modulo }}</a>
+      <a class="btn-primary" href="{{ url_for('registro_psicologico', modulo=modulo) }}">{{ t('Nuevo registro diario') if modulo == 'diario' else t('Nuevo registro semanal') }}</a>
       {% endif %}
       {% elif not disponible %}
       <form class="info-card" method="post" action="{{ url_for('registro_psicologico', modulo=modulo) }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <input type="hidden" name="registro_id" value="{{ registro_id }}">
         {% if modulo == 'semanal' %}
-        <p>Indica cuántos días de la última semana ocurrió cada situación.</p>
-        <p id="escala-diario">1: ningún día · 2: 1 a 2 días · 3: 3 a 4 días · 4: 5 a 6 días · 5: los 7 días.</p>
+        <p>{{ t('Indica cuántos días de la última semana ocurrió cada situación.') }}</p>
+        <p id="escala-diario">{{ t('1: ningún día · 2: 1 a 2 días · 3: 3 a 4 días · 4: 5 a 6 días · 5: los 7 días.') }}</p>
         {% if expediente.misiones %}
-        <label class="campo-diario">Misión (opcional)
+        <label class="campo-diario">{{ t('Misión (opcional)') }}
           <select name="mision_id">
-            <option value="">Sin especificar</option>
+            <option value="">{{ t('Sin especificar') }}</option>
             {% for mision in expediente.misiones %}
             {% set tramo = tramos[mision.id] %}
-            <option value="{{ mision.id }}"{% if mision.id == mision_elegida %} selected{% endif %}>{{ mision.id }}{% if tramo %} · Cuarto {{ tramo.cuarto }} de 4{% endif %}</option>
+            <option value="{{ mision.id }}"{% if mision.id == mision_elegida %} selected{% endif %}>{{ mision.id }}{% if tramo %} {{ t('· Cuarto') }} {{ tramo.cuarto }} {{ t('de 4') }}{% endif %}</option>
             {% endfor %}
           </select>
         </label>
         {% endif %}
         {% else %}
-        <p>Piensa en tu turno actual y en el último periodo de sueño.</p>
-        <p id="escala-diario">1 equivale a totalmente en desacuerdo y 5 a totalmente de acuerdo.</p>
+        <p>{{ t('Piensa en tu turno actual y en el último periodo de sueño.') }}</p>
+        <p id="escala-diario">{{ t('1 equivale a totalmente en desacuerdo y 5 a totalmente de acuerdo.') }}</p>
         {% endif %}
         {% for clave, texto in reactivos %}
         <fieldset aria-describedby="escala-diario">
-          <legend>{{ texto }}</legend>
+          <legend>{{ t(texto) }}</legend>
           <div class="escala-diario">
             {% for valor, etiqueta in escala %}
-            <label title="{{ etiqueta }}">
-              <input type="radio" name="{{ clave }}" value="{{ valor }}" aria-label="{{ valor }}. {{ etiqueta }}"
+            <label title="{{ t(etiqueta) }}">
+              <input type="radio" name="{{ clave }}" value="{{ valor }}" aria-label="{{ valor }}. {{ t(etiqueta) }}"
                      required{% if formulario.get(clave) == valor|string %} checked{% endif %}>
               <span>{{ valor }}</span>
             </label>
@@ -122,28 +126,28 @@
           </div>
         </fieldset>
         {% endfor %}
-        <label class="campo-diario">Nota de contexto (opcional)
+        <label class="campo-diario">{{ t('Nota de contexto (opcional)') }}
           <textarea name="nota" rows="2" maxlength="600">{{ formulario.get('nota', '') }}</textarea>
         </label>
         <details{% if formulario.get('pvt_actual') or formulario.get('pvt_base') %} open{% endif %}>
-          <summary>Medición complementaria de vigilancia (opcional)</summary>
-          <p>Ingresa medianas de una PVT-B de 3 minutos ya realizada. Usa la misma versión, dispositivo y condiciones comparables en ambas mediciones.</p>
+          <summary>{{ t('Medición complementaria de vigilancia (opcional)') }}</summary>
+          <p>{{ t('Ingresa medianas de una PVT-B de 3 minutos ya realizada. Usa la misma versión, dispositivo y condiciones comparables en ambas mediciones.') }}</p>
           <div class="datos-diario">
-            <label class="campo-diario">Mediana actual (ms)
+            <label class="campo-diario">{{ t('Mediana actual (ms)') }}
               <input type="number" name="pvt_actual" min="1" max="60000" value="{{ formulario.get('pvt_actual', '') }}">
             </label>
-            <label class="campo-diario">Mediana de referencia (ms)
+            <label class="campo-diario">{{ t('Mediana de referencia (ms)') }}
               <input type="number" name="pvt_base" min="1" max="60000" value="{{ formulario.get('pvt_base', '') }}">
             </label>
           </div>
         </details>
         {% if ia_disponible %}
-        <p>Si eliges el seguimiento con IA, se envían tus respuestas, la nota y las mediciones de este registro.</p>
+        <p>{{ t('Si eliges el seguimiento con IA, se envían tus respuestas, la nota y las mediciones de este registro.') }}</p>
         {% endif %}
         <div class="file-actions">
-          <button class="{{ 'step-pill' if ia_disponible else 'btn-primary' }}" type="submit" name="accion" value="guardar">Guardar registro</button>
+          <button class="{{ 'step-pill' if ia_disponible else 'btn-primary' }}" type="submit" name="accion" value="guardar">{{ t('Guardar registro') }}</button>
           {% if ia_disponible %}
-          <button class="btn-primary" type="submit" name="accion" value="guardar-ia">Guardar y generar seguimiento con IA</button>
+          <button class="btn-primary" type="submit" name="accion" value="guardar-ia">{{ t('Guardar y generar seguimiento con IA') }}</button>
           {% endif %}
         </div>
       </form>
@@ -151,7 +155,7 @@
 
       {% if registros %}
       <section class="info-card">
-        <h2>Registros {{ 'diarios' if modulo == 'diario' else 'semanales' }}</h2>
+        <h2>{{ t('Registros diarios') if modulo == 'diario' else t('Registros semanales') }}</h2>
         <ul>
           {% for registro in registros %}
           <li><a class="diario-link" href="{{ url_for('registro_psicologico', modulo=modulo, registro=registro.id) }}">{{ registro.fecha_hora | hora_utc }}</a></li>
