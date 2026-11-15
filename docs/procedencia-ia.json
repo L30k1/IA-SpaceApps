@@ -7,6 +7,19 @@
     "uso": "Propuestas, generación y revisión de fragmentos durante el desarrollo",
     "trazabilidad_por_linea": false
   },
+  "pruebas_cognitivas": {
+    "pruebas": ["PM", "VOLT", "LOT", "F2B", "ERT"],
+    "implementacion": {
+      "tipo": "asistido_por_ia",
+      "herramientas": ["ChatGPT", "OpenAI Codex"],
+      "uso": "Presentación de estímulos, registro de respuestas y medición de tiempos"
+    },
+    "estimulos_generados_por_ia": ["Rostros de ERT"],
+    "calificacion": {
+      "metodo": "Reglas programadas de cada prueba",
+      "usa_ia": false
+    }
+  },
   "imagenes": [
     {
       "archivos": ["static/emociones/rostros-a.png", "static/emociones/rostros-b.png"],

@@ -11,4 +11,8 @@ MediSpace utilizó ChatGPT y OpenAI Codex durante el desarrollo para proponer, g
 | Datos de ejemplo | `database/expediente-astronauta-completo.json` contiene un expediente ficticio preparado con asistencia de IA para probar el formato de importación. | El propio JSON declara `tipo_datos` y `procedencia`. |
 | Datos generados en ejecución | Google Gemini redacta preguntas y evaluaciones de monitoreo, orientaciones de seguimiento psicológico y respuestas de los chats de apoyo y emergencia. | Las nuevas salidas guardadas incluyen `procedencia` con el proveedor y el modelo. En los chats, los mensajes siguen identificados como IA. |
 
-Las mediciones y las respuestas que la persona ingresa conservan su procedencia. Las puntuaciones de los cuestionarios y las pruebas cognitivas se calculan con la lógica de la aplicación.
+## Pruebas cognitivas
+
+ChatGPT y OpenAI Codex asistieron en la implementación de la Praxis Motora (PM), el Aprendizaje visual de objetos (VOLT), la Orientación de línea (LOT), Fractal 2-Back (F2B) y el Reconocimiento facial (ERT). La asistencia incluyó el código para presentar los estímulos, registrar las respuestas y medir los tiempos. En ERT también se usaron rostros generados por IA, identificados con la marca visible «Imagen generada por IA».
+
+Durante la ejecución, MediSpace aplica las reglas de cada prueba para calcular sus resultados, como aciertos, errores y tiempos de reacción. Gemini no recibe las respuestas de las pruebas cognitivas para calificarlas. Las mediciones y las respuestas que ingresa la persona conservan su procedencia.
