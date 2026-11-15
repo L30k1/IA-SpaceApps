@@ -22,7 +22,7 @@ from werkzeug.utils import secure_filename
 import db
 from historial_formulario import SECCIONES, filas_formulario, generar_historial
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
-from calendario_mision import calendario
+from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot, registro_praxis,
 )
@@ -525,7 +525,7 @@ def create_app(database=None):
         intervalo = INTERVALOS[modulo]
         ahora = datetime.now(timezone.utc)
         tramos = {
-            mision["id"]: tramo_mision(mision, ahora.date()) for mision in expediente["misiones"]
+            mision["id"]: tramo_mision(mision, ahora.astimezone(ZONA_MISION).date()) for mision in expediente["misiones"]
         } if modulo == "semanal" else {}
         en_curso = [id_mision for id_mision, tramo in tramos.items() if tramo is not None]
         mision_elegida = request.form.get("mision_id", "") if request.method == "POST" else (
@@ -677,6 +677,12 @@ def create_app(database=None):
             for key in ("hr", "spo2", "temp")
         }
         details = datos_guardados
+        if request.method == "GET" and draft["revision"] == 0 and not details:
+            hoy = datetime.now(ZONA_MISION).date()
+            en_curso = [mision["id"] for mision in expediente["misiones"]
+                        if (fechas := fechas_mision(mision)) and fechas[0] <= hoy <= fechas[1]]
+            if len(en_curso) == 1:
+                details = {"mision_id": en_curso[0], "fase": "vuelo"}
         answer = request.form.get("answer", "").strip()
         error = None
         if request.method == "POST":

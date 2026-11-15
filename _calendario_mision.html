@@ -8,6 +8,7 @@
   <p>{{ 'Cada ' ~ fila.intervalo ~ ' días' if fila.intervalo > 1 else 'Cada día' }} · Fecha límite {{ fila.limite.strftime('%d/%m/%Y') }}</p>
   {% endif %}
   {% if detalle %}<p>{{ detalle }}</p>{% endif %}
+  {% if fila.previo %}<p>Último registro de prevuelo {{ fila.previo.strftime('%d/%m/%Y') }}</p>{% endif %}
   {% if fila.proxima %}<p>Próxima fecha límite {{ fila.proxima.strftime('%d/%m/%Y') }}</p>{% endif %}
   {% if fila.vencidas %}<p>Plazos anteriores incumplidos ({{ fila.vencidas }})</p>{% endif %}
 </div>
@@ -21,8 +22,10 @@
     <h3>{{ plan.mision.id }}</h3>
     {% if plan.duracion %}
     <p>{{ plan.duracion }} {{ 'día' if plan.duracion == 1 else 'días' }} · {{ plan.estado }}</p>
+    {% if plan.estado == 'Programada' %}<p>Las evaluaciones de vuelo comienzan el {{ plan.inicio.strftime('%d/%m/%Y') }}.</p>{% endif %}
     {{ evaluacion('Evaluación médica', plan.medica, '#iniciar-monitoreo') }}
     {{ evaluacion('Evaluación psicológica', plan.psicologica, url_for('registro_psicologico', modulo=plan.psicologia), 'Cuestionario ' ~ plan.psicologia | capitalize) }}
+    {% if plan.ultimo_otro %}<p>Otro cuestionario guardado: {{ plan.otro_cuestionario | capitalize }} · {{ plan.ultimo_otro.strftime('%d/%m/%Y') }}.</p>{% endif %}
     {{ evaluacion('Evaluación cognitiva', plan.cognitiva, url_for('pruebas_cognitivas'), 'Praxis Motora, VOLT y LOT · ' ~ plan.cognitiva.restantes ~ ' de 3 pendientes en este período') }}
     {% else %}
     <p>El expediente JSON necesita fechas de inicio y fin válidas para calcular la duración y los plazos.</p>
