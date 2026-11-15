@@ -155,8 +155,9 @@ body {
 }
 .schedule-item strong { color: var(--text-main); display: block; font-weight: 500; }
 
-.mision-calendario, .mision-plan { display: grid; gap: 12px; min-width: 0; }
+.mision-calendario, .mision-plan { display: grid; gap: 8px; min-width: 0; }
 .mision-calendario {
+  grid-column: 1 / -1;
   background: var(--card-bg);
   border: 1px solid rgba(56, 152, 255, 0.35);
   border-radius: 14px;
@@ -165,11 +166,38 @@ body {
 .mision-calendario h2 { font-size: 1.1rem; }
 .mision-calendario h3 { font-size: 1rem; overflow-wrap: anywhere; }
 .mision-calendario p { font-size: 0.86rem; color: var(--text-muted); }
-.mision-plan + .mision-plan, .mision-evaluacion { border-top: 1px solid rgba(56, 152, 255, 0.25); padding-top: 8px; }
-.mision-evaluacion a { margin-right: 8px; color: var(--accent); }
-.mision-evaluacion p { margin-top: 4px; }
-.mision-estado { font-size: 0.75rem; font-weight: 600; color: var(--text-main); }
+.mision-plan { border-top: 1px solid var(--border-glow); padding-top: 10px; }
+.mision-encabezado { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.mision-evaluaciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 8px;
+}
+.mision-evaluacion {
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.mision-evaluacion a { color: var(--accent); font-weight: 600; }
+.mision-evaluacion time { white-space: nowrap; }
+.mision-estado {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #152b50;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
 .mision-vencida { color: #fca5a5; }
+.mision-detalles summary {
+  width: fit-content;
+  color: var(--accent);
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.mision-detalles > :not(summary) { margin-top: 8px; }
+.mision-detalles ul { list-style: none; font-size: 0.86rem; }
 
 /* COLUMNA DERECHA DASHBOARD */
 .right-col { display: flex; flex-direction: column; gap: 16px; }
@@ -227,6 +255,16 @@ body {
 @media (max-width: 760px) {
   .dashboard-grid { grid-template-columns: 1fr; }
   .sidebar { display: none; }
+}
+
+@media (max-width: 480px) {
+  .mision-evaluacion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+  }
+  .mision-evaluacion > a { width: 100%; }
 }
 
 a.nav-icon, a.action-tile, a.btn-primary {
