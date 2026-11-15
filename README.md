@@ -66,7 +66,9 @@ Si falla el arranque, revisa **Render → Logs**. El código `MONGO_RED` apunta 
 
 ## Panel de administración
 
-El panel `/admin` permite consultar las cuentas, expedientes, monitoreos, formularios psicológicos, pruebas cognitivas, ejercicio y conversaciones. También incluye los mensajes archivados del chat de apoyo. Concede acceso únicamente al personal autorizado para consultar esos datos. El panel es de solo lectura.
+El panel `/admin` permite consultar las cuentas, expedientes, monitoreos, formularios psicológicos, pruebas cognitivas, ejercicio y conversaciones. También incluye los mensajes archivados del chat de apoyo. Concede acceso únicamente al personal autorizado para consultar esos datos.
+
+Para eliminar una cuenta, ábrela desde el panel, despliega **Eliminar cuenta** al final y pulsa **Eliminar cuenta definitivamente**. La eliminación incluye los registros guardados en MediSpace y las copias automáticas del expediente en el servidor SQLite. Los JSON que alguien descargó en su dispositivo quedan fuera de este proceso. El panel protege la cuenta con la que iniciaste sesión.
 
 En MongoDB Atlas, abre **Data Explorer → medispace → usuarios**, localiza la cuenta existente por `astronauta_id` y añade al documento de usuario el campo `es_admin` de tipo **Boolean** con valor `true`. Ponlo en `false` para revocar el acceso. El campo va al mismo nivel que `astronauta_id`.
 

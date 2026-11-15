@@ -2,6 +2,8 @@ import json
 import sqlite3
 from contextlib import closing, contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
+from shutil import rmtree
 from uuid import uuid4
 
 from database.expedientes import SIGNOS, fecha_utc
@@ -22,6 +24,10 @@ def initialize(path):
                 email TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 password_hash TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS secuencia_usuarios (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                ultimo INTEGER NOT NULL
             );
             CREATE TABLE IF NOT EXISTS checkups (
                 id INTEGER PRIMARY KEY,
@@ -64,6 +70,7 @@ def initialize(path):
             );
         """)
         db.execute("BEGIN IMMEDIATE")
+        db.execute("INSERT OR IGNORE INTO secuencia_usuarios VALUES (1, 0)")
         if "clave_edicion_hash" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
             db.execute("ALTER TABLE users ADD COLUMN clave_edicion_hash TEXT")
         if "es_admin" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
@@ -74,11 +81,17 @@ def initialize(path):
 
 def create_user(path, password_hash, expediente, clave_edicion_hash=None):
     with closing(sqlite3.connect(path)) as db, db:
-        # La columna email es obligatoria en las bases SQLite existentes.
+        # Las sesiones existentes guardan el ID. Una cuenta nueva nunca debe reutilizarlo.
         user_id = db.execute(
-            "INSERT INTO users (email, name, password_hash, clave_edicion_hash) VALUES (?, ?, ?, ?)",
-            (f"astronauta:{expediente['_id']}", expediente["astronauta"]["nombre"], password_hash, clave_edicion_hash),
-        ).lastrowid
+            "UPDATE secuencia_usuarios SET ultimo = MAX(ultimo, (SELECT COALESCE(MAX(id), 0) FROM users)) + 1 "
+            "WHERE id = 1 RETURNING ultimo"
+        ).fetchone()[0]
+        # La columna email es obligatoria en las bases SQLite existentes.
+        db.execute(
+            "INSERT INTO users (id, email, name, password_hash, clave_edicion_hash) VALUES (?, ?, ?, ?, ?)",
+            (user_id, f"astronauta:{expediente['_id']}", expediente["astronauta"]["nombre"],
+             password_hash, clave_edicion_hash),
+        )
         db.execute(
             "INSERT INTO expedientes (user_id, astronauta_id, contenido) VALUES (?, ?, ?)",
             (user_id, expediente["_id"], json.dumps(expediente)),
@@ -140,6 +153,32 @@ def cuenta_administracion(path, user_id):
         cuenta = dict(fila)
         cuenta["expediente"] = json.loads(cuenta.pop("contenido") or "null")
         return cuenta
+
+
+def eliminar_cuenta(path, administrador, usuario):
+    if type(usuario) is not int or administrador == usuario:
+        return False
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        if db.execute(
+            "SELECT 1 FROM users WHERE id = ? AND es_admin = 1", (administrador,),
+        ).fetchone() is None:
+            return False
+        db.execute("UPDATE secuencia_usuarios SET ultimo = MAX(ultimo, (SELECT MAX(id) FROM users)) WHERE id = 1")
+        if db.execute("DELETE FROM users WHERE id = ?", (usuario,)).rowcount == 0:
+            return False
+        db.execute("DELETE FROM checkup_details WHERE checkup_id IN (SELECT id FROM checkups WHERE user_id = ?)",
+                   (usuario,))
+        for tabla in ("checkups", "psych_chat", "emergency_chat", "volt_drafts", "expedientes"):
+            db.execute(f"DELETE FROM {tabla} WHERE user_id = ?", (usuario,))
+
+        # Usa el mismo bloqueo de escritura que la exportación del expediente.
+        carpeta = Path(f"{path}.expedientes").resolve() / str(usuario)
+        if carpeta.resolve() != carpeta:
+            raise OSError("La carpeta del expediente apunta fuera de la ruta esperada.")
+        if carpeta.exists():
+            rmtree(carpeta)
+        return True
 
 
 def actualizar_datos_expediente(path, user_id, aplicar):
@@ -270,9 +309,9 @@ def save_psych_chat(path, user_id, revision, turnos, emergencia=False):
         db.execute("BEGIN IMMEDIATE")
         if revision == 0:
             actualizado = db.execute(
-                f"INSERT INTO {tabla} (user_id, revision, mensajes) VALUES (?, 1, ?) "
+                f"INSERT INTO {tabla} (user_id, revision, mensajes) SELECT id, 1, ? FROM users WHERE id = ? "
                 "ON CONFLICT (user_id) DO NOTHING",
-                (user_id, json.dumps(turnos, ensure_ascii=False)),
+                (json.dumps(turnos, ensure_ascii=False), user_id),
             )
         else:
             row = db.execute(f"SELECT mensajes FROM {tabla} WHERE user_id = ? AND revision = ?",
@@ -311,9 +350,10 @@ def find_user_by_astronauta(path, astronauta_id):
 def open_checkup(path, user_id, profile, greeting):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute(
-            "INSERT INTO checkups (user_id, profile, messages, hr, spo2, temp) VALUES (?, ?, ?, 0, 0, 0) "
+            "INSERT INTO checkups (user_id, profile, messages, hr, spo2, temp) "
+            "SELECT id, ?, ?, 0, 0, 0 FROM users WHERE id = ? "
             "ON CONFLICT (user_id, profile) WHERE finished_at IS NULL DO NOTHING",
-            (user_id, profile, json.dumps([greeting])),
+            (profile, json.dumps([greeting]), user_id),
         )
 
 
@@ -356,8 +396,9 @@ def save_turn(path, draft, messages, vitals, details, status=None):
         result = db.execute(
             "UPDATE checkups SET messages = ?, hr = ?, spo2 = ?, temp = ?, "
             "status = ?, finished_at = ?, revision = revision + 1 "
-            "WHERE id = ? AND revision = ? AND finished_at IS NULL",
-            (json.dumps(messages), *vitals, status, finished_at, draft["id"], draft["revision"]),
+            "WHERE id = ? AND user_id = ? AND profile = ? AND revision = ? AND finished_at IS NULL",
+            (json.dumps(messages), *vitals, status, finished_at, draft["id"], draft["user_id"],
+             draft["profile"], draft["revision"]),
         )
         if result.rowcount != 1:
             return False

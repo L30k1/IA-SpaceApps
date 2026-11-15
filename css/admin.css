@@ -90,6 +90,18 @@
 .admin-datos dd { min-width: 0; }
 .admin-valores { margin-inline-start: 1.35rem; }
 .admin-turnos p, .admin-valor { white-space: pre-wrap; }
+.admin-eliminacion { border-color: #ad5570; }
+.admin-eliminacion summary { cursor: pointer; font-weight: 600; color: #ffc5d3; }
+.admin-eliminacion :is(p, form) { margin-top: 9px; }
+.admin-eliminacion button {
+  padding: 9px 12px;
+  border: 1px solid #ad5570;
+  border-radius: 8px;
+  color: #fff;
+  background: #922640;
+  cursor: pointer;
+}
+.admin-eliminacion button:hover { background: #ab3150; }
 
 @media (max-width: 650px) {
   .admin-datos > div { grid-template-columns: minmax(0, 1fr); }
