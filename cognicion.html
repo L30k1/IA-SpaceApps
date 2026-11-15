@@ -20,7 +20,11 @@
       <h1>Pruebas cognitivas</h1>
       <section class="info-card" aria-labelledby="praxis-titulo">
         <h2 id="praxis-titulo">Prueba de Praxis Motora (PM)</h2>
-        <p>Haz clic o toca cada cuadrado tan pronto como aparezca. Completa los 20 objetivos consecutivos. Cada cuadrado será más pequeño que el anterior y aparecerá en una posición aleatoria.</p>
+        <p>Haz clic o toca cada cuadrado tan pronto como aparezca. Completa los {{ objetivos }} objetivos consecutivos. Cada cuadrado será más pequeño que el anterior y aparecerá en una posición aleatoria.</p>
+        <form id="praxis-envio" method="post" action="{{ url_for('pruebas_cognitivas') }}" data-objetivos="{{ objetivos }}" hidden>
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="registro_id" value="{{ registro_id }}">
+        </form>
         <button class="step-pill" id="praxis-inicio" type="button" disabled>Iniciar prueba</button>
         <noscript><p>Activa JavaScript para medir los tiempos de respuesta en el navegador.</p></noscript>
         <p id="praxis-estado" role="status" hidden></p>
@@ -29,7 +33,7 @@
         </div>
 
         <section aria-labelledby="praxis-resultados-titulo" id="praxis-resultados" hidden>
-          <h3 id="praxis-resultados-titulo">Resultados</h3>
+          <h3 id="praxis-resultados-titulo">Resultados de la ronda</h3>
           <dl class="datos-diario">
             <div><dt>Tiempo medio de reacción</dt><dd id="praxis-promedio"></dd></div>
             <div><dt>Respuesta más rápida</dt><dd id="praxis-mejor"></dd></div>
@@ -38,8 +42,37 @@
             <summary>Tiempos por objetivo</summary>
             <ol id="praxis-tiempos" class="praxis-tiempos"></ol>
           </details>
+          <button class="step-pill" id="praxis-reintentar" type="button" hidden>Reintentar guardado</button>
         </section>
       </section>
+      {% if actual %}
+      <section class="info-card" id="praxis-guardado" aria-labelledby="praxis-guardado-titulo">
+        <h2 id="praxis-guardado-titulo">Resultado guardado</h2>
+        <p>{{ actual.fecha_hora | hora_utc }}</p>
+        <dl class="datos-diario">
+          <div><dt>Tiempo medio de reacción</dt><dd>{{ actual.promedio_ms | round | int }} ms</dd></div>
+          <div><dt>Respuesta más rápida</dt><dd>{{ actual.mejor_ms | round | int }} ms</dd></div>
+        </dl>
+        <details>
+          <summary>Tiempos por objetivo</summary>
+          <ol class="praxis-tiempos">
+            {% for tiempo in actual.tiempos_ms %}<li>{{ tiempo | round | int }} ms</li>{% endfor %}
+          </ol>
+        </details>
+      </section>
+      {% include '_archivo_local.html' %}
+      <script src="{{ url_for('expediente_local_script') }}" defer></script>
+      {% endif %}
+      {% if registros %}
+      <section class="info-card" aria-labelledby="praxis-historial-titulo">
+        <h2 id="praxis-historial-titulo">Historial de Praxis Motora</h2>
+        <ul>
+          {% for registro in registros %}
+          <li><a class="diario-link" href="{{ url_for('pruebas_cognitivas', registro=registro.id, _anchor='praxis-guardado') }}">{{ registro.fecha_hora | hora_utc }} · {{ registro.promedio_ms | round | int }} ms de promedio</a></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
     </div>
   </main>
 </body>

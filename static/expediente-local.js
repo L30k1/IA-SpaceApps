@@ -187,7 +187,7 @@
           throw new Error("El archivo seleccionado pertenece a otro expediente.");
         }
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
-        for (const campo of ["diario_psicologico", "semanal_psicologico"]) {
+        for (const campo of ["diario_psicologico", "semanal_psicologico", "praxis_motora"]) {
           if (campo in servidor || campo in local) {
             combinado[campo] = combinarRegistros(local, servidor, campo);
           }

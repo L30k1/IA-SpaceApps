@@ -4,7 +4,9 @@ const tablero = document.querySelector('#praxis-tablero');
 const objetivo = document.querySelector('#praxis-objetivo');
 const resultados = document.querySelector('#praxis-resultados');
 const listaTiempos = document.querySelector('#praxis-tiempos');
-const totalObjetivos = 20;
+const formulario = document.querySelector('#praxis-envio');
+const reintentar = document.querySelector('#praxis-reintentar');
+const totalObjetivos = Number(formulario.dataset.objetivos);
 const ladoInicial = 76;
 const reduccion = 2;
 const tiempos = [];
@@ -28,17 +30,13 @@ function mostrarObjetivo() {
   });
 }
 
-function terminarRonda(mensaje) {
+function terminarRonda() {
   cancelAnimationFrame(cuadroPendiente);
   cuadroPendiente = 0;
   rondaActiva = false;
   aparicion = null;
   tablero.hidden = true;
   objetivo.hidden = true;
-  estado.textContent = mensaje;
-  inicio.textContent = 'Repetir prueba';
-  inicio.hidden = false;
-  inicio.focus();
 }
 
 function mostrarResultados() {
@@ -51,8 +49,32 @@ function mostrarResultados() {
     return item;
   }));
   resultados.hidden = false;
-  terminarRonda(`Prueba completada. Tiempo medio de reacción de ${milisegundos(promedio)}.`);
+  terminarRonda();
+  guardarResultados();
 }
+
+async function guardarResultados() {
+  reintentar.hidden = true;
+  estado.textContent = 'Guardando los resultados…';
+  try {
+    const datos = new FormData(formulario);
+    datos.set('tiempos_ms', JSON.stringify(tiempos));
+    const respuesta = await fetch(formulario.action, { method: 'POST', body: datos, redirect: 'error' });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok || !resultado.url) {
+      estado.textContent = resultado.error || 'No se pudieron guardar los resultados.';
+    } else {
+      window.location.replace(resultado.url);
+      return;
+    }
+  } catch {
+    estado.textContent = 'No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.';
+  }
+  reintentar.hidden = false;
+  reintentar.focus();
+}
+
+reintentar.addEventListener('click', guardarResultados);
 
 inicio.addEventListener('click', () => {
   tiempos.length = 0;
@@ -80,7 +102,11 @@ objetivo.addEventListener('click', (evento) => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && rondaActiva) {
-    terminarRonda('La prueba se interrumpió al salir de la pestaña. Inicia otra ronda para medir tus tiempos.');
+    terminarRonda();
+    estado.textContent = 'La prueba se interrumpió al salir de la pestaña. Inicia otra ronda para medir tus tiempos.';
+    inicio.textContent = 'Repetir prueba';
+    inicio.hidden = false;
+    inicio.focus();
   }
 });
 

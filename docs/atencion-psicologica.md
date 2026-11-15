@@ -55,7 +55,7 @@ Antes de implementar un semáforo, verificar los límites, el redondeo entre int
 
 MediSpace incluye el [módulo Diario](modulo-diario.md) y el [módulo Semanal](modulo-semanal.md). Post-Emergencia queda por desarrollar.
 
-La sección **Pruebas cognitivas** del perfil incluye Praxis Motora. Mide en el navegador el tiempo de respuesta a cada uno de los 20 objetivos consecutivos.
+La sección **Pruebas cognitivas** del perfil incluye Praxis Motora. Mide en el navegador el tiempo de respuesta a cada uno de los 20 objetivos consecutivos. Las rondas completas se guardan en el historial de la cuenta y en `praxis_motora` dentro del expediente JSON.
 
 ## Chat de apoyo
 
