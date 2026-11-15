@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -59,8 +59,12 @@ def create_user(path, email, name, password_hash, expediente, *, existing_user=N
 
 def expediente_for_user(path, user_id):
     with closing(sqlite3.connect(path)) as db:
-        row = db.execute("SELECT contenido FROM expedientes WHERE user_id = ?", (user_id,)).fetchone()
-        return json.loads(row[0]) if row else None
+        return read_expediente(db, user_id)
+
+
+def read_expediente(db, user_id):
+    row = db.execute("SELECT contenido FROM expedientes WHERE user_id = ?", (user_id,)).fetchone()
+    return json.loads(row[0]) if row else None
 
 
 def find_user(path, email):
@@ -162,10 +166,27 @@ def save_turn(path, draft, messages, vitals, details, status=None):
 def history(path, user_id, profile):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
-        return db.execute(
-            "SELECT checkups.*, checkup_details.contenido AS details "
-            "FROM checkups LEFT JOIN checkup_details ON checkup_id = checkups.id "
-            "WHERE user_id = ? AND profile = ? AND finished_at IS NOT NULL "
-            "ORDER BY id DESC",
-            (user_id, profile),
-        ).fetchall()
+        return read_history(db, user_id, profile)
+
+
+def read_history(db, user_id, profile):
+    return db.execute(
+        "SELECT checkups.*, checkup_details.contenido AS details "
+        "FROM checkups LEFT JOIN checkup_details ON checkup_id = checkups.id "
+        "WHERE user_id = ? AND profile = ? AND finished_at IS NOT NULL "
+        "ORDER BY id DESC",
+        (user_id, profile),
+    ).fetchall()
+
+
+@contextmanager
+def expediente_para_archivo(path, user_id):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.row_factory = sqlite3.Row
+        # Serializa la escritura de archivos con los cambios de SQLite.
+        db.execute("BEGIN IMMEDIATE")
+        expediente = read_expediente(db, user_id)
+        if expediente is None:
+            yield None, []
+        else:
+            yield expediente, read_history(db, user_id, expediente["_id"])
