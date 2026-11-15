@@ -17,7 +17,7 @@ python main.py
 
 Abre [MediSpace](http://127.0.0.1:5000/). En **Crear cuenta**, escribe el nombre, el ID del astronauta y una contraseña de 8 a 128 caracteres. Adjunta el historial médico en formato JSON. El nombre y el ID deben coincidir con los del archivo. Para iniciar sesión escribe esos tres datos.
 
-El historial usa el formato del [expediente de astronauta](database/expediente-astronauta-nuevo.json). Los campos obligatorios son `_id`, el identificador único, y `astronauta.nombre`. Las listas `misiones`, `alergias`, `antecedentes`, `medicamentos` y `chequeos` pueden quedar vacías si todavía no hay registros.
+Si todavía no tienes un JSON, en **Crear cuenta → Crear un historial médico JSON** puedes llenar el formulario y descargar el archivo. Los campos obligatorios del JSON son `_id`, el identificador único, y `astronauta.nombre`. Las listas `misiones`, `alergias`, `antecedentes`, `medicamentos` y `chequeos` pueden quedar vacías si todavía no hay registros.
 
 Cada chequeo completado aparece en la lista `chequeos` del expediente exportado. Con SQLite, el servidor también reescribe una copia al iniciar sesión y al terminar un chequeo. La copia queda en `medispace.sqlite3.expedientes`, junto a la base de datos. Si cambias `MEDISPACE_DATABASE`, la carpeta se crea junto al archivo de SQLite con el sufijo `.expedientes`.
 
@@ -56,7 +56,7 @@ Si la misión dura menos que un intervalo, la primera evaluación de ese tipo ve
 2. Copia los rangos de salida de tu servicio en **Render → Connect → Outbound** y agrégalos a **Network Access** en Atlas. [Direcciones de salida de Render](https://render.com/docs/outbound-ip-addresses)
 3. En **Atlas → Connect → Drivers → Python**, copia la URI completa con las credenciales del usuario de base de datos. Guárdala como `MONGODB_URI` en **Render → Environment**. MediSpace utiliza la base `medispace`. Si eliges otro nombre, agrega `MONGODB_DB` y concede permisos sobre esa base. Conserva `MEDISPACE_SECRET_KEY` en la configuración de Render. [Conexión con PyMongo](https://www.mongodb.com/docs/atlas/driver-connection/) · [Variables de Render](https://render.com/docs/configure-environment-variables)
 4. Despliega. MediSpace comprueba la conexión y crea sus índices al arrancar. Con `MONGODB_URI`, las cuentas, expedientes, monitoreos y chats se guardan en Atlas. Sin esa variable, el servidor usa SQLite.
-5. Abre **Crear cuenta**, escribe el nombre y el ID de `database/expediente-astronauta-nuevo.json`, elige una contraseña y adjunta el archivo. Guarda un monitoreo y una prueba cognitiva. Reinicia el servicio e inicia sesión con los tres campos para verificar que sigan en el historial. En Atlas, las cuentas se guardan en `usuarios` y los monitoreos en `monitoreos`, vinculados por el ID interno de la cuenta.
+5. Genera un expediente con datos ficticios desde **Crear cuenta → Crear un historial médico JSON**. En **Crear cuenta**, escribe el nombre y el ID del archivo, elige una contraseña y adjunta el JSON. Guarda un monitoreo y una prueba cognitiva. Reinicia el servicio e inicia sesión con los tres campos para verificar que sigan en el historial. En Atlas, las cuentas se guardan en `usuarios` y los monitoreos en `monitoreos`, vinculados por el ID interno de la cuenta.
 
 La base Atlas empieza vacía. Los JSON siguen sirviendo para importar y exportar expedientes. Con Atlas, la exportación se genera cuando la solicitas y la app guarda el expediente en MongoDB.
 

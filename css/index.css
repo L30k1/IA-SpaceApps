@@ -151,6 +151,7 @@ body::before {
 .historial-carga { display: grid; gap: 8px; }
 .historial-carga p { color: var(--text-muted); font-size: 0.85rem; }
 .historial-carga input { max-width: 100%; }
+.historial-enlace { color: var(--accent); }
 
 .main-area {
   flex: 1;
