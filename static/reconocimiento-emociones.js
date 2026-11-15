@@ -51,7 +51,14 @@
     const alto = imagen.naturalHeight / 3;
     avance.textContent = t('Rostro {actual} de {total}', { actual: respuestas.length + 1, total: datos.ensayos.length });
     contexto.drawImage(imagen, casilla % 4 * ancho, Math.floor(casilla / 4) * alto, ancho, alto,
-      0, 0, lienzo.width, lienzo.height);
+      0, 0, lienzo.width, lienzo.width);
+    contexto.fillStyle = '#071229';
+    contexto.fillRect(0, lienzo.width, lienzo.width, lienzo.height - lienzo.width);
+    contexto.fillStyle = '#f0f6ff';
+    contexto.font = '600 19px sans-serif';
+    contexto.textAlign = 'center';
+    contexto.textBaseline = 'middle';
+    contexto.fillText(t('Imagen generada por IA'), lienzo.width / 2, (lienzo.width + lienzo.height) / 2);
     exposicion = setTimeout(() => {
       contexto.clearRect(0, 0, lienzo.width, lienzo.height);
       opciones.disabled = false;

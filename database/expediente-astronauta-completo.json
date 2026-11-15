@@ -1,6 +1,11 @@
 {
   "_id": "AS-LTORRES-91D6",
   "tipo_datos": "ficticios",
+  "procedencia": {
+    "tipo": "ejemplo_sintetico",
+    "herramienta": "ChatGPT / OpenAI Codex",
+    "uso": "Datos ficticios de ejemplo elaborados con asistencia de IA."
+  },
   "astronauta": {
     "nombre": "Lucía Torres",
     "rol": "Astronauta"

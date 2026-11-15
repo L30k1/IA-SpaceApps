@@ -1,0 +1,56 @@
+{
+  "proyecto": "MediSpace",
+  "codigo": {
+    "tipo": "asistido_por_ia",
+    "herramientas": ["ChatGPT", "OpenAI Codex"],
+    "alcance": ["Python", "HTML", "CSS", "JavaScript", "documentacion"],
+    "uso": "Propuestas, generación y revisión de fragmentos durante el desarrollo",
+    "trazabilidad_por_linea": false
+  },
+  "imagenes": [
+    {
+      "archivos": ["static/emociones/rostros-a.png", "static/emociones/rostros-b.png"],
+      "tipo": "generado_por_ia",
+      "herramienta": null,
+      "uso": "Estímulos del ejercicio ERT",
+      "marca_visible": "Imagen generada por IA",
+      "ubicacion_marca": "Canvas del ejercicio"
+    },
+    {
+      "archivos": ["static/marca/medispace-emblema.jpeg", "static/marca/medispace-logotipo.jpeg"],
+      "tipo": "generado_por_ia",
+      "herramienta": "ChatGPT",
+      "uso": "Emblema y logotipo de MediSpace aportados por el equipo",
+      "marca_visible": "Imágenes generadas por IA · ChatGPT",
+      "ubicacion_marca": "Bloque de marca compartido de MediSpace"
+    }
+  ],
+  "videos_generados_por_ia": [],
+  "audio": [
+    {
+      "tipo": "generado_por_ia",
+      "herramienta": "ElevenLabs",
+      "ruta": "/voz/elevenlabs",
+      "metadatos": {"formato": "ID3v1.1", "comentario": "Generado por IA - ElevenLabs"}
+    },
+    {
+      "tipo": "sintesis_de_voz_del_navegador",
+      "herramienta": "Web Speech API",
+      "archivo_exportado": false
+    }
+  ],
+  "datos": [
+    {
+      "tipo": "ejemplo_sintetico",
+      "herramientas": ["ChatGPT", "OpenAI Codex"],
+      "archivo": "database/expediente-astronauta-completo.json",
+      "campo_metadatos": "procedencia"
+    },
+    {
+      "tipo": "generado_por_ia",
+      "herramienta": "Google Gemini",
+      "modulos": ["monitoreo", "seguimiento psicológico", "chat de apoyo", "chat de emergencia"],
+      "campo_metadatos": "procedencia"
+    }
+  ]
+}

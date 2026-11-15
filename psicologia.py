@@ -1,6 +1,9 @@
 from datetime import date, timedelta
 
-from asistente import consultar_gemini, consultar_respuesta, leer_json_ia, limpiar_conversacion, texto_respuesta, texto_valido
+from asistente import (
+    PROCEDENCIA_GEMINI, consultar_gemini, consultar_respuesta, leer_json_ia, limpiar_conversacion,
+    texto_respuesta, texto_valido,
+)
 from idioma import traducir as t
 from database.expedientes import fecha_utc, texto_requerido
 
@@ -197,7 +200,9 @@ def seguimiento_psicologico(registro, modulo):
             "required": ["resumen", "acciones"],
         },
     )
-    return validar_seguimiento(leer_json_ia(respuesta), leer_texto=texto_respuesta)
+    orientacion = validar_seguimiento(leer_json_ia(respuesta), leer_texto=texto_respuesta)
+    orientacion["procedencia"] = PROCEDENCIA_GEMINI.copy()
+    return orientacion
 
 
 def responder_chat_psicologico(mensajes):
@@ -225,7 +230,12 @@ def validar_seguimiento(datos, *, leer_texto=texto_valido):
     acciones = datos.get("acciones")
     if not isinstance(acciones, list) or not 1 <= len(acciones) <= 3:
         raise ValueError("La IA devolvió acciones inválidas.")
-    return {
+    resultado = {
         "resumen": leer_texto(datos.get("resumen"), 600),
         "acciones": [leer_texto(accion, 300) for accion in acciones],
     }
+    origen = datos.get("procedencia")
+    if (isinstance(origen, dict) and origen.get("tipo") == "generado_por_ia"
+            and origen.get("proveedor") == "Google Gemini" and isinstance(origen.get("modelo"), str)):
+        resultado["procedencia"] = {campo: origen[campo] for campo in ("tipo", "proveedor", "modelo")}
+    return resultado

@@ -2,6 +2,10 @@
 
 MediSpace registra chequeos de astronautas y prepara información de seguimiento para su equipo médico. Python sirve la aplicación y SQLite guarda las cuentas y el historial.
 
+## Uso de IA en el proyecto
+
+El [informe de uso de SI](docs/uso-de-ia.md) describe dónde se utilizó IA en las imágenes, el audio, el código y los datos. El [inventario de procedencia](docs/procedencia-ia.json) registra los componentes y sus herramientas en formato JSON.
+
 ## Abrir con doble clic en Windows
 
 Abre `Abrir MediSpace.cmd` desde el Explorador de archivos. Si te pide la clave de IA, pégala en la ventana para habilitar los chequeos. Con el campo vacío puedes consultar el historial. La clave introducida dura lo que dure esa sesión.

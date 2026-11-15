@@ -23,7 +23,7 @@ from werkzeug.utils import secure_filename
 import db
 from historial_formulario import SECCIONES, ajustar_filas, filas_formulario, generar_historial
 from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
-from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, texto_respuesta
+from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, texto_respuesta, turno_ia
 from calendario_mision import ZONA_MISION, calendario, fechas_mision, resumir_ejercicio, rutina_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
@@ -1064,7 +1064,7 @@ def create_app(database=None):
                     error = "La IA no pudo responder. Tu mensaje se conserva en el campo para reintentar."
                     estado = 503
                 else:
-                    nuevo_turno = [actualizados[-1], {"role": "ai", "text": respuesta}]
+                    nuevo_turno = [actualizados[-1], turno_ia(respuesta)]
                     if almacen.save_psych_chat(database, usuario, revision, nuevo_turno, emergencia=emergencia):
                         if quiere_json:
                             return {"revision": revision + 1, "mensajes": nuevo_turno}
@@ -1102,7 +1102,7 @@ def create_app(database=None):
                     pregunta = generar_pregunta({"mensajes": []})
                 except ERRORES_GEMINI:
                     return render_template("chequeo.html", expediente=expediente, bloqueado=MENSAJE_GEMINI), 503
-                almacen.open_checkup(database, usuario, astronauta, {"role": "ai", "text": pregunta})
+                almacen.open_checkup(database, usuario, astronauta, turno_ia(pregunta))
             return redirect(url_for("checkup"), 303)
         if draft is None:
             return redirect(url_for("profile"), 303)
@@ -1179,7 +1179,7 @@ def create_app(database=None):
                             details["comparacion_referencias"] = comparacion
                     else:
                         pregunta = generar_pregunta(conversacion, contexto)
-                        updated.append({"role": "ai", "text": pregunta})
+                        updated.append(turno_ia(pregunta))
                         if memoria:
                             details["memoria_ia"] = memoria
                 except ERRORES_GEMINI:
