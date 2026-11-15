@@ -23,7 +23,7 @@ from werkzeug.utils import secure_filename
 import db
 from historial_formulario import SECCIONES, filas_formulario, generar_historial
 from idioma import fecha_corta, idioma_actual, idioma_elegido, traducir as t
-from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
+from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion, texto_respuesta
 from calendario_mision import ZONA_MISION, calendario, fechas_mision
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, LIMITES_CAPTURA, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot,
@@ -188,6 +188,13 @@ def create_app(database=None):
     )
     app.jinja_env.globals["t"] = t
     app.add_template_filter(fecha_corta, "fecha_corta")
+
+    @app.template_filter("respuesta_ia")
+    def mostrar_respuesta_ia(valor):
+        try:
+            return texto_respuesta(valor)
+        except ValueError:
+            return t("Esta respuesta anterior no está disponible en un formato legible.")
     uri_mongo = os.getenv("MONGODB_URI", "").strip() if database is None else ""
     if uri_mongo:
         import db_mongo as almacen

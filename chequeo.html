@@ -92,7 +92,7 @@
           <div class="chat-container" aria-label="{{ t('Conversación') }}">
             {% for message in messages %}
             <div class="msg-row {{ message.role }}">
-              <div class="msg-bubble"><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong><br><span{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text }}</span></div>
+              <div class="msg-bubble"><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong><br><span{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text | respuesta_ia if message.role == 'ai' else message.text }}</span></div>
             </div>
             {% endfor %}
           </div>

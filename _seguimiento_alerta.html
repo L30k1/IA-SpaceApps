@@ -3,17 +3,17 @@
 <div class="info-card">
   <h3>{{ t('Evaluación de IA') }}</h3>
   <p>{{ t('El equipo médico debe revisar estas sugerencias de seguimiento.') }}</p>
-  <p>{{ evaluacion.resumen }}</p>
+  <p>{{ evaluacion.resumen | respuesta_ia }}</p>
   <ul>
     {% for motivo in evaluacion.motivos %}
-    <li>{{ motivo }}</li>
+    <li>{{ motivo | respuesta_ia }}</li>
     {% endfor %}
   </ul>
   {% if evaluacion.acciones %}
   <h3>{{ t('Recomendaciones y acciones de seguimiento') }}</h3>
   <ol class="acciones-alerta">
     {% for paso in evaluacion.acciones %}
-    <li><strong>{{ paso.recomendacion }}</strong><br>{{ paso.accion }}</li>
+    <li><strong>{{ paso.recomendacion | respuesta_ia }}</strong><br>{{ paso.accion | respuesta_ia }}</li>
     {% endfor %}
   </ol>
   {% endif %}

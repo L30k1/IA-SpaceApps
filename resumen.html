@@ -155,7 +155,7 @@
           <h3>{{ t('Conversación del chequeo') }}</h3>
           <ul>
             {% for message in latest.conversacion %}
-            <li><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong> {{ message.text }}</li>
+            <li><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong> {{ message.text | respuesta_ia if message.role == 'ai' else message.text }}</li>
             {% endfor %}
           </ul>
         </div>

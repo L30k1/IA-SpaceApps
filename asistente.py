@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 from google import genai
 from google.genai import types
@@ -31,11 +32,18 @@ ESQUEMA_EVALUACION = {
     },
     "required": ["estado", "resumen", "motivos", "acciones"],
 }
+ESQUEMA_RESPUESTA = {
+    "type": "object",
+    "properties": {"respuesta": {"type": "string"}},
+    "required": ["respuesta"],
+}
 
 
 def consultar_gemini(datos, instruccion, **config):
     idioma = "inglés" if idioma_actual() == "en" else "español"
-    formato_idioma = f"Redacta el texto para el usuario en {idioma}. Conserva las claves y los valores enumerados del esquema JSON."
+    formato_idioma = f"Redacta el texto para el usuario en {idioma}."
+    if "response_json_schema" in config:
+        formato_idioma += " Usa el esquema JSON únicamente para empaquetar la salida. No repitas los datos de entrada."
     with genai.Client(
         api_key=os.environ["GEMINI_API_KEY"].strip(),
         http_options=types.HttpOptions(timeout=12000),
@@ -54,6 +62,55 @@ def texto_valido(valor, limite):
     return valor.strip()
 
 
+def leer_json_ia(texto):
+    try:
+        return json.loads(texto)
+    except (ValueError, RecursionError):
+        raise ValueError("La respuesta de IA contiene un formato inválido.") from None
+
+
+def texto_respuesta(valor, limite=2400):
+    texto = texto_valido(valor, 6000)
+    if texto.startswith("```") and texto.endswith("```"):
+        texto = texto.partition("\n")[2][:-3].strip()
+    if texto.startswith(("{", "[")):
+        datos = leer_json_ia(texto)
+        if not isinstance(datos, dict):
+            raise ValueError("La respuesta de IA contiene un formato inválido.")
+        if "respuesta" in datos:
+            texto = datos["respuesta"]
+        else:
+            turnos = datos.get("conversacion")
+            ultimo = turnos[-1] if isinstance(turnos, list) and turnos else None
+            texto = ultimo.get("text") if isinstance(ultimo, dict) and ultimo.get("role") == "ai" else None
+    texto = texto_valido(texto, limite)
+    if re.search(r'(?m)^\s*(?:```|\{|\[\s*\{)|\{\s*"(?:conversacion|respuesta|role|mensajes)"\s*:', texto):
+        raise ValueError("La respuesta de IA contiene un formato inválido.")
+    return texto
+
+
+def limpiar_conversacion(mensajes):
+    limpios = []
+    for turno in mensajes:
+        if turno["role"] != "ai":
+            limpios.append(turno)
+            continue
+        try:
+            limpios.append({**turno, "text": texto_respuesta(turno["text"])})
+        except ValueError:
+            continue
+    return limpios
+
+
+def consultar_respuesta(datos, instruccion, *, max_output_tokens, limite):
+    salida = consultar_gemini(
+        datos, instruccion + " Escribe únicamente el mensaje nuevo en el campo respuesta, con texto natural.",
+        max_output_tokens=max_output_tokens, response_mime_type="application/json",
+        response_json_schema=ESQUEMA_RESPUESTA,
+    )
+    return texto_respuesta(salida, limite)
+
+
 def preparar_conversacion(mensajes, memoria=None):
     """Mantiene los mensajes recientes y resume los previos cuando crece el historial."""
     memoria = memoria or {}
@@ -61,24 +118,25 @@ def preparar_conversacion(mensajes, memoria=None):
     pendientes = mensajes[desde:]
     if sum(len(turno["text"]) for turno in pendientes) > 32000 and len(pendientes) > 12:
         hasta = len(mensajes) - 12
-        resumen = consultar_gemini(
-            {"resumen_previo": memoria.get("resumen", ""), "mensajes": mensajes[desde:hasta]},
+        resumen = consultar_respuesta(
+            {"resumen_previo": memoria.get("resumen", ""), "mensajes": limpiar_conversacion(mensajes[desde:hasta])},
             "Actualiza el resumen para el equipo médico. Conserva los síntomas reportados, "
             "inicio, evolución, contradicciones, antecedentes, mediciones con unidades y "
             "cualquier dato que falte aclarar. Distingue lo dicho por el astronauta de las "
             "preguntas del asistente. No inventes datos ni hagas inferencias clínicas.",
             max_output_tokens=1800,
+            limite=6000,
         )
         memoria = {"hasta": hasta, "resumen": resumen}
         pendientes = mensajes[hasta:]
-    conversacion = {"mensajes": pendientes}
+    conversacion = {"mensajes": limpiar_conversacion(pendientes)}
     if memoria:
         conversacion["resumen_previo"] = memoria["resumen"]
     return conversacion, memoria
 
 
 def generar_pregunta(conversacion, contexto=None):
-    pregunta = consultar_gemini(
+    return consultar_respuesta(
         {"conversacion": conversacion, "contexto": contexto or {}},
         "Si la conversación está vacía, inicia con una pregunta breve sobre cómo se siente "
         "la persona. Si ya respondió, formula una sola pregunta distinta que "
@@ -86,8 +144,8 @@ def generar_pregunta(conversacion, contexto=None):
         "personal, puedes preguntar si la medición se tomó en condiciones comparables. "
         "Evita diagnósticos y recomendaciones médicas.",
         max_output_tokens=512,
+        limite=500,
     )
-    return texto_valido(pregunta, 500)
 
 
 def evaluar_chequeo(conversacion, contexto):
@@ -113,7 +171,7 @@ def evaluar_chequeo(conversacion, contexto):
         response_mime_type="application/json",
         response_json_schema=ESQUEMA_EVALUACION,
     )
-    resultado = json.loads(respuesta)
+    resultado = leer_json_ia(respuesta)
     if not isinstance(resultado, dict) or resultado.get("estado") not in ("ESTABLE", "ALERTA", "INDETERMINADO"):
         raise ValueError("Gemini devolvió un estado inválido.")
     estado = resultado["estado"]
@@ -126,11 +184,11 @@ def evaluar_chequeo(conversacion, contexto):
         raise ValueError("Gemini devolvió acciones inválidas.")
     return {
         "estado": estado,
-        "resumen": texto_valido(resultado.get("resumen"), 500),
-        "motivos": [texto_valido(motivo, 300) for motivo in motivos],
+        "resumen": texto_respuesta(resultado.get("resumen"), 500),
+        "motivos": [texto_respuesta(motivo, 300) for motivo in motivos],
         "acciones": [
-            {"recomendacion": texto_valido(item.get("recomendacion"), 250),
-             "accion": texto_valido(item.get("accion"), 350)}
+            {"recomendacion": texto_respuesta(item.get("recomendacion"), 250),
+             "accion": texto_respuesta(item.get("accion"), 350)}
             for item in acciones
         ],
     }

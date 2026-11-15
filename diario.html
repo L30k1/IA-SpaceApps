@@ -72,9 +72,9 @@
       <section class="info-card">
         <h2>{{ t('Seguimiento') }}</h2>
         {% if actual.seguimiento_ia %}
-        <p>{{ actual.seguimiento_ia.resumen }}</p>
+        <p>{{ actual.seguimiento_ia.resumen | respuesta_ia }}</p>
         <ul>
-          {% for accion in actual.seguimiento_ia.acciones %}<li>{{ accion }}</li>{% endfor %}
+          {% for accion in actual.seguimiento_ia.acciones %}<li>{{ accion | respuesta_ia }}</li>{% endfor %}
         </ul>
         <p>{{ t('El equipo responsable debe revisar estas sugerencias.') }}</p>
         {% elif ia_disponible %}
