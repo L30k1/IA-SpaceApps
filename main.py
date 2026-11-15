@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from uuid import uuid4
 
 import httpx2
 from flask import Flask, Response, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
@@ -16,6 +17,7 @@ from werkzeug.utils import secure_filename
 import db
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
 from database.expedientes import FASES, SIGNOS, fecha_utc, leer_expediente
+from psicologia import ESCALA, REACTIVOS, VERSION, leer_pvt, leer_respuestas, puntuar, seguimiento_diario, validar_diario
 
 
 ROOT = Path(__file__).resolve().parent
@@ -26,14 +28,16 @@ ETIQUETAS_RESULTADO = {
     "INDETERMINADO": "Información por aclarar",
 }
 ERRORES_GEMINI = (APIError, httpx2.HTTPError, ValueError)
-MENSAJE_GEMINI = "Gemini no devolvió una respuesta válida. Vuelve a intentarlo."
+MENSAJE_GEMINI = "La IA no devolvió una respuesta válida. Vuelve a intentarlo."
 
 
 def leer_expediente_subido():
     archivo = request.files.get("expediente")
     if not archivo or not archivo.filename.lower().endswith(".json"):
         raise ValueError("Selecciona tu expediente en formato JSON.")
-    return leer_expediente(archivo.read())
+    expediente = leer_expediente(archivo.read())
+    validar_diario(expediente)
+    return expediente
 
 
 def historial_expediente(expediente, filas):
@@ -121,7 +125,7 @@ def create_app(database=None):
 
     @app.after_request
     def proteger_paginas(response):
-        if request.endpoint in {"index", "profile", "checkup", "summary", "download_expediente", "logout"}:
+        if request.endpoint in {"index", "profile", "checkup", "summary", "diario", "download_expediente", "logout"}:
             response.cache_control.no_store = True
         return response
 
@@ -146,8 +150,8 @@ def create_app(database=None):
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
                 flash("El formulario caducó. Vuelve a completar el paso.")
-                if request.endpoint == "checkup" and expediente_actual():
-                    return redirect(url_for("checkup"), 303)
+                if request.endpoint in {"checkup", "diario"} and expediente_actual():
+                    return redirect(url_for(request.endpoint), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
 
@@ -227,13 +231,86 @@ def create_app(database=None):
     def expediente_local_script():
         return send_from_directory(ROOT / "static", "expediente-local.js")
 
+    @app.route("/psicologia/diario", methods=["GET", "POST"])
+    def diario():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        try:
+            validar_diario(expediente)
+        except ValueError as exc:
+            abort(422, description=str(exc))
+        usuario = session["user_id"]
+        registros = sorted(
+            expediente.get("diario_psicologico", []),
+            key=lambda registro: fecha_utc(registro["fecha_hora"]),
+            reverse=True,
+        )
+        seleccionado = request.args.get("registro")
+        actual = next((registro for registro in registros if registro["id"] == seleccionado), None)
+        if seleccionado and actual is None:
+            abort(404)
+        ia_disponible = bool(os.getenv("GEMINI_API_KEY", "").strip())
+        registro_id = uuid4().hex
+        error = None
+        if request.method == "POST":
+            accion = request.form.get("accion", "guardar")
+            if accion == "seguimiento":
+                if actual is None:
+                    abort(404)
+                registro = actual
+            elif accion in {"guardar", "guardar-ia"}:
+                registro_id = request.form.get("registro_id", "")
+                if not re.fullmatch(r"[0-9a-f]{32}", registro_id):
+                    abort(400)
+                if any(registro["id"] == registro_id for registro in registros):
+                    return redirect(url_for("diario", registro=registro_id), 303)
+                try:
+                    respuestas = leer_respuestas(request.form)
+                    pvt = leer_pvt(request.form)
+                    nota = request.form.get("nota", "").strip()
+                    if len(nota) > 600:
+                        raise ValueError("La nota admite hasta 600 caracteres.")
+                except ValueError as exc:
+                    error = str(exc)
+                else:
+                    registro = {
+                        "id": registro_id, "version": VERSION,
+                        "fecha_hora": datetime.now(timezone.utc).isoformat(),
+                        "respuestas": respuestas, "nota": nota, "pvt": pvt,
+                        "puntuacion": puntuar(respuestas), "seguimiento_ia": None,
+                    }
+                    if not db.save_daily_report(database, usuario, registro):
+                        return redirect(url_for("diario", registro=registro_id), 303)
+            else:
+                abort(400)
+            if error is None:
+                if accion in {"seguimiento", "guardar-ia"} and not registro.get("seguimiento_ia"):
+                    if ia_disponible:
+                        try:
+                            orientacion = seguimiento_diario(registro)
+                        except ERRORES_GEMINI:
+                            flash("El registro se guardó. Puedes volver a solicitar el seguimiento de IA.")
+                        else:
+                            db.save_daily_followup(database, usuario, registro["id"], orientacion)
+                    else:
+                        flash("El registro se guardó. La IA aún no está configurada.")
+                sincronizar_archivo_expediente(usuario)
+                return redirect(url_for("diario", registro=registro["id"], actualizar_archivo=1), 303)
+        return render_template(
+            "diario.html", expediente=expediente, registros=registros, actual=actual,
+            reactivos=REACTIVOS, escala=ESCALA, registro_id=registro_id, error=error,
+            ia_disponible=ia_disponible, formulario=request.form,
+            actualizar_archivo=actual is not None and request.args.get("actualizar_archivo") == "1",
+        )
+
     @app.route("/chequeo.html", methods=["GET", "POST"])
     def checkup():
         expediente = expediente_actual()
         if expediente is None:
             return redirect(url_for("index"))
         if not os.getenv("GEMINI_API_KEY", "").strip():
-            return render_template("chequeo.html", expediente=expediente, bloqueado="Gemini aún no está configurado en el servidor.")
+            return render_template("chequeo.html", expediente=expediente, bloqueado="La IA aún no está configurada en el servidor.")
 
         usuario, astronauta = session["user_id"], expediente["_id"]
         draft = db.get_open_checkup(database, usuario, astronauta)

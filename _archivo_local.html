@@ -1,0 +1,9 @@
+<div id="archivo-local" class="info-card" data-expediente-id="{{ expediente._id }}"
+     data-url="{{ url_for('download_expediente') }}" data-auto="{{ '1' if actualizar_archivo else '0' }}" hidden>
+  <h3>Archivo JSON original</h3>
+  <p id="estado-archivo-local" role="status"></p>
+  <div class="file-actions">
+    <button id="vincular-archivo-local" type="button" class="step-pill" hidden>Vincular archivo original</button>
+    <button id="guardar-archivo-local" type="button" class="step-pill" hidden>Actualizar archivo original</button>
+  </div>
+</div>

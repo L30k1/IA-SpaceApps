@@ -55,9 +55,9 @@
         {% elif not draft %}
         <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <p>Gemini recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.</p>
+          <p>La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.</p>
           {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
-          <button name="iniciar" value="1" type="submit" class="btn-send">Iniciar con Gemini</button>
+          <button name="iniciar" value="1" type="submit" class="btn-send">Iniciar con IA</button>
         </form>
         {% else %}
         <form class="checkup-form" method="post" action="{{ url_for('checkup') }}">

@@ -1,0 +1,46 @@
+.diario { gap: 16px; min-width: 0; }
+.diario .top-header { flex-wrap: wrap; gap: 12px; margin: 0; }
+.diario h1 { font-size: 1.45rem; }
+.diario h2 { font-size: 1.05rem; color: var(--accent); }
+.diario fieldset { border: 0; min-inline-size: 0; padding: 8px 0; }
+.diario legend { font-weight: 600; margin-bottom: 4px; }
+.diario .btn-primary { margin: 0; }
+.diario-error { color: #fca5a5; }
+.diario-link { color: var(--accent); }
+
+.escala-diario {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 44px));
+  gap: 8px;
+}
+.escala-diario label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.escala-diario label:has(input:checked) { background: #164d93; }
+.escala-diario input { accent-color: var(--accent); }
+
+.campo-diario { display: flex; flex-direction: column; gap: 6px; }
+.campo-diario input, .campo-diario textarea {
+  min-width: 0;
+  padding: 8px;
+  color: var(--text-main);
+  background: var(--card-bg);
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+}
+.datos-diario { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+.datos-diario dt { color: var(--text-muted); }
+.datos-diario dd { font-weight: 600; }
+.diario details > :not(summary) { margin-top: 8px; }
+
+@media (max-width: 640px) {
+  .diario { padding: 18px; }
+  .diario .info-card { padding: 14px; }
+}

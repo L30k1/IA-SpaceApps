@@ -64,15 +64,7 @@
 
       <section class="view active">
         {% if view in ['historial', 'resultados'] %}
-        <div id="archivo-local" class="info-card" data-expediente-id="{{ expediente._id }}"
-             data-url="{{ url_for('download_expediente') }}" data-auto="{{ '1' if actualizar_archivo else '0' }}" hidden>
-          <h3>Archivo JSON original</h3>
-          <p id="estado-archivo-local" role="status"></p>
-          <div class="file-actions">
-            <button id="vincular-archivo-local" type="button" class="step-pill" hidden>Vincular archivo original</button>
-            <button id="guardar-archivo-local" type="button" class="step-pill" hidden>Actualizar archivo original</button>
-          </div>
-        </div>
+        {% include '_archivo_local.html' %}
         {% endif %}
         {% if view == 'historial' %}
         <h2 class="history-heading">Historial clínico de {{ expediente.astronauta.nombre }}</h2>
@@ -104,7 +96,7 @@
           </div>
         </div>
         {% if not latest.evaluacion_ia and latest.estado == 'ALERTA' %}
-        <p>Este chequeo se guardó antes de habilitar la evaluación de Gemini.</p>
+        <p>Este chequeo se guardó antes de habilitar la evaluación de IA.</p>
         {% endif %}
         {% include '_seguimiento_alerta.html' %}
         <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">Ver historial</a>

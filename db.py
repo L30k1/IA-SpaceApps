@@ -67,6 +67,40 @@ def read_expediente(db, user_id):
     return json.loads(row[0]) if row else None
 
 
+def save_daily_report(path, user_id, registro):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        expediente = read_expediente(db, user_id)
+        if expediente is None:
+            return False
+        diario = expediente.setdefault("diario_psicologico", [])
+        if any(previo["id"] == registro["id"] for previo in diario):
+            return False
+        diario.append(registro)
+        db.execute(
+            "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
+            (json.dumps(expediente, ensure_ascii=False), user_id),
+        )
+        return True
+
+
+def save_daily_followup(path, user_id, registro_id, seguimiento):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        expediente = read_expediente(db, user_id)
+        if expediente is None:
+            return False
+        for registro in expediente.get("diario_psicologico", []):
+            if registro["id"] == registro_id and not registro.get("seguimiento_ia"):
+                registro["seguimiento_ia"] = seguimiento
+                db.execute(
+                    "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
+                    (json.dumps(expediente, ensure_ascii=False), user_id),
+                )
+                return True
+        return False
+
+
 def find_user(path, email):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
