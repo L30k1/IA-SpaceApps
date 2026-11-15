@@ -195,22 +195,6 @@ body {
 }
 .action-tile span { font-weight: 600; font-size: 0.98rem; }
 
-.module-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.module-actions .action-tile {
-  padding: 14px 8px;
-  color: var(--text-main);
-  text-align: center;
-}
-.module-actions .action-tile:disabled {
-  color: var(--text-muted);
-  cursor: default;
-}
-.module-actions small { font-size: 0.75rem; }
-
 .btn-primary {
   width: 100%;
   padding: 14px 20px;
