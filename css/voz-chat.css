@@ -12,5 +12,6 @@
   cursor: pointer;
 }
 .voz-chat button:disabled { opacity: 0.55; cursor: not-allowed; }
-.voz-chat audio { max-width: 100%; }
+.voz-chat [data-voz-dictar] { touch-action: none; user-select: none; }
+.voz-chat [data-voz-dictar][aria-pressed="true"] { background: #8b253b; border-color: #fca5a5; }
 .voz-chat [data-voz-estado]:empty { display: none; }

@@ -50,7 +50,7 @@
       </header>
 
       <!-- PANTALLA 5: EVALUACIÓN FÍSICA Y EMOCIONAL -->
-      <section id="view-chat" class="view active">
+      <section id="view-chat" class="view active" data-chat-voz="medico"{% if draft and draft['revision'] == 0 %} data-voz-inicial{% endif %}>
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ message }}</p>{% endfor %}
         {% if bloqueado %}
         <p role="status">{{ bloqueado }}</p>
@@ -96,9 +96,7 @@
           </div>
 
           {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
-          {% with chat_voz='medico', turno_voz=draft['id'] ~ ':' ~ draft['revision'] %}
-            {% include '_voz_chat.html' %}
-          {% endwith %}
+          {% include '_voz_chat.html' %}
           <div class="chat-input-bar">
             <input type="text" name="answer" aria-label="Tu respuesta" placeholder="Escribe tu respuesta..." value="{{ answer }}" maxlength="1000" autocomplete="off" data-voz-mensaje>
             <button type="submit" class="btn-send" name="accion" value="enviar">Enviar</button>
