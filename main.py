@@ -18,8 +18,16 @@ from database.expedientes import DEMO_ID, FASES, SIGNOS, fecha_utc, leer_expedie
 
 
 ROOT = Path(__file__).resolve().parent
+MODOS_ACCESO = {"login", "login-json", "register"}
 ERRORES_GEMINI = (APIError, httpx2.HTTPError, ValueError)
 MENSAJE_GEMINI = "Gemini no devolvió una respuesta válida. Vuelve a intentarlo."
+
+
+def leer_expediente_subido(*, permitir_demo=False):
+    archivo = request.files.get("expediente")
+    if not archivo or not archivo.filename.lower().endswith(".json"):
+        raise ValueError("Selecciona tu expediente en formato JSON.")
+    return leer_expediente(archivo.read(), permitir_demo=permitir_demo)
 
 
 def registros_clinicos(database, user_id, expediente):
@@ -111,13 +119,13 @@ def create_app(database=None):
                 if request.endpoint == "checkup" and expediente_actual():
                     return redirect(url_for("checkup"), 303)
                 mode = request.args.get("mode")
-                return redirect(url_for("index", mode="register" if mode == "register" else None), 303)
+                return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
 
     @app.route("/", methods=["GET", "POST"])
     @app.route("/index.html", methods=["GET", "POST"])
     def index():
         mode = request.args.get("mode", "login")
-        if mode not in {"login", "register"}:
+        if mode not in MODOS_ACCESO:
             abort(404)
         if expediente_actual():
             return redirect(url_for("profile"), 303)
@@ -126,21 +134,29 @@ def create_app(database=None):
         error = None
         if request.method == "POST":
             password = request.form.get("password", "")
-            if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 254:
+            if mode == "login-json":
+                try:
+                    expediente = leer_expediente_subido(permitir_demo=True)
+                except ValueError as exc:
+                    error = str(exc)
+                else:
+                    user = db.find_user_by_astronauta(database, expediente["_id"])
+                    if user and len(password) <= 128 and check_password_hash(user["password_hash"], password):
+                        user_id = user["id"]
+                    else:
+                        error = "El expediente o la contraseña son incorrectos."
+            elif not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 254:
                 error = "Escribe un correo electrónico válido."
             else:
                 user = db.find_user(database, email)
                 valid_password = bool(user and len(password) <= 128 and check_password_hash(user["password_hash"], password))
                 if mode == "register":
-                    archivo = request.files.get("expediente")
                     try:
                         if not 8 <= len(password) <= 128:
                             raise ValueError("Escribe una contraseña de 8 a 128 caracteres.")
                         if user and (not valid_password or db.expediente_for_user(database, user["id"])):
                             raise ValueError("No se puede registrar esa cuenta.")
-                        if not archivo or not archivo.filename.lower().endswith(".json"):
-                            raise ValueError("Selecciona tu expediente en formato JSON.")
-                        expediente = leer_expediente(archivo.read())
+                        expediente = leer_expediente_subido()
                         user_id = db.create_user(
                             database, email, expediente["astronauta"]["nombre"], generate_password_hash(password),
                             expediente, existing_user=user["id"] if user else None,
