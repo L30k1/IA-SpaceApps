@@ -77,6 +77,18 @@ def expediente_for_user(path, user_id):
         return read_expediente(db, user_id)
 
 
+def actualizar_datos_expediente(path, user_id, aplicar):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        expediente = read_expediente(db, user_id)
+        if expediente is None:
+            return False
+        actualizado = aplicar(expediente)
+        db.execute("UPDATE expedientes SET contenido = ? WHERE user_id = ?",
+                   (json.dumps(actualizado, ensure_ascii=False), user_id))
+        return True
+
+
 def read_expediente(db, user_id):
     row = db.execute("SELECT contenido FROM expedientes WHERE user_id = ?", (user_id,)).fetchone()
     return json.loads(row[0]) if row else None

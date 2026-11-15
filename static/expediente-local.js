@@ -193,6 +193,20 @@
           throw new Error(t("El archivo seleccionado pertenece a otro expediente."));
         }
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
+        for (const campo of ["alergias", "antecedentes", "medicamentos", "estado_alergias", "referencias_monitoreo"]) {
+          if (Object.hasOwn(servidor, campo)) combinado[campo] = servidor[campo];
+        }
+        if (Array.isArray(local.misiones) && Array.isArray(servidor.misiones)) {
+          const metas = new Map(servidor.misiones.map(mision => [mision.id, mision.ejercicio_min_diarios]));
+          combinado.misiones = local.misiones.map(mision => {
+            if (!metas.has(mision.id)) return mision;
+            const actualizada = { ...mision };
+            const meta = metas.get(mision.id);
+            if (meta === undefined) delete actualizada.ejercicio_min_diarios;
+            else actualizada.ejercicio_min_diarios = meta;
+            return actualizada;
+          });
+        }
         for (const campo of [
           "diario_psicologico", "semanal_psicologico", "praxis_motora", "memoria_visual",
           "orientacion_linea", "fractal_2_back", "reconocimiento_emociones", "sesiones_ejercicio",
