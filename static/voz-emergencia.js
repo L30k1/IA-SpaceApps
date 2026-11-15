@@ -1,5 +1,6 @@
 (() => {
   const { t, locale } = window.mediSpaceLanguage;
+  const { agregar, desplazar } = window.interfazChat;
   const seccion = document.querySelector('[data-emergencia]');
   const panel = seccion?.querySelector('[data-voz-emergencia]');
   if (!panel) return;
@@ -7,11 +8,11 @@
   const form = panel.closest('form');
   const mensaje = form.elements.mensaje;
   const enviar = form.querySelector('[type="submit"]');
-  const conversacion = seccion.querySelector('.chat-psicologico');
+  const conversacion = seccion.querySelector('[data-chat-mensajes]');
   const microfono = panel.querySelector('[data-emergencia-mic]');
   const estado = panel.querySelector('[data-voz-estado]');
   const botonLeer = panel.querySelector('[data-voz-escuchar]');
-  const reproductor = window.crearAudioIA(panel, 'psicologico');
+  const reproductor = window.crearAudioIA(panel, 'emergencia');
   const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
   const reconocimiento = Reconocimiento && window.isSecureContext ? new Reconocimiento() : null;
   const idioma = locale;
@@ -26,7 +27,7 @@
   let cerrando = false;
   let descartado = false;
   let enviando = false;
-  let ultima = conversacion.querySelector('li:last-child:not(.mensaje-usuario) p')?.textContent.trim();
+  let ultima = Array.from(conversacion.querySelectorAll('[data-voz-respuesta]')).at(-1)?.textContent.trim();
   let pausa;
   let reintento;
   let transcripcion = '';
@@ -106,23 +107,6 @@
     } else if (ultima) leerRespuesta(ultima, true);
   });
 
-  function agregarTurno(turnos) {
-    conversacion.querySelector('#ultimo-mensaje')?.removeAttribute('id');
-    for (const turno of turnos) {
-      const item = document.createElement('li');
-      const autor = document.createElement('strong');
-      const texto = document.createElement('p');
-      const esUsuario = turno.role === 'user';
-      if (esUsuario) item.className = 'mensaje-usuario';
-      autor.textContent = esUsuario ? t('Tú') : t('IA');
-      texto.textContent = turno.text;
-      item.append(autor, texto);
-      conversacion.append(item);
-    }
-    conversacion.lastElementChild.id = 'ultimo-mensaje';
-    conversacion.lastElementChild.scrollIntoView({ block: 'nearest' });
-  }
-
   async function enviarTurno() {
     if (enviando || !mensaje.value.trim()) return;
     enviando = true;
@@ -131,6 +115,7 @@
     mensaje.readOnly = true;
     enviar.disabled = true;
     estado.textContent = t('Enviando a la IA…');
+    const pendiente = agregar(conversacion, { role: 'user', text: mensaje.value.trim() }, true);
     let turnos;
     try {
       const respuesta = await fetch(form.action, {
@@ -149,17 +134,21 @@
     } catch {
       detenerVoz(t('No se pudo confirmar el envío. Conserva tu mensaje y revisa el chat antes de reenviarlo.'));
     } finally {
+      pendiente.remove();
       enviando = false;
       mensaje.readOnly = false;
       enviar.disabled = false;
     }
     if (turnos) {
-      agregarTurno(turnos);
+      conversacion.querySelector('#ultimo-mensaje')?.removeAttribute('id');
+      for (const turno of turnos) agregar(conversacion, turno);
+      conversacion.lastElementChild.id = 'ultimo-mensaje';
       ultima = turnos.at(-1).text;
       botonLeer.hidden = !reproductor.disponible;
       leerRespuesta(ultima);
     }
   }
+  desplazar(conversacion);
 
   form.addEventListener('submit', evento => {
     evento.preventDefault();

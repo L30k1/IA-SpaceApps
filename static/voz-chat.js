@@ -1,6 +1,7 @@
 (() => {
   const { t, locale } = window.mediSpaceLanguage;
   const idioma = locale;
+  const { agregar, desplazar } = window.interfazChat;
   const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
   const selectorRespuestas = '[data-voz-respuesta]';
 
@@ -9,6 +10,7 @@
     if (!panel) return;
     const form = panel.closest('form');
     const mensaje = form.querySelector('[data-voz-mensaje]');
+    const conversacion = seccion.querySelector('[data-chat-mensajes]');
     const respuestas = seccion.querySelectorAll(selectorRespuestas);
     const ultima = respuestas[respuestas.length - 1]?.textContent.trim();
     const dictar = panel.querySelector('[data-voz-dictar]');
@@ -140,6 +142,7 @@
     }
 
     panel.hidden = false;
+    desplazar(conversacion);
     if (dictar.hidden && escuchar.hidden && !puedeLeer) {
       estado.textContent = t('Este navegador no tiene controles de voz disponibles para este chat.');
     }
@@ -150,18 +153,23 @@
         if (transcribiendo) estado.textContent = t('Suelta para terminar el dictado antes de enviar.');
         return;
       }
-      if (!puedeLeer || evento.submitter?.value === 'finalizar') return;
+      if (evento.submitter?.value === 'finalizar') return;
       evento.preventDefault();
       const datos = new FormData(form);
       if (evento.submitter?.name) datos.set(evento.submitter.name, evento.submitter.value);
       const fueTeclado = document.activeElement === mensaje;
       const controles = Array.from(form.querySelectorAll('button[type="submit"]'));
       enviando = true;
+      mensaje.readOnly = true;
       for (const boton of controles) boton.disabled = true;
       detenerLectura();
+      const texto = mensaje.value.trim();
+      const pendiente = texto ? agregar(conversacion, { role: 'user', text: texto }, true) : null;
       estado.textContent = t('Esperando respuesta de la IA…');
       try {
-        const respuesta = await fetch(form.action, { method: 'POST', body: datos, signal });
+        const respuesta = await fetch(form.action, {
+          method: 'POST', body: datos, headers: { 'X-MediSpace-Chat': '1' }, signal,
+        });
         const pagina = new DOMParser().parseFromString(await respuesta.text(), 'text/html');
         const actualizada = pagina.querySelector('[data-chat-voz]');
         if (actualizada?.dataset.chatVoz === seccion.dataset.chatVoz) {
@@ -171,8 +179,6 @@
           prepararChat(actualizada, nuevaRespuesta);
           const destino = actualizada.querySelector(fueTeclado ? '[data-voz-mensaje]' : '[data-voz-dictar]:not([hidden])');
           destino?.focus({ preventScroll: true });
-          const conversacion = actualizada.querySelector('.chat-container');
-          if (conversacion) conversacion.scrollTop = conversacion.scrollHeight;
         } else if (respuesta.redirected) {
           window.location.assign(respuesta.url);
         } else {
@@ -181,7 +187,9 @@
       } catch (error) {
         if (error.name !== 'AbortError') estado.textContent = t('No se pudo confirmar el envío. Revisa la conversación antes de intentar de nuevo.');
       } finally {
+        pendiente?.remove();
         enviando = false;
+        mensaje.readOnly = false;
         for (const boton of controles) boton.disabled = false;
       }
     }, { signal });
