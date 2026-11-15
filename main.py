@@ -280,14 +280,14 @@ def create_app(database=None):
             "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "historial_cognitivo",
             "download_expediente", "logout", "ejercicio", "editar_expediente", "audio_elevenlabs",
-            "admin_cuentas", "admin_cuenta",
+            "admin_cuentas", "admin_cuenta", "admin_eliminar_cuenta",
         } or request.endpoint in PRUEBAS_JSON:
             response.cache_control.no_store = True
             response.headers["Content-Language"] = idioma_actual()
             if idioma_elegido():
                 response.set_cookie("medispace_lang", idioma_elegido(), max_age=31536000,
                                     httponly=True, secure=request.is_secure, samesite="Lax")
-        if request.endpoint in {"admin_cuentas", "admin_cuenta"}:
+        if request.endpoint in {"admin_cuentas", "admin_cuenta", "admin_eliminar_cuenta"}:
             response.headers["Referrer-Policy"] = "no-referrer"
             response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
         return response
@@ -325,6 +325,8 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
+                if request.endpoint == "admin_eliminar_cuenta":
+                    abort(403)
                 if request.endpoint == "audio_elevenlabs":
                     return {"error": t("Recarga el chat para renovar la sesión de voz.")}, 403
                 if request.endpoint in PRUEBAS_JSON:
@@ -502,7 +504,36 @@ def create_app(database=None):
             ]
         return render_template(
             "admin.html", cuenta=cuenta, seccion=seccion, secciones=SECCIONES_ADMIN, grupos=grupos,
+            puede_eliminar=usuario != session["user_id"],
         )
+
+    @app.post("/admin/cuentas/<user_id>/eliminar")
+    def admin_eliminar_cuenta(user_id):
+        acceso = comprobar_acceso_admin()
+        if acceso is not None:
+            return acceso
+        if request.form.get("confirmar") != "1":
+            abort(400)
+        cuenta = almacen.cuenta_administracion(database, user_id)
+        if cuenta is None:
+            flash("La cuenta ya no existe.")
+            return redirect(url_for("admin_cuentas"), 303)
+        administrador, usuario = session["user_id"], cuenta["id"]
+        if administrador == usuario:
+            abort(403)
+        try:
+            eliminada = almacen.eliminar_cuenta(database, administrador, usuario)
+        except (OSError, sqlite3.OperationalError):
+            app.logger.exception("No se pudo eliminar la cuenta en SQLite")
+            flash("No se pudo eliminar la cuenta. Inténtalo de nuevo.")
+            return redirect(url_for("admin_cuenta", user_id=user_id), 303)
+        if not eliminada:
+            if not almacen.es_administrador(database, administrador):
+                abort(403)
+            flash("La cuenta ya no existe.")
+        else:
+            flash("La cuenta y sus registros se eliminaron.")
+        return redirect(url_for("admin_cuentas"), 303)
 
     @app.route("/ejercicio", methods=["GET", "POST"])
     def ejercicio():

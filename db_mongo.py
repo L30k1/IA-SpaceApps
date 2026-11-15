@@ -120,6 +120,44 @@ def cuenta_administracion(database, user_id):
     return {**cuenta, "id": cuenta["_id"], "es_admin": cuenta.get("es_admin") is True} if cuenta else None
 
 
+def eliminar_cuenta(database, administrador, usuario):
+    if administrador == usuario:
+        return False
+
+    def eliminar(sesion):
+        permiso = database.usuarios.update_one(
+            {"_id": administrador, "es_admin": True}, {"$inc": {"revision_expediente": 1}}, session=sesion,
+        )
+        if not permiso.matched_count:
+            return False
+        cuenta = database.usuarios.delete_one({"_id": usuario}, session=sesion)
+        if not cuenta.deleted_count:
+            return False
+        database.monitoreos.delete_many({"user_id": usuario}, session=sesion)
+        database.chat_psicologico.delete_many(
+            {"$or": [{"user_id": usuario}, {"_id": {"$in": [usuario, f"emergencia:{usuario}"]}}]}, session=sesion,
+        )
+        return True
+
+    with database.client.start_session() as sesion:
+        return sesion.with_transaction(eliminar)
+
+
+def _insertar_registro_de_usuario(database, usuario, coleccion, documento):
+    def insertar(sesion):
+        # La escritura sobre la cuenta serializa el alta del registro con su eliminación.
+        cuenta = database.usuarios.update_one(
+            {"_id": usuario}, {"$inc": {"revision_expediente": 1}}, session=sesion,
+        )
+        if not cuenta.matched_count:
+            return False
+        coleccion.insert_one(documento, session=sesion)
+        return True
+
+    with database.client.start_session() as sesion:
+        return sesion.with_transaction(insertar)
+
+
 def volt_draft(database, user_id):
     usuario = database.usuarios.find_one({"_id": user_id}, {"volt_draft": 1})
     return usuario.get("volt_draft") if usuario else None
@@ -218,13 +256,12 @@ def save_psych_chat(database, user_id, revision, turnos, emergencia=False):
     identificador = f"emergencia:{user_id}" if emergencia else user_id
     if revision == 0:
         try:
-            database.chat_psicologico.insert_one({
+            return _insertar_registro_de_usuario(database, user_id, database.chat_psicologico, {
                 "_id": identificador, "user_id": user_id, "canal": "emergencia" if emergencia else "apoyo",
                 "revision": 1, "mensajes": turnos,
             })
         except DuplicateKeyError:
             return False
-        return True
     resultado = database.chat_psicologico.update_one(
         {"_id": identificador, "revision": revision},
         {"$push": {"mensajes": {"$each": turnos}}, "$inc": {"revision": 1}},
@@ -242,7 +279,7 @@ def limpiar_psych_chat(database, user_id, revision):
 
 def open_checkup(database, user_id, profile, greeting):
     try:
-        database.monitoreos.insert_one({
+        _insertar_registro_de_usuario(database, user_id, database.monitoreos, {
             "_id": uuid4().hex, "user_id": user_id, "profile": profile,
             "borrador_de": f"{user_id}:{profile}",
             "revision": 0, "messages": [greeting], "details": {},

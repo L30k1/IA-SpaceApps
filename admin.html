@@ -59,6 +59,7 @@
         <a class="admin-enlace" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
         {% include '_selector_idioma.html' %}
       </header>
+      {% for mensaje in get_flashed_messages() %}<p class="admin-panel" role="status">{{ t(mensaje) }}</p>{% endfor %}
 
       {% if cuenta is defined %}
       <a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t('Volver a las cuentas') }}</a>
@@ -102,6 +103,16 @@
       {% else %}
       <p class="admin-panel admin-secundario">{{ t('Sin registros guardados.') }}</p>
       {% endfor %}
+      {% if puede_eliminar %}
+      <details class="admin-panel admin-eliminacion">
+        <summary>{{ t('Eliminar cuenta') }}</summary>
+        <p>{{ t('Se eliminarán de MediSpace la cuenta de {nombre}, su expediente, sus resultados y sus conversaciones. Esta acción es irreversible.', nombre=cuenta.name) }}</p>
+        <form method="post" action="{{ url_for('admin_eliminar_cuenta', user_id=cuenta.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" name="confirmar" value="1">{{ t('Eliminar cuenta definitivamente') }}</button>
+        </form>
+      </details>
+      {% endif %}
       {% else %}
       <div class="admin-titulo">
         <h1>{{ t('Administración') }}</h1>
