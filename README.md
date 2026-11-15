@@ -21,7 +21,7 @@ Los campos principales son `_id` y `astronauta.nombre`. Usa la estructura de [ex
 
 Cada chequeo completado se agrega a la lista `chequeos` del expediente JSON de su titular. El servidor reescribe su archivo al iniciar sesión y al terminar un chequeo. Los archivos se guardan en `medispace.sqlite3.expedientes`, junto a la base de datos. Si cambias `MEDISPACE_DATABASE`, la carpeta se crea junto al archivo de SQLite con el sufijo `.expedientes`. En Render, ambos quedan en el mismo disco.
 
-En **Historial clínico → Descargar expediente JSON** puedes guardar una copia actualizada con los chequeos previos y nuevos. Para actualizar el archivo que subiste desde tu computadora, guárdala sobre ese archivo.
+En Chrome o Edge, usa **Elegir JSON y permitir su actualización** al iniciar sesión con JSON o al crear tu cuenta. Autoriza la escritura en el navegador. Al terminar un chequeo, MediSpace incorpora los registros al mismo archivo. Si se pierde el permiso, usa **Actualizar archivo original** en Resultados. En **Historial clínico** también puedes vincular el archivo original o descargar una copia.
 
 Para habilitar los chequeos ficticios, ejecuta `$env:GEMINI_API_KEY = "<tu clave de Gemini>"` en PowerShell antes de iniciar el servidor. Gemini genera las preguntas, analiza las respuestas y la telemetría y guarda su evaluación simulada. Para alertas o resultados indeterminados también propone acciones de seguimiento. Si Gemini falla, puedes reenviar la respuesta sin perder los turnos guardados. Los informes importados y el historial de chequeos previos siguen disponibles.
 

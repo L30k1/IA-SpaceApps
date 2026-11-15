@@ -9,7 +9,7 @@ from tempfile import NamedTemporaryFile
 
 import click
 import httpx2
-from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 from google.genai.errors import APIError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -267,6 +267,10 @@ def create_app(database=None):
         records = registros_clinicos(database, session["user_id"], expediente)
         return render_template("perfil.htm", expediente=expediente, latest=records[0] if records else None)
 
+    @app.get("/assets/expediente-local.js")
+    def expediente_local_script():
+        return send_from_directory(ROOT / "static", "expediente-local.js")
+
     @app.route("/chequeo.html", methods=["GET", "POST"])
     def checkup():
         expediente = expediente_actual()
@@ -335,7 +339,7 @@ def create_app(database=None):
                     saved = db.save_turn(database, draft, updated, (hr, spo2, temp), details, status)
                     if saved and status:
                         sincronizar_archivo_expediente(usuario)
-                        return redirect(url_for("summary", registro=f"app-{draft['id']}"), 303)
+                        return redirect(url_for("summary", registro=f"app-{draft['id']}", actualizar_archivo=1), 303)
                     return redirect(url_for("checkup"), 303)
         return render_template(
             "chequeo.html", messages=messages, vitals=vitals, draft=draft, answer=answer, error=error,
@@ -372,6 +376,7 @@ def create_app(database=None):
             abort(404)
         return render_template(
             "resumen.html", view=view, latest=latest, records=records, expediente=expediente,
+            actualizar_archivo=view == "resultados" and request.args.get("actualizar_archivo") == "1",
         )
 
     return app
