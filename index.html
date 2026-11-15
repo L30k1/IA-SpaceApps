@@ -42,6 +42,7 @@
         {% if mode in ['register', 'login-json'] %}
         <label for="expediente">Expediente del astronauta (.json)</label>
         <input id="expediente" name="expediente" type="file" accept=".json,application/json" required>
+        {% if mode == 'login-json' %}<p>Usa la contraseña de la cuenta vinculada a este expediente.</p>{% endif %}
         {% endif %}
 
         {% if mode != 'login-json' %}

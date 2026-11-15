@@ -2,6 +2,9 @@ import json
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timezone
+from uuid import uuid4
+
+from database.expedientes import SIGNOS, fecha_utc
 
 
 def initialize(path):
@@ -76,6 +79,11 @@ def find_user_by_astronauta(path, astronauta_id):
         ).fetchone()
 
 
+def update_password(path, user_id, password_hash):
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+
+
 def open_checkup(path, user_id, profile, greeting):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute(
@@ -96,6 +104,25 @@ def get_open_checkup(path, user_id, profile):
         ).fetchone()
 
 
+def checkup_record(record_id, finished_at, messages, vitals, details, status):
+    try:
+        fecha = fecha_utc(finished_at)
+    except ValueError:
+        fecha = datetime.strptime(finished_at, "%d/%m/%Y %H:%M UTC").replace(tzinfo=timezone.utc)
+    return {
+        **{field: details.get(field) or None for field in ("mision_id", "fase", "motivo", "actividad")},
+        "id": record_id,
+        "fecha_hora": fecha.isoformat(),
+        "resultado_simulador": status,
+        "mediciones": [
+            {"tipo": tipo, "valor": valor, "unidad": unidad}
+            for (tipo, (_, unidad)), valor in zip(SIGNOS.items(), vitals)
+        ],
+        "conversacion": messages,
+        **{field: details[field] for field in ("evaluacion_ia", "evaluacion") if field in details},
+    }
+
+
 def save_turn(path, draft, messages, vitals, details, status=None):
     finished_at = datetime.now(timezone.utc).isoformat(timespec="seconds") if status else None
     with closing(sqlite3.connect(path)) as db, db:
@@ -107,6 +134,23 @@ def save_turn(path, draft, messages, vitals, details, status=None):
         )
         if result.rowcount != 1:
             return False
+        if finished_at:
+            expediente_row = db.execute(
+                "SELECT contenido FROM expedientes WHERE user_id = ? AND astronauta_id = ?",
+                (draft["user_id"], draft["profile"]),
+            ).fetchone()
+            if expediente_row is None:
+                raise ValueError("No se encontró el expediente del chequeo.")
+            expediente = json.loads(expediente_row[0])
+            record_id = f"chequeo-{uuid4().hex}"
+            expediente["chequeos"].append(
+                checkup_record(record_id, finished_at, messages, vitals, details, status)
+            )
+            db.execute(
+                "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
+                (json.dumps(expediente, ensure_ascii=False), draft["user_id"]),
+            )
+            details = {**details, "expediente_chequeo_id": record_id}
         db.execute(
             "INSERT INTO checkup_details (checkup_id, contenido) VALUES (?, ?) "
             "ON CONFLICT (checkup_id) DO UPDATE SET contenido = excluded.contenido",
@@ -122,6 +166,6 @@ def history(path, user_id, profile):
             "SELECT checkups.*, checkup_details.contenido AS details "
             "FROM checkups LEFT JOIN checkup_details ON checkup_id = checkups.id "
             "WHERE user_id = ? AND profile = ? AND finished_at IS NOT NULL "
-            "ORDER BY id DESC LIMIT 20",
+            "ORDER BY id DESC",
             (user_id, profile),
         ).fetchall()

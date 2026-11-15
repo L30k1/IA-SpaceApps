@@ -19,11 +19,22 @@ Abre [MediSpace](http://127.0.0.1:5000/) y crea una cuenta con tu expediente JSO
 
 Los campos principales son `_id` y `astronauta.nombre`. Usa la estructura de [expediente-ejemplo.json](database/expediente-ejemplo.json) como referencia y asigna un identificador propio. Las listas de misiones, alergias, antecedentes, medicamentos y chequeos pueden quedar vacías. Los valores de telemetría se introducen en el chequeo. La aplicación usa SQLite para guardar las cuentas, expedientes y chequeos.
 
+Cada chequeo completado se agrega a la lista `chequeos` del expediente JSON de su titular en el servidor. En **Historial clínico → Descargar expediente JSON** puedes guardar una copia actualizada con los chequeos previos y nuevos. Usa esa descarga para reemplazar el archivo de tu computadora si quieres mantener una copia al día.
+
 Para habilitar los chequeos ficticios, ejecuta `$env:GEMINI_API_KEY = "<tu clave de Gemini>"` en PowerShell antes de iniciar el servidor. Gemini genera las preguntas, analiza las respuestas y la telemetría y guarda su evaluación simulada. Para alertas o resultados indeterminados también propone acciones de seguimiento. Si Gemini falla, puedes reenviar la respuesta sin perder los turnos guardados. Los informes importados y el historial de chequeos previos siguen disponibles.
 
 ## Cuenta de demostración
 
 El expediente de ejemplo está reservado para `rivera@example.test`. Para crear esa cuenta en una instalación, ejecuta `python -m flask --app main:create_app crear-usuario-demo` y elige una contraseña al recibir la solicitud. El comando usa la misma base de datos que la aplicación. Para Render, ejecútalo en el entorno del servicio con acceso a su base de datos.
+
+Para habilitar ambos expedientes en Render, agrega estas variables en **Environment**. Escribe una contraseña distinta de 12 a 128 caracteres en el campo **Value** de cada una.
+
+| Archivo | Correo asignado | Variable |
+| --- | --- | --- |
+| `expediente-ejemplo.json` | `rivera@example.test` | `MEDISPACE_RIVERA_PASSWORD` |
+| `expediente-astronauta.json` | `mariana@example.test` | `MEDISPACE_MARIANA_PASSWORD` |
+
+Despliega la versión actualizada. Al arrancar, MediSpace crea las cuentas o actualiza la contraseña si el correo y el identificador corresponden a la cuenta configurada. Si el expediente ya está vinculado a otro correo, conserva su cuenta y contraseña. En **Iniciar sesión con JSON**, sube el archivo correspondiente y escribe la contraseña de esa cuenta.
 
 Los formularios y enlaces funcionan en la dirección de MediSpace indicada arriba. Al abrir un HTML directamente o usar un servidor estático como Live Server, verás un enlace para entrar a la aplicación de Python. El estado ESTABLE o ALERTA lo calculan las reglas de demostración en `main.py`. El historial se guarda por cuenta y perfil en `medispace.sqlite3`.
 
