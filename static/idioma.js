@@ -55,6 +55,8 @@
     "El navegador no pudo transcribir el mensaje.": "The browser could not transcribe the message.",
     "Este navegador no tiene controles de voz disponibles para este chat.": "Voice controls for this chat are unavailable in this browser.",
     "Suelta para terminar el dictado antes de enviar.": "Release to finish dictation before sending.",
+    "ElevenLabs no está disponible. Se intenta usar la voz del navegador.": "ElevenLabs is unavailable. Trying the browser voice.",
+    "Reproduciendo la respuesta de la IA…": "Playing the AI reply…",
     "Esperando respuesta de la IA…": "Waiting for the AI to reply…",
     "No se pudo confirmar el envío. Revisa la conversación antes de intentar de nuevo.": "Sending could not be confirmed. Check the conversation before trying again.",
     "Pulsa Activar micrófono y concede permiso en el navegador. También puedes escribir.": "Select Turn on microphone and allow access in your browser. You can also type.",

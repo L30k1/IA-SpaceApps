@@ -15,3 +15,6 @@
 .voz-chat [data-voz-dictar] { touch-action: none; user-select: none; }
 .voz-chat [aria-pressed="true"] { background: #8b253b; border-color: #fca5a5; }
 .voz-chat [data-voz-estado]:empty { display: none; }
+.voz-proveedor { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 8px; }
+.voz-proveedor input { accent-color: var(--accent); }
+.voz-proveedor small { grid-column: 2; }

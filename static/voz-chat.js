@@ -2,8 +2,6 @@
   const { t, locale } = window.mediSpaceLanguage;
   const idioma = locale;
   const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const sintesis = window.speechSynthesis;
-  const puedeLeer = Boolean(sintesis && window.SpeechSynthesisUtterance);
   const selectorRespuestas = '[data-voz-respuesta]';
 
   function prepararChat(seccion, leerAlAbrir = false) {
@@ -16,49 +14,35 @@
     const dictar = panel.querySelector('[data-voz-dictar]');
     const escuchar = panel.querySelector('[data-voz-escuchar]');
     const estado = panel.querySelector('[data-voz-estado]');
+    const reproductor = window.crearAudioIA(panel, seccion.dataset.chatVoz);
+    const puedeLeer = reproductor.disponible;
     const eventos = new AbortController();
     const { signal } = eventos;
-    let fraseActiva = null;
     let reconocimiento;
     let pulsacion = null;
     let transcribiendo = false;
     let enviando = false;
 
     function detenerLectura() {
-      if (fraseActiva) {
-        fraseActiva = null;
-        sintesis.cancel();
-      }
+      reproductor.detener();
       escuchar.textContent = t('Escuchar última respuesta');
     }
 
     function leerRespuesta() {
       if (!puedeLeer || !ultima || transcribiendo || enviando) return;
-      detenerLectura();
-      const frase = new window.SpeechSynthesisUtterance(ultima);
-      frase.lang = idioma;
-      const voces = sintesis.getVoices().filter(voz => voz.localService && voz.lang.split('-')[0].toLowerCase() === idioma.split('-')[0]);
-      const voz = voces.find(opcion => opcion.lang.toLowerCase() === idioma.toLowerCase()) || voces[0];
-      if (voz) frase.voice = voz;
-      frase.onend = () => {
-        if (fraseActiva !== frase) return;
-        fraseActiva = null;
-        escuchar.textContent = t('Escuchar última respuesta');
-      };
-      frase.onerror = () => {
-        if (fraseActiva !== frase) return;
-        detenerLectura();
-        estado.textContent = t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
-      };
-      fraseActiva = frase;
       escuchar.textContent = t('Detener lectura');
-      sintesis.speak(frase);
+      reproductor.leer(ultima, exito => {
+        escuchar.textContent = t('Escuchar última respuesta');
+        if (!exito) estado.textContent = t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
+      }, () => {
+        estado.textContent = t('ElevenLabs no está disponible. Se intenta usar la voz del navegador.');
+      });
     }
 
     if (puedeLeer && ultima) {
       escuchar.hidden = false;
       escuchar.addEventListener('click', () => {
-        if (fraseActiva) detenerLectura();
+        if (reproductor.enCurso) detenerLectura();
         else leerRespuesta();
       }, { signal });
     }

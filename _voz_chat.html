@@ -4,5 +4,6 @@
     <button type="button" data-voz-escuchar hidden>{{ t('Escuchar última respuesta') }}</button>
   </div>
   <p id="aviso-dictado" data-voz-aviso hidden>{{ t('Mantén presionada la barra espaciadora fuera del campo de texto o mantén pulsado el botón. Suelta para detener el dictado. El navegador puede usar su servicio de transcripción.') }}</p>
+  {% include '_voz_elevenlabs.html' %}
   <p data-voz-estado role="status" aria-live="polite"></p>
 </div>

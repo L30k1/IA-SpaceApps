@@ -43,6 +43,7 @@ from psicologia import (
     tramo_mision, validar_registros,
 )
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, estimulos
+from voz_ia import configuracion_elevenlabs, sintetizar_elevenlabs
 
 
 ROOT = Path(__file__).resolve().parent
@@ -260,7 +261,7 @@ def create_app(database=None):
         if request.endpoint in {
             "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "historial_cognitivo",
-            "download_expediente", "logout", "ejercicio", "editar_expediente",
+            "download_expediente", "logout", "ejercicio", "editar_expediente", "audio_elevenlabs",
         } or request.endpoint in PRUEBAS_JSON:
             response.cache_control.no_store = True
             response.headers["Content-Language"] = idioma_actual()
@@ -287,6 +288,7 @@ def create_app(database=None):
             "limites_captura": LIMITES_CAPTURA,
             "etiquetas_resultado": {clave: t(etiqueta) for clave, etiqueta in ETIQUETAS_RESULTADO.items()},
             "idioma": idioma_actual(),
+            "elevenlabs_disponible": configuracion_elevenlabs() is not None,
             "url_idioma": url_idioma,
         }
 
@@ -301,6 +303,8 @@ def create_app(database=None):
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
+                if request.endpoint == "audio_elevenlabs":
+                    return "", 403
                 if request.endpoint in PRUEBAS_JSON:
                     return {"error": t("La sesión cambió o caducó. Vuelve a iniciar sesión para guardar otra ronda.")}, 403
                 if request.endpoint == "chat_psicologico" and request.args.get("modo") == "emergencia":
@@ -732,6 +736,40 @@ def create_app(database=None):
     @app.get("/assets/voz-chat.js")
     def voz_chat_script():
         return send_from_directory(ROOT / "static", "voz-chat.js")
+
+    @app.get("/assets/audio-ia.js")
+    def audio_ia_script():
+        return send_from_directory(ROOT / "static", "audio-ia.js")
+
+    @app.post("/voz/elevenlabs")
+    def audio_elevenlabs():
+        expediente = expediente_actual()
+        if expediente is None:
+            return "", 401
+        configuracion = configuracion_elevenlabs()
+        if configuracion is None:
+            return "", 503
+        canal = request.form.get("canal")
+        if request.form.get("usar_nube") != "1" or canal not in {"medico", "psicologico"}:
+            return "", 400
+        usuario = session["user_id"]
+        if canal == "psicologico":
+            _, mensajes = almacen.psych_chat(database, usuario)
+        else:
+            borrador = almacen.get_open_checkup(database, usuario, expediente["_id"])
+            mensajes = json.loads(borrador["messages"]) if borrador else []
+        ultimo = next((turno["text"] for turno in reversed(mensajes) if turno["role"] == "ai"), None)
+        try:
+            texto = texto_respuesta(ultimo).replace("\r\n", "\n").replace("\r", "\n")
+        except ValueError:
+            return "", 404
+        if request.form.get("texto") != texto:
+            return "", 409
+        try:
+            audio = sintetizar_elevenlabs(texto, configuracion)
+        except (httpx2.HTTPError, ValueError):
+            return "", 502
+        return Response(audio, mimetype="audio/mpeg")
 
     @app.get("/assets/idioma.js")
     def idioma_script():
