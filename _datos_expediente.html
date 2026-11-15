@@ -1,0 +1,43 @@
+<div class="two-cols">
+  <section class="info-card">
+    <h3>Misiones</h3>
+    <ul>
+      {% for mision in expediente.misiones %}
+      <li>{{ mision.id }}{% if mision.fecha_inicio %} · Inicio: {{ mision.fecha_inicio }}{% endif %}{% if mision.fecha_fin %} · Fin: {{ mision.fecha_fin }}{% endif %}</li>
+      {% else %}
+      <li>Sin misiones registradas</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="info-card">
+    <h3>Alergias</h3>
+    {% if expediente.estado_alergias %}<p>{{ expediente.estado_alergias }}</p>{% endif %}
+    <ul>
+      {% for alergia in expediente.alergias %}
+      <li>{{ alergia.sustancia }}{% if alergia.reaccion %} · {{ alergia.reaccion }}{% endif %}{% if alergia.confirmacion %} · {{ alergia.confirmacion }}{% endif %}</li>
+      {% else %}
+      <li>Sin registros de alergias</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="info-card">
+    <h3>Antecedentes</h3>
+    <ul>
+      {% for antecedente in expediente.antecedentes %}
+      <li>{{ antecedente.condicion }}{% if antecedente.fecha_inicio %} · {{ antecedente.fecha_inicio }}{% endif %}{% if antecedente.estado %} · {{ antecedente.estado }}{% endif %}</li>
+      {% else %}
+      <li>Sin antecedentes registrados</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="info-card">
+    <h3>Medicamentos</h3>
+    <ul>
+      {% for medicamento in expediente.medicamentos %}
+      <li>{{ medicamento.nombre }}{% if medicamento.dosis is defined and medicamento.dosis is not none %} · {{ medicamento.dosis }} {{ medicamento.unidad or '' }}{% endif %}{% if medicamento.via %} · {{ medicamento.via }}{% endif %}{% if medicamento.frecuencia %} · {{ medicamento.frecuencia }}{% endif %}{% if medicamento.estado %} · {{ medicamento.estado }}{% endif %}</li>
+      {% else %}
+      <li>Sin medicamentos registrados</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>

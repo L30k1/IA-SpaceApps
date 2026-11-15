@@ -58,7 +58,7 @@ def launch():
     if not os.getenv("GEMINI_API_KEY"):
         key = simpledialog.askstring(
             "MediSpace",
-            "Pega tu clave de Gemini. Déjala vacía para iniciar la demostración.",
+            "Pega tu clave de Gemini para habilitar los chequeos. Déjala vacía para consultar el historial.",
             show="*",
             parent=window,
         )

@@ -1,0 +1,51 @@
+{
+  "_id": "DEMO-AS-2743",
+  "astronauta": {
+    "nombre": "A. Rivera",
+    "rol": "Astronauta"
+  },
+  "simulado": true,
+  "misiones": [
+    {
+      "id": "STS-427",
+      "fecha_inicio": "2026-11-10",
+      "fecha_fin": null
+    }
+  ],
+  "estado_alergias": "pendiente de confirmar",
+  "alergias": [
+    {
+      "sustancia": "Adhesivo de entrenamiento",
+      "reaccion": "Enrojecimiento reportado",
+      "confirmacion": "pendiente"
+    }
+  ],
+  "antecedentes": [
+    {
+      "condicion": "Lesión leve de tobillo simulada",
+      "fecha_inicio": "2026-08-15",
+      "estado": "resuelto"
+    }
+  ],
+  "medicamentos": [],
+  "chequeos": [
+    {
+      "id": "DEMO-CHEQUEO-001",
+      "mision_id": "STS-427",
+      "fase": "vuelo",
+      "fecha_hora": "2026-11-14T21:30:00Z",
+      "motivo": "Fatiga leve reportada",
+      "actividad": "Después de una actividad extravehicular simulada",
+      "mediciones": [
+        {"tipo": "frecuencia_cardiaca", "valor": 72, "unidad": "lpm"},
+        {"tipo": "spo2", "valor": 98, "unidad": "%"},
+        {"tipo": "temperatura", "valor": 36.7, "unidad": "°C"}
+      ],
+      "evaluacion": {
+        "estado_revision": "pendiente",
+        "accion_acordada": null,
+        "fecha_seguimiento": null
+      }
+    }
+  ]
+}

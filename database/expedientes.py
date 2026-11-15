@@ -1,0 +1,83 @@
+import json
+import math
+from datetime import datetime, timezone
+
+
+DEMO_ID = "DEMO-AS-2743"
+GRUPOS = ("misiones", "alergias", "antecedentes", "medicamentos", "chequeos")
+SIGNOS = {
+    "frecuencia_cardiaca": ("FC", "lpm"),
+    "spo2": ("SpO₂", "%"),
+    "temperatura": ("Temperatura", "°C"),
+}
+FASES = {"preflight": "Prevuelo", "vuelo": "Vuelo", "posvuelo": "Posvuelo"}
+
+
+def texto_requerido(registro, campo):
+    valor = registro.get(campo)
+    if not isinstance(valor, str) or not valor.strip():
+        raise ValueError(f"Completa el campo {campo} en el expediente.")
+    return valor.strip()
+
+
+def fecha_utc(fecha):
+    try:
+        valor = datetime.fromisoformat(fecha)
+        if valor.utcoffset() is not None:
+            return valor.astimezone(timezone.utc)
+    except (TypeError, ValueError, OverflowError):
+        pass
+    raise ValueError("La fecha del chequeo debe incluir la zona horaria, por ejemplo 2026-11-14T21:30:00Z.")
+
+
+def leer_expediente(contenido, *, permitir_demo=False):
+    try:
+        expediente = json.loads(contenido)
+    except (ValueError, RecursionError):
+        raise ValueError("El archivo no contiene un JSON válido.") from None
+    if not isinstance(expediente, dict) or not isinstance(expediente.get("astronauta"), dict):
+        raise ValueError("El JSON debe contener los datos del astronauta.")
+
+    expediente["_id"] = texto_requerido(expediente, "_id")
+    if expediente["_id"].casefold() == DEMO_ID.casefold() and not permitir_demo:
+        raise ValueError("Este expediente está reservado para la cuenta de demostración.")
+    astronauta = expediente["astronauta"]
+    astronauta["nombre"] = texto_requerido(astronauta, "nombre")
+    astronauta["rol"] = "Astronauta"
+    if type(expediente.get("simulado", False)) is not bool:
+        raise ValueError("El campo simulado debe ser true o false.")
+
+    for grupo in GRUPOS:
+        registros = expediente.setdefault(grupo, [])
+        if not isinstance(registros, list) or not all(isinstance(registro, dict) for registro in registros):
+            raise ValueError(f"{grupo} debe ser una lista de registros.")
+    for grupo, campo in (("misiones", "id"), ("alergias", "sustancia"),
+                         ("antecedentes", "condicion"), ("medicamentos", "nombre")):
+        for registro in expediente[grupo]:
+            registro[campo] = texto_requerido(registro, campo)
+
+    misiones = [mision["id"] for mision in expediente["misiones"]]
+    identificadores = set()
+    for chequeo in expediente["chequeos"]:
+        chequeo["id"] = texto_requerido(chequeo, "id")
+        if chequeo["id"] in identificadores:
+            raise ValueError("Los identificadores de los chequeos deben ser únicos.")
+        identificadores.add(chequeo["id"])
+        chequeo["fecha_hora"] = fecha_utc(chequeo.get("fecha_hora")).isoformat()
+        if chequeo.get("mision_id") is not None and chequeo["mision_id"] not in misiones:
+            raise ValueError("La misión de cada chequeo debe figurar en el expediente.")
+        if chequeo.get("fase") is not None and chequeo["fase"] not in list(FASES):
+            raise ValueError("La fase debe ser preflight, vuelo o posvuelo.")
+        evaluacion = chequeo.get("evaluacion")
+        if evaluacion is not None and not isinstance(evaluacion, dict):
+            raise ValueError("La evaluación debe ser un objeto JSON.")
+        mediciones = chequeo.setdefault("mediciones", [])
+        if not isinstance(mediciones, list) or not all(isinstance(m, dict) for m in mediciones):
+            raise ValueError("Las mediciones deben ser una lista de registros.")
+        for medicion in mediciones:
+            texto_requerido(medicion, "tipo")
+            texto_requerido(medicion, "unidad")
+            valor = medicion.get("valor")
+            if type(valor) not in (int, float) or (isinstance(valor, float) and not math.isfinite(valor)):
+                raise ValueError("Cada medición debe tener un valor numérico.")
+    return expediente

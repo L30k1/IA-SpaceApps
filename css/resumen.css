@@ -224,3 +224,8 @@ body {
 
 .history-table-scroll { overflow-x: auto; }
 .info-card li { overflow-wrap: anywhere; }
+.view > .info-card + .info-card { margin-top: 12px; }
+.info-card h3 a { color: inherit; }
+.info-card summary { cursor: pointer; }
+.acciones-alerta { padding-left: 1.4rem; }
+.acciones-alerta li + li { margin-top: 0.75rem; }
