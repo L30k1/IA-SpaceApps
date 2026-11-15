@@ -42,6 +42,30 @@
       </div>
       {% endfor %}
     </div>
+    <section class="mision-rutina" aria-label="{{ t('Rutina de ejercicio') }}">
+      <div class="mision-encabezado">
+        <h4>{{ t('Rutina de ejercicio') }}</h4>
+        <p>{{ plan.rutina.inicio | fecha_corta }} – {{ plan.rutina.fin | fecha_corta }}</p>
+        {% if plan.estado != 'Programada' %}
+        <a href="{{ url_for('ejercicio', mision=plan.mision.id) }}">{{ t('Registrar sesión de ejercicio') }}</a>
+        {% endif %}
+      </div>
+      <p>{{ t('Registros mínimos del período: {hechos} de {total}', hechos=plan.rutina.completadas, total=plan.rutina.metas | length) }}</p>
+      <ul>
+        {% for meta in plan.rutina.metas %}
+        <li class="mision-meta-ejercicio{% if meta.completada %} mision-meta-ejercicio-hecha{% endif %}">
+          {{ t(meta.tipo) }} · {{ t('Registrada') if meta.completada else t('Pendiente') }}
+        </li>
+        {% endfor %}
+      </ul>
+      <p>{{ t('Son metas de registro. El equipo de la misión define los ejercicios, la carga y los descansos.') }}</p>
+      <details class="mision-detalles">
+        <summary>{{ t('Ejemplos de actividades') }}</summary>
+        {% for meta in plan.rutina.metas %}
+        <p>{{ t(meta.ejemplo) }}</p>
+        {% endfor %}
+      </details>
+    </section>
     <details class="mision-detalles">
       <summary>{{ t('Frecuencias y fechas adicionales') }}</summary>
       {% if plan.estado == 'Programada' %}<p>{{ t('Las evaluaciones de vuelo comienzan el') }} {{ plan.inicio | fecha_corta }}.</p>{% endif %}

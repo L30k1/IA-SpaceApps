@@ -413,8 +413,10 @@ def create_app(database=None):
 
         ahora = datetime.now(ZONA_MISION)
         fecha_local = ahora.strftime("%Y-%m-%dT%H:%M")
-        campos = ("fecha_hora", "tipo", "duracion_min", "equipo", "esfuerzo", "recuperacion")
-        formulario = {"fecha_hora": fecha_local}
+        misiones = {m["id"]: fechas for m in expediente["misiones"] if (fechas := fechas_mision(m))}
+        seleccionada = request.args.get("mision", "")
+        campos = ("fecha_hora", "tipo", "duracion_min", "equipo", "esfuerzo", "recuperacion", "mision_id")
+        formulario = {"fecha_hora": fecha_local, "mision_id": seleccionada if seleccionada in misiones else ""}
         identificador = uuid4().hex
         error = None
         if request.method == "POST":
@@ -426,6 +428,11 @@ def create_app(database=None):
                     raise ValueError
             except ValueError:
                 error = "Ingresa la fecha y hora local de una sesión realizada."
+            mision_id = formulario["mision_id"]
+            if error is None and mision_id:
+                rango = misiones.get(mision_id)
+                if rango is None or not rango[0] <= fecha.date() <= rango[1]:
+                    error = "La fecha de la sesión debe estar dentro de la misión seleccionada."
             if error is None:
                 datos = formulario.copy()
                 for campo in ("duracion_min", "esfuerzo"):
@@ -442,7 +449,7 @@ def create_app(database=None):
                     if almacen.save_expediente_report(database, usuario, CAMPO_EJERCICIO, registro, *campos):
                         sincronizar_archivo_expediente(usuario)
                         flash("Sesión de ejercicio guardada.")
-                        return redirect(url_for("ejercicio", actualizar_archivo=1), 303)
+                        return redirect(url_for("ejercicio", mision=mision_id or None, actualizar_archivo=1), 303)
                     error = "Esta sesión ya existe con otros datos. Vuelve a abrir el registro."
 
         registros = sorted(expediente.get(CAMPO_EJERCICIO, []), key=lambda r: r["fecha_hora"], reverse=True)
@@ -465,7 +472,7 @@ def create_app(database=None):
         ]
         return render_template(
             "ejercicio.html", expediente=expediente, error=error, formulario=formulario,
-            tipos=TIPOS_EJERCICIO, fecha_maxima=fecha_local, registro_id=identificador, registros=registros,
+            tipos=TIPOS_EJERCICIO, misiones=misiones, fecha_maxima=fecha_local, registro_id=identificador, registros=registros,
             sesiones_semana=len(semana), minutos=minutos, graficas=graficas,
             actualizar_archivo=request.args.get("actualizar_archivo") == "1",
         )

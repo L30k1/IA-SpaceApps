@@ -226,6 +226,8 @@ def leer_expediente(contenido):
         if not isinstance(sesiones, list) or not all(isinstance(r, dict) for r in sesiones):
             raise ValueError("El expediente debe incluir las sesiones de ejercicio como una lista.")
         sesiones = [registro_ejercicio(r.get("id"), r.get("fecha_hora"), r) for r in sesiones]
+        if any(s.get("mision_id") and s["mision_id"] not in misiones for s in sesiones):
+            raise ValueError("Selecciona una misión de tu expediente.")
         if len({r["id"] for r in sesiones}) != len(sesiones):
             raise ValueError("Los identificadores de las sesiones de ejercicio deben ser únicos.")
         expediente[CAMPO_EJERCICIO] = sesiones

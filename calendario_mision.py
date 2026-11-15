@@ -1,6 +1,7 @@
 from datetime import date, timedelta, timezone
 
 from database.expedientes import CAMPO_PRAXIS, fecha_utc
+from ejercicio import CAMPO_EJERCICIO, TIPOS_EJERCICIO
 from lot import CAMPO_LOT
 from volt import CAMPO_VOLT
 
@@ -12,6 +13,17 @@ FRECUENCIAS = (
     (30, 3, "semanal", 14),
     (date.max.toordinal(), 7, "semanal", 30),
 )
+METAS_REGISTRO_EJERCICIO = (
+    (7, ("general",)),
+    (30, ("aerobico", "fuerza")),
+    (date.max.toordinal(), ("aerobico", "fuerza", "movilidad")),
+)
+EJEMPLOS_EJERCICIO = {
+    "general": "Registra una sesión de aeróbico, fuerza o movilidad del plan de la misión.",
+    "aerobico": "Bicicleta estática o cinta, según el equipo disponible.",
+    "fuerza": "Ejercicios de resistencia con el equipo previsto para la misión.",
+    "movilidad": "Movilidad y recuperación según el plan de la misión.",
+}
 
 
 def fechas_mision(mision):
@@ -88,6 +100,24 @@ def cumplimiento(inicio, fin, hoy, intervalo, componentes, previos):
             "restantes": restantes, "proxima": proxima, "previo": previo}
 
 
+def rutina_mision(identificador, inicio, fin, hoy, sesiones_por_tipo):
+    duracion = (fin - inicio).days + 1
+    _, tipos = next(regla for regla in METAS_REGISTRO_EJERCICIO if duracion <= regla[0])
+    intervalo = min(duracion, 7)
+    dia = min(fin, max(inicio, hoy))
+    inicio_periodo = inicio + timedelta(days=((dia - inicio).days // intervalo) * intervalo)
+    fin_periodo = inicio_periodo + timedelta(days=min(intervalo - 1, (fin - inicio_periodo).days))
+    if (fin_periodo - inicio_periodo).days == 0:
+        tipos = ("general",)
+    metas = []
+    for tipo in tipos:
+        dias = sesiones_por_tipo[tipo][identificador]
+        metas.append({"tipo": TIPOS_EJERCICIO.get(tipo, "Actividad registrada"), "ejemplo": EJEMPLOS_EJERCICIO[tipo],
+                      "completada": any(inicio_periodo <= fecha <= fin_periodo for fecha in dias)})
+    return {"inicio": inicio_periodo, "fin": fin_periodo, "metas": metas,
+            "completadas": sum(meta["completada"] for meta in metas)}
+
+
 def calendario(expediente, medicos, ahora):
     hoy = ahora.astimezone(ZONA_MISION).date()
     misiones = {m["id"]: fechas for m in expediente["misiones"] if (fechas := fechas_mision(m))}
@@ -95,6 +125,10 @@ def calendario(expediente, medicos, ahora):
         "diario_psicologico", "semanal_psicologico", *PRUEBAS_COGNITIVAS,
     )}
     chequeos, previos_medicos = fechas_registros(medicos, misiones, ahora)
+    sesiones = expediente.get(CAMPO_EJERCICIO, [])
+    sesiones_por_tipo = {"general": fechas_registros(sesiones, misiones, ahora)[0]}
+    for tipo in ("aerobico", "fuerza", "movilidad"):
+        sesiones_por_tipo[tipo] = fechas_registros((s for s in sesiones if s["tipo"] == tipo), misiones, ahora)[0]
     planes = []
     for mision in expediente["misiones"]:
         identificador = mision["id"]
@@ -120,6 +154,7 @@ def calendario(expediente, medicos, ahora):
                 cognitiva=cumplimiento(inicio, fin, hoy, cognicion,
                                        [campos[c][0][identificador] for c in PRUEBAS_COGNITIVAS],
                                        [campos[c][1][identificador] for c in PRUEBAS_COGNITIVAS]),
+                rutina=rutina_mision(identificador, inicio, fin, hoy, sesiones_por_tipo),
             )
         planes.append(plan)
     return planes
