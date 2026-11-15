@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from pymongo import MongoClient
-from pymongo.errors import DuplicateKeyError, PyMongoError
+from pymongo.errors import ConfigurationError, ConnectionFailure, DuplicateKeyError, InvalidURI, OperationFailure, PyMongoError
 
 from database.expedientes import fecha_utc
 from db import RegistroPrematuro, proximo_registro
@@ -15,18 +15,43 @@ ConflictoCuenta = DuplicateKeyError
 ErrorBase = PyMongoError
 
 
+def _diagnostico_arranque(error, etapa):
+    detalle = str(error).casefold()
+    if isinstance(error, OperationFailure):
+        if error.code == 18 or "bad auth" in detalle or "authentication failed" in detalle:
+            return "[MONGO_AUTENTICACION] Atlas rechazó las credenciales. Revisa el usuario de base de datos y la contraseña en MONGODB_URI."
+        if error.code == 13 or "not authorized" in detalle:
+            return "[MONGO_PERMISOS] Atlas rechazó la operación. Revisa que el usuario tenga el rol readWrite en MONGODB_DB o medispace."
+        if isinstance(error, DuplicateKeyError) or error.code in {85, 86, 11000}:
+            return "[MONGO_INDICES] Atlas encontró un conflicto al crear los índices. Revisa los índices y registros de esa base."
+    if isinstance(error, ConnectionFailure):
+        return "[MONGO_RED] No se pudo alcanzar Atlas. Revisa los rangos de salida de Render en IP Access List y el estado del clúster."
+    if isinstance(error, InvalidURI):
+        return "[MONGO_URI] Revisa el formato de MONGODB_URI. Usa la cadena de Connect → Drivers y codifica los caracteres especiales de la contraseña."
+    if isinstance(error, ConfigurationError) and any(texto in detalle for texto in ("_mongodb._tcp", "dns", "srv record", "nxdomain")):
+        return "[MONGO_DNS] No se pudo resolver el clúster. Vuelve a copiar la dirección desde Atlas → Connect → Drivers y revisa el estado del clúster."
+    if isinstance(error, (ConfigurationError, ValueError)):
+        return "[MONGO_CONFIG] Revisa el formato de MONGODB_URI y el nombre de MONGODB_DB."
+    return f"[MONGO_ARRANQUE] Falló la etapa {etapa}. Revisa el estado del clúster y los permisos del usuario."
+
+
 def conectar(uri, nombre):
-    cliente = MongoClient(uri, serverSelectionTimeoutMS=5000, timeoutMS=12000)
+    cliente = None
+    etapa = "configuración"
     try:
+        cliente = MongoClient(uri, serverSelectionTimeoutMS=10000, timeoutMS=12000)
         database = cliente[nombre]
+        etapa = "conexión"
         database.command("ping")
+        etapa = "creación de índices"
         database.usuarios.create_index("email", unique=True)
         database.usuarios.create_index("astronauta_id", unique=True, sparse=True)
         database.monitoreos.create_index("borrador_de", unique=True, sparse=True)
         database.monitoreos.create_index([("user_id", 1), ("profile", 1), ("finished_at", -1)])
-    except (PyMongoError, ValueError):
-        cliente.close()
-        raise
+    except (PyMongoError, ValueError) as error:
+        if cliente is not None:
+            cliente.close()
+        raise RuntimeError(_diagnostico_arranque(error, etapa)) from None
     return database
 
 
