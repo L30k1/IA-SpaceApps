@@ -5,6 +5,7 @@ import secrets
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import click
 import httpx2
@@ -61,10 +62,10 @@ def configurar_acceso_json(database, archivo, correo, astronauta_id, password, *
         db.update_password(database, usuario["id"], generate_password_hash(password))
 
 
-def historial_expediente(database, user_id, expediente):
+def historial_expediente(expediente, filas):
     chequeos = {registro["id"]: registro for registro in expediente["chequeos"]}
     registros = []
-    for row in db.history(database, user_id, expediente["_id"]):
+    for row in filas:
         details = json.loads(row["details"] or "{}")
         record_id = details.get("expediente_chequeo_id")
         registro = chequeos.pop(record_id, None)
@@ -85,8 +86,21 @@ def registros_clinicos(database, user_id, expediente):
     return [
         {**registro, "clave": clave, "estado": registro.get("resultado_simulador"),
          "evaluacion_ia": registro.get("evaluacion_ia") if clave.startswith("app-") else None}
-        for clave, registro in historial_expediente(database, user_id, expediente)
+        for clave, registro in historial_expediente(expediente, db.history(database, user_id, expediente["_id"]))
     ]
+
+
+def escribir_archivo_json(destino, contenido):
+    destino.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    temporal = None
+    try:
+        with NamedTemporaryFile(dir=destino.parent, delete=False) as archivo:
+            temporal = Path(archivo.name)
+            archivo.write(contenido)
+        temporal.replace(destino)
+    finally:
+        if temporal is not None:
+            temporal.unlink(missing_ok=True)
 
 
 def create_app(database=None):
@@ -102,6 +116,7 @@ def create_app(database=None):
         SESSION_COOKIE_SAMESITE="Lax",
     )
     database = database or os.getenv("MEDISPACE_DATABASE") or ROOT / "medispace.sqlite3"
+    archivos_expedientes = Path(f"{database}.expedientes")
     db.initialize(database)
     for archivo, correo, astronauta_id, variable in ACCESOS_JSON:
         password = os.getenv(variable)
@@ -128,6 +143,26 @@ def create_app(database=None):
 
     def expediente_actual():
         return db.expediente_for_user(database, session.get("user_id"))
+
+    def actualizar_archivo_expediente(user_id):
+        with db.expediente_para_archivo(database, user_id) as (expediente, filas):
+            if expediente is None:
+                return None
+            expediente["chequeos"] = [registro for _, registro in historial_expediente(expediente, filas)]
+            identificador = secure_filename(expediente["_id"])[:80]
+            filename = f"expediente-{identificador}.json" if identificador else "expediente.json"
+            contenido = (json.dumps(expediente, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+            try:
+                escribir_archivo_json(archivos_expedientes / str(user_id) / filename, contenido)
+            except OSError as exc:
+                app.logger.warning("No se pudo actualizar el archivo del usuario %s: %s", user_id, exc)
+            return filename, contenido
+
+    def sincronizar_archivo_expediente(user_id):
+        try:
+            actualizar_archivo_expediente(user_id)
+        except sqlite3.OperationalError as exc:
+            app.logger.warning("Se aplazó la actualización del expediente del usuario %s: %s", user_id, exc)
 
     @app.after_request
     def proteger_paginas(response):
@@ -215,6 +250,7 @@ def create_app(database=None):
             if not error:
                 session.clear()
                 session["user_id"] = user_id
+                sincronizar_archivo_expediente(user_id)
                 return redirect(url_for("profile"), 303)
         return render_template("index.html", mode=mode, email=email, error=error)
 
@@ -298,6 +334,7 @@ def create_app(database=None):
                 if not error:
                     saved = db.save_turn(database, draft, updated, (hr, spo2, temp), details, status)
                     if saved and status:
+                        sincronizar_archivo_expediente(usuario)
                         return redirect(url_for("summary", registro=f"app-{draft['id']}"), 303)
                     return redirect(url_for("checkup"), 303)
         return render_template(
@@ -307,16 +344,15 @@ def create_app(database=None):
 
     @app.get("/expediente.json")
     def download_expediente():
-        expediente = expediente_actual()
-        if expediente is None:
+        user_id = session.get("user_id")
+        if user_id is None:
             return redirect(url_for("index"))
-        expediente["chequeos"] = [
-            registro for _, registro in historial_expediente(database, session["user_id"], expediente)
-        ]
-        identificador = secure_filename(expediente["_id"])[:80]
-        filename = f"expediente-{identificador}.json" if identificador else "expediente.json"
+        archivo = actualizar_archivo_expediente(user_id)
+        if archivo is None:
+            return redirect(url_for("index"))
+        filename, contenido = archivo
         return Response(
-            json.dumps(expediente, indent=2, ensure_ascii=False) + "\n",
+            contenido,
             content_type="application/json; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
