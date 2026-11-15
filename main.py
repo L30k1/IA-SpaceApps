@@ -20,7 +20,7 @@ from werkzeug.utils import secure_filename
 
 import db
 from asistente import evaluar_chequeo, generar_pregunta, preparar_conversacion
-from calendario_mision import calendario, fechas_mision
+from calendario_mision import calendario
 from database.expedientes import (
     CAMPO_PRAXIS, FASES, OBJETIVOS_PRAXIS, SIGNOS, fecha_utc, leer_expediente, registro_lot, registro_praxis,
 )
@@ -290,27 +290,7 @@ def create_app(database=None):
         return render_template(
             "perfil.htm", expediente=expediente, latest=records[0] if records else None,
             planes=calendario(expediente, records, datetime.now(timezone.utc)),
-            actualizar_archivo=request.args.get("actualizar_archivo") == "1",
         )
-
-    @app.post("/perfil/mision")
-    def guardar_mision():
-        if expediente_actual() is None:
-            return redirect(url_for("index"))
-        identificador = request.form.get("mision_id", "").strip()
-        crear = request.form.get("accion") == "crear"
-        fechas = fechas_mision(request.form)
-        if fechas is None or not identificador or (crear and len(identificador) > 80):
-            flash("Ingresa el identificador y las fechas de la misión. El fin debe ser igual o posterior al inicio.")
-            return redirect(url_for("profile", _anchor="calendario-mision"), 303)
-        usuario = session["user_id"]
-        try:
-            db.guardar_fechas_mision(database, usuario, identificador, fechas, crear)
-        except ValueError as exc:
-            flash(str(exc))
-            return redirect(url_for("profile", _anchor="calendario-mision"), 303)
-        sincronizar_archivo_expediente(usuario)
-        return redirect(url_for("profile", actualizar_archivo=1, _anchor="calendario-mision"), 303)
 
     @app.route("/cognicion", methods=["GET", "POST"])
     def pruebas_cognitivas():
