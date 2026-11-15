@@ -140,6 +140,16 @@ body::before {
   cursor: pointer;
 }
 
+.file-action {
+  align-self: flex-start;
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .hidden { display: none !important; }
 
 /* LAYOUT CON SIDEBAR PARA PANTALLA 2 */

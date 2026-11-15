@@ -229,3 +229,5 @@ body {
 .info-card summary { cursor: pointer; }
 .acciones-alerta { padding-left: 1.4rem; }
 .acciones-alerta li + li { margin-top: 0.75rem; }
+#archivo-local[hidden] { display: none; }
+.file-actions { display: flex; flex-wrap: wrap; gap: 8px; }
