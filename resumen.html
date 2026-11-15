@@ -64,6 +64,7 @@
       </nav>
 
       <section class="view active">
+        {% for aviso in get_flashed_messages() %}<p role="status">{{ t(aviso) }}</p>{% endfor %}
         {% if view in ['historial', 'resultados'] %}
         {% include '_archivo_local.html' %}
         {% endif %}
@@ -71,7 +72,10 @@
         {% include '_estadisticas_monitoreo.html' %}
         {% elif view == 'historial' %}
         <h2 class="history-heading">{{ t('Historial clínico de') }} {{ expediente.astronauta.nombre }}</h2>
-        <a class="step-pill" href="{{ url_for('download_expediente') }}">{{ t('Descargar expediente JSON') }}</a>
+        <div class="file-actions">
+          <a class="step-pill" href="{{ url_for('editar_expediente') }}">{{ t('Editar expediente JSON') }}</a>
+          <a class="step-pill" href="{{ url_for('download_expediente') }}">{{ t('Descargar expediente JSON') }}</a>
+        </div>
         {% include '_datos_expediente.html' %}
         <h3>{{ t('Chequeos') }}</h3>
         {% for registro in records %}

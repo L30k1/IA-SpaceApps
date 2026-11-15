@@ -30,6 +30,7 @@ from database.expedientes import (
     registro_ejercicio, registro_emociones, registro_f2b, registro_praxis,
 )
 from ejercicio import CAMPO_EJERCICIO, CONTEXTOS_FC, CONTEXTOS_FC_EJERCICIO, TIPOS_EJERCICIO
+from editar_expediente import EdicionDesactualizada, aplicar_edicion, datos_editables, version_edicion
 from emociones import CAMPO_EMOCIONES, EMOCIONES, EXPOSICION_EMOCIONES_MS, INTENSIDADES, LAMINAS, estimulos_emociones
 from f2b import CAMPO_F2B, COINCIDENCIAS_F2B, EXPOSICION_F2B_MS, ESTIMULOS_F2B, secuencia_f2b
 from lot import ANGULOS_LOT, CAMPO_LOT, ENSAYOS_LOT, OPCIONES_LOT, pares_lot
@@ -255,7 +256,7 @@ def create_app(database=None):
         if request.endpoint in {
             "index", "preparar_historial", "profile", "checkup", "summary", "registro_psicologico",
             "chat_psicologico", "historial_cognitivo",
-            "download_expediente", "logout", "ejercicio",
+            "download_expediente", "logout", "ejercicio", "editar_expediente",
         } or request.endpoint in PRUEBAS_JSON:
             response.cache_control.no_store = True
             response.headers["Content-Language"] = idioma_actual()
@@ -290,6 +291,9 @@ def create_app(database=None):
         if request.method == "POST":
             if request.endpoint == "index" and request.args.get("mode") == "register":
                 request.max_content_length = 8 * 1024 * 1024
+            if request.endpoint == "editar_expediente":
+                request.max_content_length = 8 * 1024 * 1024
+                request.max_form_memory_size = request.max_content_length
             expected = session.get("csrf", "")
             token = request.form.get("csrf", "")
             if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
@@ -303,7 +307,9 @@ def create_app(database=None):
                 flash("El formulario caducó. Vuelve a completar el paso.")
                 if request.endpoint == "preparar_historial":
                     return redirect(url_for("preparar_historial"), 303)
-                if request.endpoint in {"checkup", "registro_psicologico", "chat_psicologico", "ejercicio"} and expediente_actual():
+                if request.endpoint in {
+                    "checkup", "registro_psicologico", "chat_psicologico", "ejercicio", "editar_expediente",
+                } and expediente_actual():
                     return redirect(url_for(request.endpoint, **request.view_args), 303)
                 mode = request.args.get("mode")
                 return redirect(url_for("index", mode=mode if mode in MODOS_ACCESO else None), 303)
@@ -1009,6 +1015,37 @@ def create_app(database=None):
             expediente=expediente, details=details,
         )
 
+    @app.route("/expediente/editar", methods=["GET", "POST"])
+    def editar_expediente():
+        expediente = expediente_actual()
+        if expediente is None:
+            return redirect(url_for("index"))
+        error = None
+        estado = 200
+        if request.method == "POST":
+            version = request.form.get("version", "")
+            contenido = request.form.get("contenido", "")
+            usuario = session["user_id"]
+            try:
+                guardado = almacen.actualizar_datos_expediente(
+                    database, usuario, lambda actual: aplicar_edicion(actual, version, contenido),
+                )
+            except EdicionDesactualizada as exc:
+                error, estado = str(exc), 409
+            except ValueError as exc:
+                error, estado = str(exc), 400
+            else:
+                if not guardado:
+                    return redirect(url_for("index"))
+                sincronizar_archivo_expediente(usuario)
+                flash("Cambios del expediente guardados.")
+                return redirect(url_for("summary", vista="historial", actualizar_archivo=1), 303)
+        else:
+            datos = datos_editables(expediente)
+            version = version_edicion(datos)
+            contenido = json.dumps(datos, ensure_ascii=False, indent=2)
+        return render_template("editar-expediente.html", contenido=contenido, version=version, error=error), estado
+
     @app.get("/expediente.json")
     def download_expediente():
         user_id = session.get("user_id")
@@ -1041,7 +1078,7 @@ def create_app(database=None):
         return render_template(
             "resumen.html", view=view, latest=latest, records=records, expediente=expediente,
             estadisticas=estadisticas, mediciones_historicas=mediciones_historicas,
-            actualizar_archivo=view == "resultados" and request.args.get("actualizar_archivo") == "1",
+            actualizar_archivo=view in {"resultados", "historial"} and request.args.get("actualizar_archivo") == "1",
         )
 
     return app

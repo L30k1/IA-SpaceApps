@@ -60,6 +60,11 @@
 .chat-psicologico li p { white-space: pre-wrap; margin-top: 6px; }
 .form-chat-psicologico { display: grid; gap: 10px; }
 .form-chat-psicologico button { justify-self: start; }
+.campo-diario .editor-json {
+  font-family: ui-monospace, Consolas, monospace;
+  line-height: 1.45;
+  resize: vertical;
+}
 .ejercicio-campos {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 195px), 1fr));

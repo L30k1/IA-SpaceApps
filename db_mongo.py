@@ -101,6 +101,17 @@ def _actualizar(database, estado, cambios):
     return bool(resultado.matched_count)
 
 
+def actualizar_datos_expediente(database, user_id, aplicar):
+    for _ in range(8):
+        estado = _estado(database, user_id)
+        if estado is None:
+            return False
+        actualizado = aplicar(estado["expediente"])
+        if _actualizar(database, estado, {"expediente": actualizado}):
+            return True
+    raise PyMongoError("El expediente se modificó en otra operación.")
+
+
 def actualizar_volt(database, user_id, accion, identificador, respuestas, ahora):
     for _ in range(8):
         estado = _estado(database, user_id)

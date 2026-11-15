@@ -17,7 +17,7 @@ h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
 .view > :is(.two-cols, .status-banner, .info-card, .history-heading) { margin-block: 0; }
 .view > :is(.two-cols, .status-banner, .info-card, .history-heading) + * { margin-top: 16px; }
 .history-heading { text-align: start; }
-.history-heading + .step-pill { align-self: start; margin-bottom: 16px; }
+.history-heading + .file-actions { align-self: start; margin-bottom: 16px; }
 
 .selector-idioma {
   display: inline-flex;
