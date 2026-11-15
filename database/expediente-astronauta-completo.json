@@ -55,6 +55,77 @@
       "fase": null,
       "motivo": null,
       "actividad": null,
+      "id": "chequeo-8309496bce39494da327aff3103eaa4b",
+      "fecha_hora": "2026-11-15T06:44:36+00:00",
+      "resultado": "ALERTA",
+      "mediciones": [
+        {
+          "tipo": "frecuencia_cardiaca",
+          "valor": 100,
+          "unidad": "lpm"
+        },
+        {
+          "tipo": "spo2",
+          "valor": 100,
+          "unidad": "%"
+        },
+        {
+          "tipo": "temperatura",
+          "valor": 32,
+          "unidad": "°C"
+        }
+      ],
+      "conversacion": [
+        {
+          "role": "ai",
+          "text": "¿Cómo se siente el día de hoy?"
+        },
+        {
+          "role": "user",
+          "text": "mal"
+        },
+        {
+          "role": "ai",
+          "text": "¿Podría describir qué síntomas o sensaciones específicas le hacen sentirse mal?"
+        },
+        {
+          "role": "user",
+          "text": "frío"
+        },
+        {
+          "role": "ai",
+          "text": "¿Ha notado si esta sensación de frío ha estado acompañada de temblores o algún otro cambio físico reciente?"
+        }
+      ],
+      "evaluacion_ia": {
+        "estado": "ALERTA",
+        "resumen": "El astronauta reporta sentirse mal y refiere sensación de frío, lo cual coincide con una temperatura corporal central registrada de 32.0 grados Celsius.",
+        "motivos": [
+          "Temperatura corporal registrada de 32.0 C, indicativa de hipotermia.",
+          "Reporte subjetivo de malestar y sensación de frío.",
+          "Frecuencia cardíaca en 100 lpm, que podría ser una respuesta fisiológica al estado de hipotermia."
+        ],
+        "acciones": [
+          {
+            "recomendacion": "Contactar inmediatamente al equipo médico para evaluar la hipotermia registrada.",
+            "accion": "Notificar al equipo médico."
+          },
+          {
+            "recomendacion": "Verificar si la lectura de la temperatura de 32.0 C es correcta mediante una segunda medición.",
+            "accion": "Solicitar nueva medición de telemetría."
+          },
+          {
+            "recomendacion": "Documentar la presencia de temblores u otros síntomas adicionales.",
+            "accion": "Verificar información con el astronauta."
+          }
+        ]
+      }
+    },
+    {
+      "mision_id": null,
+      "fase": null,
+      "motivo": null,
+      "actividad": null,
       "id": "chequeo-4c5fb49516a24182ae0d0271cbcb89fb",
       "fecha_hora": "2026-11-15T06:18:08+00:00",
       "resultado": "ALERTA",

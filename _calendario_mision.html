@@ -1,0 +1,55 @@
+{% macro fechas(mision, accion) %}
+<form class="mision-form" method="post" action="{{ url_for('guardar_mision') }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if accion == 'crear' %}
+  <label>Identificador de misión <input name="mision_id" maxlength="80" required></label>
+  {% else %}
+  <input type="hidden" name="mision_id" value="{{ mision.id }}">
+  {% endif %}
+  <label>Inicio <input type="date" name="fecha_inicio" value="{{ mision.fecha_inicio or '' }}" required></label>
+  <label>Fin previsto <input type="date" name="fecha_fin" value="{{ mision.fecha_fin or '' }}" required></label>
+  <button class="btn-secondary" type="submit" name="accion" value="{{ accion }}">Guardar fechas</button>
+</form>
+{% endmacro %}
+
+{% macro evaluacion(nombre, fila, destino, detalle='') %}
+<div class="mision-evaluacion">
+  <a href="{{ destino }}">{{ nombre }}</a>
+  <span class="mision-estado{% if fila.estado == 'Vencida' %} mision-vencida{% endif %}">{{ fila.estado }}</span>
+  {% if fila.total == 1 %}
+  <p>Una evaluación programada · Fecha límite {{ fila.limite.strftime('%d/%m/%Y') }}</p>
+  {% else %}
+  <p>{{ 'Cada ' ~ fila.intervalo ~ ' días' if fila.intervalo > 1 else 'Cada día' }} · Fecha límite {{ fila.limite.strftime('%d/%m/%Y') }}</p>
+  {% endif %}
+  {% if detalle %}<p>{{ detalle }}</p>{% endif %}
+  {% if fila.proxima %}<p>Próxima fecha límite {{ fila.proxima.strftime('%d/%m/%Y') }}</p>{% endif %}
+  {% if fila.vencidas %}<p>Plazos anteriores incumplidos ({{ fila.vencidas }})</p>{% endif %}
+</div>
+{% endmacro %}
+
+<section class="mision-calendario" id="calendario-mision" aria-labelledby="mision-titulo">
+  <h2 id="mision-titulo">Misión y evaluaciones obligatorias</h2>
+  <p>El calendario usa días de misión en UTC−6. El equipo responsable debe confirmar las frecuencias antes de aplicarlas en vuelo.</p>
+  {% for plan in planes %}
+  <article class="mision-plan">
+    <h3>{{ plan.mision.id }}</h3>
+    {% if plan.duracion %}
+    <p>{{ plan.duracion }} {{ 'día' if plan.duracion == 1 else 'días' }} · {{ plan.estado }}</p>
+    {{ evaluacion('Evaluación médica', plan.medica, '#iniciar-monitoreo') }}
+    {{ evaluacion('Evaluación psicológica', plan.psicologica, url_for('registro_psicologico', modulo=plan.psicologia), 'Cuestionario ' ~ plan.psicologia | capitalize) }}
+    {{ evaluacion('Evaluación cognitiva', plan.cognitiva, url_for('pruebas_cognitivas'), 'Praxis Motora, VOLT y LOT · ' ~ plan.cognitiva.restantes ~ ' de 3 pendientes en este período') }}
+    {% else %}
+    <p>Completa las fechas para calcular la duración y los plazos.</p>
+    {% endif %}
+    <details{% if not plan.duracion %} open{% endif %}>
+      <summary>Editar fechas</summary>
+      {{ fechas(plan.mision, 'editar') }}
+    </details>
+  </article>
+  {% endfor %}
+  <details{% if not planes %} open{% endif %}>
+    <summary>Agregar misión</summary>
+    {{ fechas({}, 'crear') }}
+  </details>
+  {% if actualizar_archivo %}{% include '_archivo_local.html' %}{% endif %}
+</section>

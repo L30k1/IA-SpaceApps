@@ -115,11 +115,12 @@
                 </div>
               </div>
             </div>
+            {% include '_calendario_mision.html' %}
           </div>
 
           <!-- Accesos Directos -->
           <div class="right-col">
-            <form method="post" action="{{ url_for('checkup') }}">
+            <form id="iniciar-monitoreo" method="post" action="{{ url_for('checkup') }}">
               <input type="hidden" name="csrf" value="{{ csrf }}">
               <button class="btn-primary" type="submit" name="iniciar" value="1">Iniciar monitoreo →</button>
             </form>
@@ -157,6 +158,7 @@
 
     </div>
   </div>
+  <script src="{{ url_for('expediente_local_script') }}" defer></script>
 
   <!--{% if false %}-->
   </template>

@@ -155,6 +155,28 @@ body {
 }
 .schedule-item strong { color: var(--text-main); display: block; font-weight: 500; }
 
+.mision-calendario, .mision-plan { display: grid; gap: 12px; min-width: 0; }
+.mision-calendario {
+  background: var(--card-bg);
+  border: 1px solid rgba(56, 152, 255, 0.35);
+  border-radius: 14px;
+  padding: 16px;
+}
+.mision-calendario h2 { font-size: 1.1rem; }
+.mision-calendario h3 { font-size: 1rem; overflow-wrap: anywhere; }
+.mision-calendario p { font-size: 0.86rem; color: var(--text-muted); }
+.mision-plan + .mision-plan, .mision-evaluacion { border-top: 1px solid rgba(56, 152, 255, 0.25); padding-top: 8px; }
+.mision-evaluacion a { margin-right: 8px; color: var(--accent); }
+.mision-evaluacion p { margin-top: 4px; }
+.mision-estado { font-size: 0.75rem; font-weight: 600; color: var(--text-main); }
+.mision-vencida { color: #fca5a5; }
+.mision-calendario summary { cursor: pointer; }
+.mision-form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 8px; }
+.mision-form label { display: grid; gap: 4px; font-size: 0.83rem; }
+.mision-form input { padding: 7px; border: 1px solid #4675a9; border-radius: 6px; background: #0b1938; color: var(--text-main); color-scheme: dark; }
+.mision-calendario .file-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.mision-calendario .file-actions button { padding: 7px; border: 1px solid #4675a9; border-radius: 6px; background: #0b1938; color: var(--text-main); cursor: pointer; }
+
 /* COLUMNA DERECHA DASHBOARD */
 .right-col { display: flex; flex-direction: column; gap: 16px; }
 
