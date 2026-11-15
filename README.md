@@ -31,7 +31,7 @@ Puedes definir `MEDISPACE_SECRET_KEY` con un valor secreto estable para conserva
 
 ## Calendario de la misión
 
-En **Perfil → Misión y evaluaciones obligatorias**, registra las fechas previstas de inicio y fin. Ambos días cuentan para la duración. MediSpace muestra los plazos en UTC−6 y calcula el cumplimiento con las evaluaciones guardadas durante cada período. La evaluación cognitiva requiere una ronda completa de Praxis Motora, VOLT y LOT dentro del mismo período.
+En el JSON del astronauta, incluye cada misión en `misiones` con su `id`, `fecha_inicio` y `fecha_fin`. Usa fechas en formato `AAAA-MM-DD` y prepara el expediente antes de crear la cuenta. El perfil muestra el calendario en modo de solo lectura y el inicio de sesión con JSON consulta el expediente ya registrado. Ambos días cuentan para la duración. MediSpace muestra los plazos en UTC−6 y calcula el cumplimiento con las evaluaciones guardadas durante cada período. La evaluación cognitiva requiere una ronda completa de Praxis Motora, VOLT y LOT dentro del mismo período.
 
 | Duración | Médica | Psicológica | Cognitiva |
 |---|---|---|---|

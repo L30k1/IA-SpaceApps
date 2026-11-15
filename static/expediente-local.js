@@ -187,16 +187,6 @@
           throw new Error("El archivo seleccionado pertenece a otro expediente.");
         }
         const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
-        if (servidor.misiones?.some(mision => mision.fecha_inicio && mision.fecha_fin)) {
-          const misiones = new Map((local.misiones ?? []).map(mision => [mision.id, mision]));
-          for (const mision of servidor.misiones) {
-            if (mision.fecha_inicio && mision.fecha_fin) {
-              misiones.set(mision.id, { ...mision, ...misiones.get(mision.id),
-                fecha_inicio: mision.fecha_inicio, fecha_fin: mision.fecha_fin });
-            }
-          }
-          combinado.misiones = [...misiones.values()];
-        }
         for (const campo of ["diario_psicologico", "semanal_psicologico", "praxis_motora", "memoria_visual", "orientacion_linea"]) {
           if (campo in servidor || campo in local) {
             combinado[campo] = combinarRegistros(local, servidor, campo);

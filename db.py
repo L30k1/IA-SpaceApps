@@ -4,7 +4,6 @@ from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from calendario_mision import fechas_mision
 from database.expedientes import SIGNOS, fecha_utc
 from volt import CAMPO_VOLT, ESPERA, EXPOSICION, FIGURAS, VERSION_VOLT, estimulos, puntuar
 
@@ -82,31 +81,6 @@ def expediente_for_user(path, user_id):
 def read_expediente(db, user_id):
     row = db.execute("SELECT contenido FROM expedientes WHERE user_id = ?", (user_id,)).fetchone()
     return json.loads(row[0]) if row else None
-
-
-def guardar_fechas_mision(path, usuario, identificador, fechas, crear):
-    inicio, fin = fechas
-    with closing(sqlite3.connect(path)) as db, db:
-        db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, usuario)
-        if expediente is None:
-            raise ValueError("La cuenta no tiene un expediente activo.")
-        misiones = expediente["misiones"]
-        mision = next((m for m in misiones if m["id"] == identificador), None)
-        if crear and mision is not None:
-            raise ValueError("Ya hay una misión con ese identificador.")
-        if not crear and mision is None:
-            raise ValueError("La misión no figura en tu expediente.")
-        for otra in misiones:
-            periodo = fechas_mision(otra)
-            if otra is not mision and periodo and inicio <= periodo[1] and periodo[0] <= fin:
-                raise ValueError("Las fechas se superponen con otra misión de tu expediente.")
-        if mision is None:
-            mision = {"id": identificador}
-            misiones.append(mision)
-        mision.update(fecha_inicio=inicio.isoformat(), fecha_fin=fin.isoformat())
-        db.execute("UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-                   (json.dumps(expediente, ensure_ascii=False), usuario))
 
 
 def read_volt_draft(db, user_id):
