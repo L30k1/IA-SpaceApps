@@ -33,4 +33,4 @@ Use the editing key when MediSpace prompts you to unlock changes to the medical 
 
 ## Use of AI
 
-The [AI use disclosure](docs/ai-use-disclosure.md) describes how AI was used for images, audio, code, and data. The [provenance inventory](docs/ai-provenance.json) contains the metadata. AI assisted in developing the cognitive tests, and the app scores them using predefined rules.
+The [AI use disclosure](ai-use-disclosure.md) describes how AI was used for images, audio, code, and data. The [provenance inventory](ai-provenance.json) contains the metadata. AI assisted in developing the cognitive tests, and the app scores them using predefined rules.
