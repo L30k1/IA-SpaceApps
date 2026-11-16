@@ -18,6 +18,19 @@ MediSpace is a web app for recording and reviewing astronaut health. It brings t
 3. If you need to generate a medical record, select **Create a medical history JSON file** and complete the form. When you download it, MediSpace takes you back to **Create account**.
 4. To sign in again, use the account name, astronaut ID, and password.
 
+### Demo account
+
+If you cannot create a new medical history JSON file, select **Sign in** and use the demo account below.
+
+| Field | Value |
+| --- | --- |
+| Name | **Sally K. Ride** |
+| Astronaut ID | `1234` |
+| Password | `12345678` |
+| Editing key | `12345678` |
+
+Use the editing key when MediSpace prompts you to unlock changes to the medical record.
+
 ## Use of AI
 
 The [AI use disclosure](docs/ai-use-disclosure.md) describes how AI was used for images, audio, code, and data. The [provenance inventory](docs/ai-provenance.json) contains the metadata. AI assisted in developing the cognitive tests, and the app scores them using predefined rules.
