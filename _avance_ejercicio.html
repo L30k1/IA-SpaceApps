@@ -1,16 +1,16 @@
-{% macro avance_ejercicio(rutina) %}
-{% if rutina.activa %}
+{% macro avance_ejercicio(routine) %}
+{% if routine.activa %}
 <div class="avance-ejercicio">
-  <p><strong>{{ t('Hoy: {minutos} de {minimo} min', minutos=rutina.minutos_hoy, minimo=rutina.minimo) }}</strong></p>
-  <progress value="{{ [rutina.minutos_hoy, rutina.minimo] | min }}" max="{{ rutina.minimo }}"
-            aria-label="{{ t('Avance de ejercicio de hoy') }}"></progress>
-  {% if rutina.faltan %}
-  <p>{{ t('Tiempo restante: {minutos} min', minutos=rutina.faltan) }}</p>
+  <p><strong>{{ t("Today: {minutos} of {minimo} min", minutos=routine.minutos_hoy, minimo=routine.minimo) }}</strong></p>
+  <progress value="{{ [routine.minutos_hoy, routine.minimo] | min }}" max="{{ routine.minimo }}"
+            aria-label="{{ t("Today's exercise progress") }}"></progress>
+  {% if routine.faltan %}
+  <p>{{ t("Time remaining: {minutos} min", minutos=routine.faltan) }}</p>
   {% else %}
-  <p class="avance-ejercicio-completo">{{ t('Meta diaria completada') }}</p>
+  <p class="avance-ejercicio-completo">{{ t("Daily goal reached") }}</p>
   {% endif %}
 </div>
 {% else %}
-<p>{{ t('Meta diaria de ejercicio: {minutos} min', minutos=rutina.minimo) }}</p>
+<p>{{ t("Daily exercise goal: {minutos} min", minutos=routine.minimo) }}</p>
 {% endif %}
 {% endmacro %}

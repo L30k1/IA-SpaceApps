@@ -3,28 +3,28 @@
   const { t } = window.mediSpaceLanguage;
 
   const storageKey = "medispace.archivo-local";
-  const escritura = { mode: "readwrite" };
-  const limiteBytes = 8 * 1024 * 1024;
-  const soportado = window.isSecureContext && typeof window.showOpenFilePicker === "function"
+  const writeMode = { mode: "readwrite" };
+  const byteLimit = 8 * 1024 * 1024;
+  const supported = window.isSecureContext && typeof window.showOpenFilePicker === "function"
     && window.indexedDB && navigator.locks && window.crypto?.subtle;
 
-  function archivos(modo, operacion) {
+  function fileStore(chat_mode, operation) {
     return new Promise((resolve, reject) => {
-      const apertura = indexedDB.open("medispace", 1);
-      apertura.onupgradeneeded = () => apertura.result.createObjectStore("archivos");
-      apertura.onerror = () => reject(apertura.error);
-      apertura.onsuccess = () => {
-        const database = apertura.result;
+      const openRequest = indexedDB.open("medispace", 1);
+      openRequest.onupgradeneeded = () => openRequest.result.createObjectStore("archivos");
+      openRequest.onerror = () => reject(openRequest.error);
+      openRequest.onsuccess = () => {
+        const database = openRequest.result;
         try {
-          const transaccion = database.transaction("archivos", modo);
-          const peticion = operacion(transaccion.objectStore("archivos"));
-          transaccion.oncomplete = () => {
+          const transaction = database.transaction("archivos", chat_mode);
+          const requestController = operation(transaction.objectStore("archivos"));
+          transaction.oncomplete = () => {
             database.close();
-            resolve(peticion.result);
+            resolve(requestController.result);
           };
-          transaccion.onabort = () => {
+          transaction.onabort = () => {
             database.close();
-            reject(transaccion.error);
+            reject(transaction.error);
           };
         } catch (error) {
           database.close();
@@ -34,249 +34,249 @@
     });
   }
 
-  function leerDocumento(contenido) {
+  function parseRecord(content_blob) {
     try {
-      const documento = JSON.parse(new TextDecoder().decode(contenido));
-      if (typeof documento?._id === "string" && documento._id.trim()) {
-        return documento;
+      const document = JSON.parse(new TextDecoder().decode(content_blob));
+      if (typeof document?._id === "string" && document._id.trim()) {
+        return document;
       }
     } catch {
-      // Solo se aceptan archivos JSON que identifiquen un expediente.
+      // Only JSON files that identify a medical record are accepted.
     }
-    throw new Error(t("El archivo no contiene un identificador de expediente válido."));
+    throw new Error(t("The file does not contain a valid medical record ID."));
   }
 
-  async function huella(contenido) {
-    const hash = await crypto.subtle.digest("SHA-256", contenido);
+  async function fingerprint(content_blob) {
+    const hash = await crypto.subtle.digest("SHA-256", content_blob);
     return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
   }
 
-  function combinarRegistros(local, servidor, campo) {
-    const previos = local[campo] ?? [];
-    const actuales = servidor[campo] ?? [];
-    if (!Array.isArray(previos) || !Array.isArray(actuales)) {
-      throw new Error(t("Revisa los registros del archivo original antes de actualizarlo."));
+  function mergeEntries(local, serverRecord, field_name) {
+    const prior_entries = local[field_name] ?? [];
+    const currentEntries = serverRecord[field_name] ?? [];
+    if (!Array.isArray(prior_entries) || !Array.isArray(currentEntries)) {
+      throw new Error(t("Review the entries in the original file before updating it."));
     }
-    const ids = new Set(actuales.map(registro => registro.id));
-    return [...actuales, ...previos.filter(registro => !ids.has(registro?.id))];
+    const ids = new Set(currentEntries.map(entry => entry.id));
+    return [...currentEntries, ...prior_entries.filter(entry => !ids.has(entry?.id))];
   }
 
-  async function leerArchivo(handle) {
-    const archivo = await handle.getFile();
-    if (archivo.size > limiteBytes) {
-      throw new Error(t("El archivo supera el tamaño admitido."));
+  async function readFileHandle(handle) {
+    const uploaded_file = await handle.getFile();
+    if (uploaded_file.size > byteLimit) {
+      throw new Error(t("The file exceeds the size limit."));
     }
-    return { archivo, contenido: await archivo.arrayBuffer() };
+    return { archivo: uploaded_file, contenido: await uploaded_file.arrayBuffer() };
   }
 
-  async function elegirArchivo() {
+  async function chooseFile() {
     const [handle] = await window.showOpenFilePicker({
       multiple: false,
       excludeAcceptAllOption: true,
-      types: [{ description: t("Expediente de MediSpace"), accept: { "application/json": [".json"] } }],
+      types: [{ description: t("MediSpace medical record"), accept: { "application/json": [".json"] } }],
     });
-    const { archivo, contenido } = await leerArchivo(handle);
+    const { archivo: uploaded_file, contenido: content_blob } = await readFileHandle(handle);
     return {
-      archivo, handle, expedienteId: leerDocumento(contenido)._id.trim(), huella: await huella(contenido),
+      archivo: uploaded_file, handle, expedienteId: parseRecord(content_blob)._id.trim(), huella: await fingerprint(content_blob),
     };
   }
 
-  async function permisoEscritura(handle) {
-    if (await handle.queryPermission(escritura) === "granted") {
+  async function requestWritePermission(handle) {
+    if (await handle.queryPermission(writeMode) === "granted") {
       return true;
     }
     try {
-      return await handle.requestPermission(escritura) === "granted";
+      return await handle.requestPermission(writeMode) === "granted";
     } catch (error) {
-      // Algunos navegadores requieren un segundo clic tras cerrar el selector.
+      // Some browsers require a second click after the picker closes.
       if (error.name !== "SecurityError") throw error;
       return false;
     }
   }
 
-  async function vincular({ handle, expedienteId, huella: hash }) {
-    const enlace = { handle, expedienteId, huella: hash };
-    const clave = sessionStorage.getItem(storageKey) || crypto.randomUUID();
-    await archivos("readwrite", almacen => almacen.put(enlace, clave));
-    sessionStorage.setItem(storageKey, clave);
-    return enlace;
+  async function linkRecord({ handle, expedienteId: recordId, huella: hash }) {
+    const link = { handle, expedienteId: recordId, huella: hash };
+    const lookup_key = sessionStorage.getItem(storageKey) || crypto.randomUUID();
+    await fileStore("readwrite", storage => storage.put(link, lookup_key));
+    sessionStorage.setItem(storageKey, lookup_key);
+    return link;
   }
 
-  function prepararFormulario() {
-    const formulario = document.getElementById("auth-form");
+  function setupForm() {
+    const form_data = document.getElementById("auth-form");
     const input = document.getElementById("expediente");
-    const boton = document.getElementById("elegir-expediente-local");
-    const estado = document.getElementById("estado-expediente-local");
+    const button = document.getElementById("elegir-expediente-local");
+    const state = document.getElementById("estado-expediente-local");
     if (!input) return;
 
-    const mostrar = mensaje => {
-      estado.hidden = false;
-      estado.textContent = mensaje;
+    const display = message => {
+      state.hidden = false;
+      state.textContent = message;
     };
-    formulario.addEventListener("submit", evento => {
+    form_data.addEventListener("submit", event => {
       if (!input.files.length) {
-        evento.preventDefault();
-        mostrar(t("Elige tu archivo JSON para continuar."));
-        boton.focus();
+        event.preventDefault();
+        display(t("Choose your JSON file to continue."));
+        button.focus();
       }
     });
     input.required = false;
     input.hidden = true;
-    boton.hidden = false;
-    const enviar = document.getElementById("btn-auth-submit");
-    boton.addEventListener("click", async () => {
-      boton.disabled = true;
-      enviar.disabled = true;
+    button.hidden = false;
+    const submitTurn = document.getElementById("btn-auth-submit");
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      submitTurn.disabled = true;
       try {
-        const seleccion = await elegirArchivo();
-        const autorizado = await permisoEscritura(seleccion.handle);
-        const carga = new DataTransfer();
-        carga.items.add(seleccion.archivo);
-        await vincular(seleccion);
-        input.files = carga.files;
-        mostrar(autorizado
-          ? t('Archivo vinculado: {nombre}.', { nombre: seleccion.archivo.name })
-          : t("Archivo seleccionado. Podrás autorizar la escritura desde Resultados."));
+        const selection = await chooseFile();
+        const authorized = await requestWritePermission(selection.handle);
+        const requestBody = new DataTransfer();
+        requestBody.items.add(selection.archivo);
+        await linkRecord(selection);
+        input.files = requestBody.files;
+        display(authorized
+          ? t("Linked file: {nombre}.", { nombre: selection.archivo.name })
+          : t("File selected. You can allow writing from Results."));
       } catch (error) {
         if (error.name !== "AbortError") {
           input.hidden = false;
           input.required = true;
-          boton.hidden = true;
-          mostrar(t("Puedes seleccionar el JSON aquí y vincular el archivo original más adelante desde Resultados."));
+          button.hidden = true;
+          display(t("You can select the JSON file here and link the original later from Results."));
           input.focus();
         }
       } finally {
-        boton.disabled = false;
-        enviar.disabled = false;
+        button.disabled = false;
+        submitTurn.disabled = false;
       }
     });
   }
 
-  async function prepararResultados(panel) {
-    const estado = document.getElementById("estado-archivo-local");
-    const vincularBoton = document.getElementById("vincular-archivo-local");
-    const guardarBoton = document.getElementById("guardar-archivo-local");
-    const { expedienteId, url, auto } = panel.dataset;
-    const mostrar = mensaje => { estado.textContent = mensaje; };
+  async function setupResults(panel) {
+    const state = document.getElementById("estado-archivo-local");
+    const linkButton = document.getElementById("vincular-archivo-local");
+    const saveButton = document.getElementById("guardar-archivo-local");
+    const { expedienteId: recordId, url, auto } = panel.dataset;
+    const display = message => { state.textContent = message; };
     panel.hidden = false;
-    if (!soportado) {
-      mostrar(t("Para actualizar el archivo original desde la página, abre MediSpace en Chrome o Edge."));
+    if (!supported) {
+      display(t("To update the original file from this page, open MediSpace in Chrome or Edge."));
       return;
     }
 
-    const clave = sessionStorage.getItem(storageKey);
-    const previo = clave ? await archivos("readonly", almacen => almacen.get(clave)) : null;
-    let enlace = previo?.expedienteId === expedienteId ? previo : null;
-    guardarBoton.hidden = !enlace;
-    vincularBoton.hidden = false;
-    mostrar(enlace ? t('Archivo vinculado: {nombre}.', { nombre: enlace.handle.name }) : t("Vincula el archivo que subiste para actualizarlo."));
+    const lookup_key = sessionStorage.getItem(storageKey);
+    const previous_value = lookup_key ? await fileStore("readonly", storage => storage.get(lookup_key)) : null;
+    let link = previous_value?.expedienteId === recordId ? previous_value : null;
+    saveButton.hidden = !link;
+    linkButton.hidden = false;
+    display(link ? t("Linked file: {nombre}.", { nombre: link.handle.name }) : t("Link the file you uploaded to update it."));
 
-    async function guardar() {
-      if (await enlace.handle.queryPermission(escritura) !== "granted") {
-        mostrar(t("Pulsa «Actualizar archivo original» para autorizar la escritura."));
+    async function save() {
+      if (await link.handle.queryPermission(writeMode) !== "granted") {
+        display(t("Select “Update original file” to allow writing."));
         return;
       }
-      await navigator.locks.request(`medispace-expediente-${expedienteId}`, async () => {
-        const claveActual = sessionStorage.getItem(storageKey);
-        const guardado = await archivos("readonly", almacen => almacen.get(claveActual));
-        if (!guardado || guardado.expedienteId !== expedienteId) {
-          throw new Error(t("Vuelve a vincular el archivo de este expediente."));
+      await navigator.locks.request(`medispace-expediente-${recordId}`, async () => {
+        const currentKey = sessionStorage.getItem(storageKey);
+        const stored = await fileStore("readonly", storage => storage.get(currentKey));
+        if (!stored || stored.expedienteId !== recordId) {
+          throw new Error(t("Link the file for this record again."));
         }
-        const respuesta = await fetch(url, { cache: "no-store", redirect: "error" });
-        if (!respuesta.ok || !respuesta.headers.get("Content-Type")?.includes("application/json")) {
-          throw new Error(t("No se pudo obtener el expediente. Comprueba tu sesión."));
+        const reply = await fetch(url, { cache: "no-store", redirect: "error" });
+        if (!reply.ok || !reply.headers.get("Content-Type")?.includes("application/json")) {
+          throw new Error(t("The record could not be retrieved. Check your session."));
         }
-        const servidor = leerDocumento(await respuesta.arrayBuffer());
-        const { contenido } = await leerArchivo(guardado.handle);
-        const local = leerDocumento(contenido);
-        if (servidor._id.trim() !== expedienteId || local._id.trim() !== expedienteId) {
-          throw new Error(t("El archivo seleccionado pertenece a otro expediente."));
+        const serverRecord = parseRecord(await reply.arrayBuffer());
+        const { contenido: content_blob } = await readFileHandle(stored.handle);
+        const local = parseRecord(content_blob);
+        if (serverRecord._id.trim() !== recordId || local._id.trim() !== recordId) {
+          throw new Error(t("The selected file belongs to a different record."));
         }
-        const combinado = { ...local, chequeos: combinarRegistros(local, servidor, "chequeos") };
-        delete combinado.clave_edicion_hash;
-        for (const campo of ["alergias", "antecedentes", "medicamentos", "estado_alergias", "referencias_monitoreo"]) {
-          if (Object.hasOwn(servidor, campo)) combinado[campo] = servidor[campo];
+        const mergedEntries = { ...local, chequeos: mergeEntries(local, serverRecord, "chequeos") };
+        delete mergedEntries.clave_edicion_hash;
+        for (const field_name of ["alergias", "antecedentes", "medicamentos", "estado_alergias", "referencias_monitoreo"]) {
+          if (Object.hasOwn(serverRecord, field_name)) mergedEntries[field_name] = serverRecord[field_name];
         }
-        if (Array.isArray(local.misiones) && Array.isArray(servidor.misiones)) {
-          const metas = new Map(servidor.misiones.map(mision => [mision.id, mision.ejercicio_min_diarios]));
-          combinado.misiones = local.misiones.map(mision => {
-            if (!metas.has(mision.id)) return mision;
-            const actualizada = { ...mision };
-            const meta = metas.get(mision.id);
-            if (meta === undefined) delete actualizada.ejercicio_min_diarios;
-            else actualizada.ejercicio_min_diarios = meta;
-            return actualizada;
+        if (Array.isArray(local.misiones) && Array.isArray(serverRecord.misiones)) {
+          const targets = new Map(serverRecord.misiones.map(mission => [mission.id, mission.ejercicio_min_diarios]));
+          mergedEntries.misiones = local.misiones.map(mission => {
+            if (!targets.has(mission.id)) return mission;
+            const refreshedForm = { ...mission };
+            const goal = targets.get(mission.id);
+            if (goal === undefined) delete refreshedForm.ejercicio_min_diarios;
+            else refreshedForm.ejercicio_min_diarios = goal;
+            return refreshedForm;
           });
         }
-        for (const campo of [
+        for (const field_name of [
           "diario_psicologico", "semanal_psicologico", "praxis_motora", "memoria_visual",
           "orientacion_linea", "fractal_2_back", "reconocimiento_emociones", "sesiones_ejercicio",
         ]) {
-          if (campo in servidor || campo in local) {
-            combinado[campo] = combinarRegistros(local, servidor, campo);
+          if (field_name in serverRecord || field_name in local) {
+            mergedEntries[field_name] = mergeEntries(local, serverRecord, field_name);
           }
         }
-        const actualizado = new TextEncoder().encode(JSON.stringify(combinado, null, 2) + "\n");
-        const hash = await huella(actualizado);
-        const hashLocal = await huella(contenido);
-        if (hashLocal !== hash && hashLocal !== guardado.huella) {
-          throw new Error(t("El archivo cambió fuera de MediSpace. Revísalo y vuelve a vincularlo para actualizarlo."));
+        const updated_record = new TextEncoder().encode(JSON.stringify(mergedEntries, null, 2) + "\n");
+        const hash = await fingerprint(updated_record);
+        const localHash = await fingerprint(content_blob);
+        if (localHash !== hash && localHash !== stored.huella) {
+          throw new Error(t("The file changed outside MediSpace. Review it and link it again to update it."));
         }
-        if (hashLocal !== hash) {
-          const flujo = await guardado.handle.createWritable({ mode: "exclusive" });
+        if (localHash !== hash) {
+          const speechFlow = await stored.handle.createWritable({ mode: "exclusive" });
           try {
-            await flujo.write(actualizado);
-            await flujo.close();
+            await speechFlow.write(updated_record);
+            await speechFlow.close();
           } catch (error) {
-            await flujo.abort().catch(() => {});
+            await speechFlow.abort().catch(() => {});
             throw error;
           }
-          await archivos("readwrite", almacen => almacen.put({ ...guardado, huella: hash }, claveActual));
+          await fileStore("readwrite", storage => storage.put({ ...stored, huella: hash }, currentKey));
         }
-        mostrar(t('Archivo original actualizado: {nombre}.', { nombre: guardado.handle.name }));
+        display(t("Original file updated: {nombre}.", { nombre: stored.handle.name }));
       });
     }
 
-    async function ejecutar(operacion) {
-      guardarBoton.disabled = true;
-      vincularBoton.disabled = true;
+    async function execute(operation) {
+      saveButton.disabled = true;
+      linkButton.disabled = true;
       try {
-        await operacion();
+        await operation();
       } catch (error) {
-        if (error.name !== "AbortError") mostrar(error.message || t("No se pudo actualizar el archivo original."));
+        if (error.name !== "AbortError") display(error.message || t("The original file could not be updated."));
       } finally {
-        guardarBoton.disabled = false;
-        vincularBoton.disabled = false;
+        saveButton.disabled = false;
+        linkButton.disabled = false;
       }
     }
 
-    guardarBoton.addEventListener("click", () => ejecutar(async () => {
-      if (await permisoEscritura(enlace.handle)) {
-        await guardar();
+    saveButton.addEventListener("click", () => execute(async () => {
+      if (await requestWritePermission(link.handle)) {
+        await save();
       } else {
-        mostrar(t("Permite la escritura en el navegador para actualizar este archivo."));
+        display(t("Allow write access in your browser to update this file."));
       }
     }));
-    vincularBoton.addEventListener("click", () => ejecutar(async () => {
-      const seleccion = await elegirArchivo();
-      if (seleccion.expedienteId !== expedienteId) {
-        throw new Error(t("El archivo seleccionado pertenece a otro expediente."));
+    linkButton.addEventListener("click", () => execute(async () => {
+      const selection = await chooseFile();
+      if (selection.expedienteId !== recordId) {
+        throw new Error(t("The selected file belongs to a different record."));
       }
-      const autorizado = await permisoEscritura(seleccion.handle);
-      enlace = await vincular(seleccion);
-      guardarBoton.hidden = false;
-      if (autorizado) {
-        await guardar();
+      const authorized = await requestWritePermission(selection.handle);
+      link = await linkRecord(selection);
+      saveButton.hidden = false;
+      if (authorized) {
+        await save();
       } else {
-        mostrar(t("Pulsa «Actualizar archivo original» para autorizar la escritura."));
+        display(t("Select “Update original file” to allow writing."));
       }
     }));
-    if (enlace && auto === "1") await ejecutar(guardar);
+    if (link && auto === "1") await execute(save);
   }
 
-  if (soportado && document.getElementById("auth-form")) prepararFormulario();
+  if (supported && document.getElementById("auth-form")) setupForm();
   const panel = document.getElementById("archivo-local");
-  if (panel) prepararResultados(panel).catch(() => {
-    document.getElementById("estado-archivo-local").textContent = t("El navegador no pudo recuperar el archivo vinculado.");
+  if (panel) setupResults(panel).catch(() => {
+    document.getElementById("estado-archivo-local").textContent = t("The browser could not retrieve the linked file.");
   });
 })();

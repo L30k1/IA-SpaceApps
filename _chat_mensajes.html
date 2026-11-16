@@ -1,9 +1,9 @@
-{% macro historial_chat(mensajes) %}
+{% macro historial_chat(turns) %}
 <ol class="chat-mensajes" data-chat-mensajes role="log" aria-label="{{ t('Conversación') }}">
-  {% for mensaje in mensajes %}
-  <li class="chat-turno{% if mensaje.role == 'user' %} chat-turno-usuario{% endif %}"{% if loop.last %} id="ultimo-mensaje"{% endif %}>
-    <strong>{{ t('Tú') if mensaje.role == 'user' else t('IA') }}</strong>
-    <p{% if mensaje.role == 'ai' %} data-voz-respuesta{% endif %}>{{ mensaje.text | respuesta_ia if mensaje.role == 'ai' else mensaje.text }}</p>
+  {% for message in turns %}
+  <li class="chat-turno{% if message.role == 'user' %} chat-turno-usuario{% endif %}"{% if loop.last %} id="ultimo-mensaje"{% endif %}>
+    <strong>{{ t("You") if message.role == 'user' else t("AI") }}</strong>
+    <p{% if message.role == 'ai' %} data-voz-respuesta{% endif %}>{{ message.text | ai_reply if message.role == 'ai' else message.text }}</p>
   </li>
   {% endfor %}
 </ol>

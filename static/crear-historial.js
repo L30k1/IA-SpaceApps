@@ -1,58 +1,58 @@
 (() => {
-  const formulario = document.querySelector('[data-crear-cuenta]');
-  if (!formulario) return;
+  const form_data = document.querySelector('[data-crear-cuenta]');
+  if (!form_data) return;
 
   const { t } = window.mediSpaceLanguage;
-  const aviso = document.querySelector('[data-historial-error]');
-  const mensajeError = t('No se pudo generar el historial médico. Inténtalo de nuevo.');
-  let generando = false;
+  const notice = document.querySelector('[data-historial-error]');
+  const errorMessage = t("The medical record could not be generated. Please try again.");
+  let isGenerating = false;
 
-  function mostrarError(mensaje) {
-    aviso.textContent = mensaje;
-    aviso.hidden = false;
-    aviso.scrollIntoView({ block: 'nearest' });
+  function showError(message) {
+    notice.textContent = message;
+    notice.hidden = false;
+    notice.scrollIntoView({ block: 'nearest' });
   }
 
-  formulario.addEventListener('submit', async evento => {
-    if (generando) {
-      evento.preventDefault();
+  form_data.addEventListener('submit', async event => {
+    if (isGenerating) {
+      event.preventDefault();
       return;
     }
-    if (evento.submitter && evento.submitter.value !== 'descargar') return;
+    if (event.submitter && event.submitter.value !== 'descargar') return;
 
-    evento.preventDefault();
-    generando = true;
-    aviso.hidden = true;
-    const datos = new FormData(formulario);
-    datos.set('accion', 'descargar');
-    const botones = [...formulario.querySelectorAll('button[type="submit"]:enabled')];
-    botones.forEach(boton => { boton.disabled = true; });
+    event.preventDefault();
+    isGenerating = true;
+    notice.hidden = true;
+    const data = new FormData(form_data);
+    data.set('accion', 'descargar');
+    const buttons = [...form_data.querySelectorAll('button[type="submit"]:enabled')];
+    buttons.forEach(button => { button.disabled = true; });
 
     try {
-      const respuesta = await fetch(formulario.action, {
-        method: 'POST', body: datos, headers: { Accept: 'application/json' },
+      const reply = await fetch(form_data.action, {
+        method: 'POST', body: data, headers: { Accept: 'application/json' },
       });
-      const disposicion = respuesta.headers.get('Content-Disposition') || '';
-      if (!respuesta.ok || !disposicion.startsWith('attachment')) {
-        const resultado = await respuesta.json().catch(() => null);
-        mostrarError(resultado?.error || mensajeError);
+      const disposition = reply.headers.get('Content-Disposition') || '';
+      if (!reply.ok || !disposition.startsWith('attachment')) {
+        const resultData = await reply.json().catch(() => null);
+        showError(resultData?.error || errorMessage);
         return;
       }
-      const url = URL.createObjectURL(await respuesta.blob());
+      const url = URL.createObjectURL(await reply.blob());
       setTimeout(() => URL.revokeObjectURL(url), 30000);
-      const enlace = document.createElement('a');
-      enlace.href = url;
-      enlace.download = disposicion.match(/filename="([^"]+)"/)?.[1] || 'expediente.json';
-      document.body.append(enlace);
-      enlace.click();
-      enlace.remove();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = disposition.match(/filename="([^"]+)"/)?.[1] || 'expediente.json';
+      document.body.append(link);
+      link.click();
+      link.remove();
       await new Promise(resolve => setTimeout(resolve, 100));
-      window.location.assign(formulario.dataset.crearCuenta);
+      window.location.assign(form_data.dataset.crearCuenta);
     } catch {
-      mostrarError(mensajeError);
+      showError(errorMessage);
     } finally {
-      generando = false;
-      botones.forEach(boton => { boton.disabled = false; });
+      isGenerating = false;
+      buttons.forEach(button => { button.disabled = false; });
     }
   });
 })();

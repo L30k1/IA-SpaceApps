@@ -1,9 +1,9 @@
 <div class="voz-chat" data-voz-chat hidden>
   <div class="voz-chat-controles">
-    <button type="button" data-voz-dictar aria-describedby="aviso-dictado" aria-pressed="false" hidden>{{ t('Mantén pulsado para hablar') }}</button>
-    <button type="button" data-voz-escuchar hidden>{{ t('Escuchar última respuesta') }}</button>
+    <button type="button" data-voz-dictar aria-describedby="aviso-dictado" aria-pressed="false" hidden>{{ t("Press and hold to speak") }}</button>
+    <button type="button" data-voz-escuchar hidden>{{ t("Play latest reply") }}</button>
   </div>
-  <p id="aviso-dictado" data-voz-aviso hidden>{{ t('Mantén presionada la barra espaciadora fuera del campo de texto o mantén pulsado el botón. Suelta para detener el dictado. El navegador puede usar su servicio de transcripción.') }}</p>
+  <p id="aviso-dictado" data-voz-aviso hidden>{{ t("Outside the text field, hold the space bar or press and hold the button. Release to stop dictation. Your browser may use its transcription service.") }}</p>
   {% include '_voz_elevenlabs.html' %}
   <p data-voz-estado role="status" aria-live="polite"></p>
 </div>

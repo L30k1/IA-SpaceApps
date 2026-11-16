@@ -1,24 +1,24 @@
 # MediSpace
 
-**[Abrir MediSpace en Render](https://ia-spaceapps.onrender.com/index.html)**
+**[Open MediSpace on Render](https://ia-spaceapps.onrender.com/index.html)**
 
-MediSpace es una aplicación web para registrar y consultar el seguimiento de salud de astronautas. Reúne el expediente médico, las evaluaciones de la misión y el historial de resultados de cada cuenta.
+MediSpace is a web app for recording and reviewing astronaut health. It brings together each account’s medical record, mission assessments, and results history.
 
-## Qué incluye
+## Features
 
-- **Monitoreo médico.** Registra frecuencia cardíaca, saturación de oxígeno y temperatura. Gemini genera preguntas y recomendaciones de seguimiento a partir de la conversación, las mediciones y los rangos personales del expediente.
-- **Atención psicológica.** Incluye formularios diarios y semanales, un chat de apoyo y un chat de emergencia por voz. El chat de emergencia orienta al usuario a contactar al equipo responsable.
-- **Pruebas cognitivas.** Incluye Praxis Motora (PM), Aprendizaje visual de objetos (VOLT), Orientación de línea (LOT), Fractal 2-Back (F2B) y Reconocimiento facial (ERT). Los resultados se guardan en el historial.
-- **Misiones y ejercicio.** El perfil muestra el calendario de evaluaciones y el mínimo diario de ejercicio según la misión. Las fechas se toman del expediente.
-- **Administración.** El panel `/admin` permite a las cuentas autorizadas consultar expedientes y registros o eliminar una cuenta con sus datos de MediSpace.
+- **Medical monitoring.** Records heart rate, oxygen saturation, and temperature. Gemini generates questions and follow-up recommendations based on the conversation, the readings, and the personal reference ranges in the medical record.
+- **Psychological support.** Includes daily and weekly check-ins, a support chat, and an emergency voice chat. The emergency chat guides users to contact the team responsible for emergency response.
+- **Cognitive tests.** Includes Motor Praxis (MP), Visual Object Learning Test (VOLT), Line Orientation Test (LOT), Fractal 2-Back (F2B), and Facial Emotion Recognition (ERT). Results are saved in the history.
+- **Missions and exercise.** The profile shows the assessment schedule and the mission’s daily exercise minimum. Mission dates come from the medical record.
+- **Administration.** The `/admin` panel lets authorized accounts review records and activity or delete an account and its MediSpace data.
 
-## Empezar en Render
+## Getting started on Render
 
-1. Abre la [versión en línea](https://ia-spaceapps.onrender.com/index.html).
-2. En **Crear cuenta**, escribe tu nombre, ID de astronauta y una contraseña de 8 a 128 caracteres. Adjunta un historial médico JSON con el mismo nombre e ID.
-3. Si necesitas generar el expediente, selecciona **Crear un historial médico JSON** y completa el formulario. Al descargarlo, MediSpace te lleva de vuelta a **Crear cuenta**.
-4. Para volver a entrar, usa el nombre, el ID y la contraseña de la cuenta.
+1. Open the [online version](https://ia-spaceapps.onrender.com/index.html).
+2. Under **Create account**, enter your name, astronaut ID, and a password between 8 and 128 characters. Attach a medical history JSON file with the same name and ID.
+3. If you need to generate a medical record, select **Create a medical history JSON file** and complete the form. When you download it, MediSpace takes you back to **Create account**.
+4. To sign in again, use the account name, astronaut ID, and password.
 
-## Uso de IA
+## Use of AI
 
-La [declaración de uso de SI](docs/uso-de-ia.md) describe cómo se utilizó IA en imágenes, audio, código y datos. El [inventario de procedencia](docs/procedencia-ia.json) reúne los metadatos. Las pruebas cognitivas se desarrollaron con asistencia de IA y se califican mediante reglas programadas.
+The [AI use disclosure](docs/ai-use-disclosure.md) describes how AI was used for images, audio, code, and data. The [provenance inventory](docs/ai-provenance.json) contains the metadata. AI assisted in developing the cognitive tests, and the app scores them using predefined rules.

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t('Editar expediente JSON') ~ ' · MediSpace' if editar else t('Preparar historial médico · MediSpace') }}</title>
+  <title>{{ t("Edit JSON record") ~ ' · MediSpace' if editing else t("Prepare medical history · MediSpace") }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='historial-formulario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
-  {% if not editar %}
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
+  {% if not editing %}
   <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('crear_historial_script') }}" defer></script>
   {% endif %}
@@ -18,52 +18,52 @@
   <main class="app-frame expediente-formulario">
     <header>
       <div class="marca-encabezado">{% include '_marca.html' %}</div>
-      {% if editar %}
+      {% if editing %}
       <form action="{{ url_for('editar_expediente') }}" method="post">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button class="file-action" type="submit" name="accion" value="cerrar">{{ t('Volver al historial clínico') }}</button>
+        <button class="file-action" type="submit" name="accion" value="cerrar">{{ t("Back to clinical history") }}</button>
       </form>
       {% else %}
-      <a class="historial-enlace" href="{{ url_for('index', mode='register') }}">{{ t('Volver a Crear cuenta') }}</a>
+      <a class="historial-enlace" href="{{ url_for('index', mode='register') }}">{{ t("Back to account registration") }}</a>
       {% endif %}
 
         {% include '_selector_idioma.html' %}
       </header>
-    <h1>{{ t('Editar expediente JSON') if editar else t('Preparar historial médico') }}</h1>
-    {% if editar %}
-    <p>{{ t('Edita alergias, antecedentes, medicamentos, rangos personales y el mínimo diario de ejercicio de cada misión.') }}</p>
+    <h1>{{ t("Edit JSON record") if editing else t("Prepare medical history") }}</h1>
+    {% if editing %}
+    <p>{{ t("Edit allergies, medical background, medications, personal ranges, and the daily exercise minimum for each mission.") }}</p>
     {% else %}
-    <p>{{ t('Completa el nombre y el ID. Añade los registros que correspondan y descarga el JSON para adjuntarlo al crear la cuenta.') }}</p>
+    <p>{{ t("Enter your name and ID, add the relevant records, and download the JSON file to attach when creating your account.") }}</p>
     {% endif %}
-    {% for mensaje in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(mensaje) }}</p>{% endfor %}
+    {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(message) }}</p>{% endfor %}
     <p class="form-error" role="alert" data-historial-error{% if not error %} hidden{% endif %}>{{ t(error) if error else '' }}</p>
-    {% set accion_principal = 'guardar' if editar else 'descargar' %}
-    {% set etiqueta_principal = t('Guardar cambios') if editar else t('Generar y descargar JSON') %}
-    <form class="expediente-campos" method="post" action="{{ url_for('editar_expediente' if editar else 'preparar_historial') }}"
-          {% if not editar %}data-crear-cuenta="{{ url_for('index', mode='register') }}"{% endif %}>
+    {% set accion_principal = 'guardar' if editing else 'descargar' %}
+    {% set etiqueta_principal = t("Save changes") if editing else t("Generate and download JSON") %}
+    <form class="expediente-campos" method="post" action="{{ url_for('editar_expediente' if editing else 'preparar_historial') }}"
+          {% if not editing %}data-crear-cuenta="{{ url_for('index', mode='register') }}"{% endif %}>
       <input type="hidden" name="csrf" value="{{ csrf }}">
-      {% if editar %}<input type="hidden" name="version" value="{{ version }}">{% endif %}
+      {% if editing %}<input type="hidden" name="version" value="{{ version }}">{% endif %}
       <button type="submit" name="accion" value="{{ accion_principal }}" hidden>{{ etiqueta_principal }}</button>
       <section class="expediente-panel" aria-labelledby="identidad-expediente">
-        <h2 id="identidad-expediente">{{ t('Datos del astronauta') }}</h2>
+        <h2 id="identidad-expediente">{{ t("Astronaut information") }}</h2>
         <div class="expediente-cuadricula">
-          <label>{{ t('Nombre completo') }} <input name="nombre" autocomplete="name" value="{{ expediente.astronauta.nombre if editar else formulario.get('nombre', '') }}" {{ 'readonly' if editar else 'required' }}></label>
-          <label>{{ t('ID del astronauta') }} <input name="astronauta_id" autocomplete="off" value="{{ expediente._id if editar else formulario.get('astronauta_id', '') }}" {{ 'readonly' if editar else 'required' }}></label>
+          <label>{{ t("Full name") }} <input name="nombre" autocomplete="name" value="{{ medical_record.astronauta.nombre if editing else form_data.get('nombre', '') }}" {{ 'readonly' if editing else 'required' }}></label>
+          <label>{{ t("Astronaut ID") }} <input name="astronauta_id" autocomplete="off" value="{{ medical_record._id if editing else form_data.get('astronauta_id', '') }}" {{ 'readonly' if editing else 'required' }}></label>
         </div>
       </section>
       <section class="expediente-panel" aria-labelledby="referencias-monitoreo">
         <h2 id="referencias-monitoreo">{{ t('Rangos personales de referencia') }}</h2>
-        <p>{{ t('Usa los rangos acordados con el equipo médico para mediciones en condiciones comparables. Deja ambos campos vacíos si aún no tienes un rango.') }}</p>
+        <p>{{ t("Use ranges agreed with your medical team for measurements taken under comparable conditions. Leave both fields blank if you do not have a range yet.") }}</p>
         <div class="expediente-cuadricula">
           {% set nombres_signos = {'frecuencia_cardiaca': 'Frecuencia cardíaca', 'spo2': 'Saturación de oxígeno (SpO₂)', 'temperatura': 'Temperatura'} %}
-          {% for tipo, (_, unidad) in signos.items() %}
-          {% set limite_inferior, limite_superior = limites_captura[tipo] %}
+          {% for kind, (_, unit) in signos.items() %}
+          {% set limite_inferior, limite_superior = limites_captura[kind] %}
           <fieldset class="expediente-registro">
-            <legend>{{ t(nombres_signos[tipo]) }} ({{ t(unidad) }})</legend>
-            {% for extremo, nombre in [('minimo', 'Mínimo'), ('maximo', 'Máximo')] %}
-            {% set campo = 'referencias.' ~ tipo ~ '.' ~ extremo %}
-            <label>{{ t(nombre) }}
-              <input type="number" name="{{ campo }}" value="{{ formulario.get(campo, '') }}"
+            <legend>{{ t(nombres_signos[kind]) }} ({{ t(unit) }})</legend>
+            {% for boundary, full_name in [('minimo', 'Mínimo'), ('maximo', 'Máximo')] %}
+            {% set field_name = 'referencias.' ~ kind ~ '.' ~ boundary %}
+            <label>{{ t(full_name) }}
+              <input type="number" name="{{ field_name }}" value="{{ form_data.get(field_name, '') }}"
                      min="{{ limite_inferior }}" max="{{ limite_superior }}" step="any">
             </label>
             {% endfor %}
@@ -71,52 +71,52 @@
           {% endfor %}
         </div>
       </section>
-      {% for grupo, titulo, campos in secciones %}
-      {% if not editar or grupo != 'misiones' or filas[grupo] %}
-      <details class="expediente-panel"{% if filas[grupo] | length > 1 or (filas[grupo] and filas[grupo][0]) or formulario.get('accion', '') == 'agregar:' ~ grupo or (grupo == 'alergias' and formulario.get('estado_alergias')) %} open{% endif %}>
+      {% for group, titulo, fields in sections %}
+      {% if not editing or group != 'misiones' or rows[group] %}
+      <details class="expediente-panel"{% if rows[group] | length > 1 or (rows[group] and rows[group][0]) or form_data.get('accion', '') == 'agregar:' ~ group or (group == 'alergias' and form_data.get('estado_alergias')) %} open{% endif %}>
         <summary>{{ t(titulo) }}</summary>
-        {% if grupo == 'alergias' %}
-        <label>{{ t('Estado de alergias') }} <input name="estado_alergias" value="{{ formulario.get('estado_alergias', '') }}"></label>
+        {% if group == 'alergias' %}
+        <label>{{ t('Estado de alergias') }} <input name="estado_alergias" value="{{ form_data.get('estado_alergias', '') }}"></label>
         {% endif %}
-        {% for fila in filas[grupo] %}
+        {% for row_data in rows[group] %}
         <fieldset class="expediente-registro">
-          <legend>{{ t('Registro') }} {{ loop.index }}</legend>
-          {% if editar and grupo != 'misiones' %}
-          <input type="hidden" name="{{ grupo }}._fila_original" value="{{ fila.get('_fila_original', '') }}">
+          <legend>{{ t("Record") }} {{ loop.index }}</legend>
+          {% if editing and group != 'misiones' %}
+          <input type="hidden" name="{{ group }}._fila_original" value="{{ row_data.get('_fila_original', '') }}">
           {% endif %}
           <div class="expediente-cuadricula">
-          {% for campo, etiqueta, tipo in campos %}
-            <label>{{ t(etiqueta) }}
-            {% if tipo == 'textarea' %}
-            <textarea name="{{ grupo }}.{{ campo }}" rows="2">{{ fila.get(campo, '') }}</textarea>
-            {% elif tipo == 'fase' %}
-            <select name="{{ grupo }}.{{ campo }}">
-              <option value="">{{ t('Sin especificar') }}</option>
-              {% for clave, nombre in fases.items() %}
-              <option value="{{ clave }}"{% if fila.get(campo) == clave %} selected{% endif %}>{{ nombre }}</option>
+          {% for field_name, label, kind in fields %}
+            <label>{{ t(label) }}
+            {% if kind == 'textarea' %}
+            <textarea name="{{ group }}.{{ field_name }}" rows="2">{{ row_data.get(field_name, '') }}</textarea>
+            {% elif kind == 'fase' %}
+            <select name="{{ group }}.{{ field_name }}">
+              <option value="">{{ t("Not specified") }}</option>
+              {% for lookup_key, full_name in fases.items() %}
+              <option value="{{ lookup_key }}"{% if row_data.get(field_name) == lookup_key %} selected{% endif %}>{{ full_name }}</option>
               {% endfor %}
             </select>
             {% else %}
-            <input type="{{ tipo }}" name="{{ grupo }}.{{ campo }}" value="{{ fila.get(campo, '') }}"{% if campo == 'ejercicio_min_diarios' %} min="1" max="1440"{% elif editar and grupo == 'misiones' %} readonly{% elif tipo == 'number' %} step="any"{% endif %}>
+            <input type="{{ kind }}" name="{{ group }}.{{ field_name }}" value="{{ row_data.get(field_name, '') }}"{% if field_name == 'ejercicio_min_diarios' %} min="1" max="1440"{% elif editing and group == 'misiones' %} readonly{% elif kind == 'number' %} step="any"{% endif %}>
             {% endif %}
             </label>
           {% endfor %}
           </div>
-          {% if not editar or grupo != 'misiones' %}
-          <button class="file-action" type="submit" name="accion" value="quitar:{{ grupo }}:{{ loop.index0 }}" formnovalidate>{{ t('Quitar registro') }}</button>
+          {% if not editing or group != 'misiones' %}
+          <button class="file-action" type="submit" name="accion" value="quitar:{{ group }}:{{ loop.index0 }}" formnovalidate>{{ t("Remove record") }}</button>
           {% endif %}
         </fieldset>
         {% endfor %}
-        {% if not editar or grupo != 'misiones' %}
-        <button class="file-action" type="submit" name="accion" value="agregar:{{ grupo }}" formnovalidate>{{ t('Agregar registro') }}</button>
+        {% if not editing or group != 'misiones' %}
+        <button class="file-action" type="submit" name="accion" value="agregar:{{ group }}" formnovalidate>{{ t("Add record") }}</button>
         {% endif %}
       </details>
       {% endif %}
       {% endfor %}
-      {% if not editar %}
+      {% if not editing %}
       <section class="expediente-panel" aria-labelledby="expediente-llave">
-        <h2 id="expediente-llave">{{ t('Llave de edición') }}</h2>
-        <p>{{ t('Elige una llave de 8 a 128 caracteres. La necesitarás para abrir el editor después de crear la cuenta.') }}</p>
+        <h2 id="expediente-llave">{{ t("Editing key") }}</h2>
+        <p>{{ t("Choose an 8–128 character key. You will need it to open the editor after creating the account.") }}</p>
         <div class="expediente-cuadricula">{% include '_campos_llave_edicion.html' %}</div>
       </section>
       {% endif %}

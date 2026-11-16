@@ -1,130 +1,130 @@
 (() => {
   const { t } = window.mediSpaceLanguage;
-  const datos = JSON.parse(document.querySelector('#f2b-datos').textContent);
-  const formulario = document.querySelector('#f2b-form');
-  const iniciar = document.querySelector('#f2b-iniciar');
-  const ronda = document.querySelector('#f2b-ronda');
-  const responder = document.querySelector('#f2b-responder');
-  const avance = document.querySelector('#f2b-avance');
-  const confirmacion = document.querySelector('#f2b-confirmacion');
-  const estado = document.querySelector('#f2b-estado');
-  const reintentar = document.querySelector('#f2b-reintentar');
-  const reiniciar = document.querySelector('#f2b-reiniciar');
-  const lienzo = responder.querySelector('canvas');
-  const contexto = lienzo.getContext('2d');
-  if (!contexto) {
-    informar(t('Este navegador no puede dibujar los estímulos de la prueba.'));
+  const data = JSON.parse(document.querySelector('#f2b-datos').textContent);
+  const form_data = document.querySelector('#f2b-form');
+  const startTest = document.querySelector('#f2b-iniciar');
+  const roundContainer = document.querySelector('#f2b-ronda');
+  const respond = document.querySelector('#f2b-responder');
+  const progress = document.querySelector('#f2b-avance');
+  const confirmation = document.querySelector('#f2b-confirmacion');
+  const state = document.querySelector('#f2b-estado');
+  const retryButton = document.querySelector('#f2b-reintentar');
+  const restart = document.querySelector('#f2b-reiniciar');
+  const canvas = respond.querySelector('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) {
+    announce(t("This browser cannot display the test shapes."));
     return;
   }
 
-  const respuestas = Array(datos.secuencia.length).fill(null);
-  let indice = 0;
-  let activa = false;
-  let desde = null;
-  let siguiente;
+  const answers = Array(data.secuencia.length).fill(null);
+  let index_score = 0;
+  let isRunning = false;
+  let offset = null;
+  let nextStep;
 
-  function informar(texto) {
-    estado.hidden = false;
-    estado.textContent = texto;
+  function announce(message_text) {
+    state.hidden = false;
+    state.textContent = message_text;
   }
 
-  function dibujar(figura) {
-    contexto.clearRect(0, 0, lienzo.width, lienzo.height);
-    contexto.strokeStyle = '#bfdbfe';
-    contexto.lineCap = 'round';
-    const amplitud = [0.51, 0.73, 0.98, 1.18][figura % 4];
-    const ejes = [3, 4, 5][Math.floor(figura / 4)];
-    const giro = Math.PI / 2 + (figura % 4) * 0.45;
+  function draw(shape) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = '#bfdbfe';
+    context.lineCap = 'round';
+    const amplitude = [0.51, 0.73, 0.98, 1.18][shape % 4];
+    const axes = [3, 4, 5][Math.floor(shape / 4)];
+    const rotation = Math.PI / 2 + (shape % 4) * 0.45;
 
-    function ramificar(x, y, angulo, largo, nivel) {
-      const finX = x + Math.cos(angulo) * largo;
-      const finY = y + Math.sin(angulo) * largo;
-      contexto.lineWidth = 1 + nivel * 0.7;
-      contexto.beginPath();
-      contexto.moveTo(x, y);
-      contexto.lineTo(finX, finY);
-      contexto.stroke();
-      if (nivel === 0) return;
-      ramificar(finX, finY, angulo - amplitud, largo * 0.56, nivel - 1);
-      ramificar(finX, finY, angulo + amplitud, largo * 0.56, nivel - 1);
+    function forkRecord(x, y, angle, lengthValue, level) {
+      const endX = x + Math.cos(angle) * lengthValue;
+      const endY = y + Math.sin(angle) * lengthValue;
+      context.lineWidth = 1 + level * 0.7;
+      context.beginPath();
+      context.moveTo(x, y);
+      context.lineTo(endX, endY);
+      context.stroke();
+      if (level === 0) return;
+      forkRecord(endX, endY, angle - amplitude, lengthValue * 0.56, level - 1);
+      forkRecord(endX, endY, angle + amplitude, lengthValue * 0.56, level - 1);
     }
 
-    for (let eje = 0; eje < ejes; eje++) {
-      const angulo = giro + eje * 2 * Math.PI / ejes;
-      ramificar(lienzo.width / 2, lienzo.height / 2, angulo, 58, 4);
+    for (let axis = 0; axis < axes; axis++) {
+      const angle = rotation + axis * 2 * Math.PI / axes;
+      forkRecord(canvas.width / 2, canvas.height / 2, angle, 58, 4);
     }
   }
 
-  function mostrar() {
-    if (!activa) return;
-    responder.removeAttribute('data-registrada');
-    confirmacion.textContent = '';
-    avance.textContent = t('Figura {actual} de {total}', { actual: indice + 1, total: respuestas.length });
-    dibujar(datos.secuencia[indice]);
-    desde = performance.now();
-    siguiente = setTimeout(() => {
-      desde = null;
-      indice += 1;
-      if (indice === respuestas.length) {
-        activa = false;
-        ronda.hidden = true;
-        guardar();
+  function display() {
+    if (!isRunning) return;
+    respond.removeAttribute('data-registrada');
+    confirmation.textContent = '';
+    progress.textContent = t("Figure {actual} of {total}", { actual: index_score + 1, total: answers.length });
+    draw(data.secuencia[index_score]);
+    offset = performance.now();
+    nextStep = setTimeout(() => {
+      offset = null;
+      index_score += 1;
+      if (index_score === answers.length) {
+        isRunning = false;
+        roundContainer.hidden = true;
+        save();
       } else {
-        requestAnimationFrame(mostrar);
+        requestAnimationFrame(display);
       }
-    }, datos.exposicion_ms);
+    }, data.exposicion_ms);
   }
 
-  function marcar() {
-    if (!activa || desde === null || respuestas[indice] !== null) return;
-    const tiempo = performance.now() - desde;
-    if (tiempo >= datos.exposicion_ms) return;
-    respuestas[indice] = tiempo;
-    responder.setAttribute('data-registrada', '');
-    confirmacion.textContent = confirmacion.dataset.mensaje;
+  function mark() {
+    if (!isRunning || offset === null || answers[index_score] !== null) return;
+    const elapsedMs = performance.now() - offset;
+    if (elapsedMs >= data.exposicion_ms) return;
+    answers[index_score] = elapsedMs;
+    respond.setAttribute('data-registrada', '');
+    confirmation.textContent = confirmation.dataset.mensaje;
   }
 
-  async function guardar() {
-    reintentar.hidden = true;
-    informar(t('Guardando los resultados…'));
+  async function save() {
+    retryButton.hidden = true;
+    announce(t("Saving results…"));
     try {
-      const cuerpo = new FormData(formulario);
-      cuerpo.set('respuestas', JSON.stringify(respuestas));
-      const respuesta = await fetch(formulario.action, { method: 'POST', body: cuerpo, redirect: 'error' });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.url) {
-        window.location.replace(resultado.url);
+      const payload = new FormData(form_data);
+      payload.set('respuestas', JSON.stringify(answers));
+      const reply = await fetch(form_data.action, { method: 'POST', body: payload, redirect: 'error' });
+      const resultData = await reply.json();
+      if (reply.ok && resultData.url) {
+        window.location.replace(resultData.url);
         return;
       }
-      informar(resultado.error || t('No se pudieron guardar los resultados.'));
+      announce(resultData.error || t("The results could not be saved."));
     } catch {
-      informar(t('No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.'));
+      announce(t("Saving could not be confirmed. You can retry without repeating the test."));
     }
-    reintentar.hidden = false;
-    reintentar.focus();
+    retryButton.hidden = false;
+    retryButton.focus();
   }
 
-  iniciar.addEventListener('click', () => {
-    activa = true;
-    iniciar.hidden = true;
-    ronda.hidden = false;
-    responder.focus({ preventScroll: true });
-    requestAnimationFrame(mostrar);
+  startTest.addEventListener('click', () => {
+    isRunning = true;
+    startTest.hidden = true;
+    roundContainer.hidden = false;
+    respond.focus({ preventScroll: true });
+    requestAnimationFrame(display);
   });
-  responder.addEventListener('click', marcar);
-  document.addEventListener('keydown', evento => {
-    if (evento.code !== 'Space' || !activa) return;
-    evento.preventDefault();
-    if (!evento.repeat) marcar();
+  respond.addEventListener('click', mark);
+  document.addEventListener('keydown', event => {
+    if (event.code !== 'Space' || !isRunning) return;
+    event.preventDefault();
+    if (!event.repeat) mark();
   });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden || !activa) return;
-    activa = false;
-    clearTimeout(siguiente);
-    ronda.hidden = true;
-    informar(t('La prueba se interrumpió al salir de la pestaña. Inicia otra ronda para medir tus tiempos.'));
-    reiniciar.hidden = false;
+    if (!document.hidden || !isRunning) return;
+    isRunning = false;
+    clearTimeout(nextStep);
+    roundContainer.hidden = true;
+    announce(t("The test stopped when you left the tab. Start a new round to measure your times."));
+    restart.hidden = false;
   });
-  reintentar.addEventListener('click', guardar);
-  iniciar.disabled = false;
+  retryButton.addEventListener('click', save);
+  startTest.disabled = false;
 })();

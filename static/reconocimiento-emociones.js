@@ -1,120 +1,120 @@
 (() => {
   const { t } = window.mediSpaceLanguage;
-  const datos = JSON.parse(document.querySelector('#emociones-datos').textContent);
-  const formulario = document.querySelector('#emociones-form');
-  const iniciar = document.querySelector('#emociones-iniciar');
-  const ronda = document.querySelector('#emociones-ronda');
-  const opciones = document.querySelector('#emociones-opciones');
-  const avance = document.querySelector('#emociones-avance');
-  const estado = document.querySelector('#emociones-estado');
-  const reintentar = document.querySelector('#emociones-reintentar');
-  const reiniciar = document.querySelector('#emociones-reiniciar');
-  const lienzo = document.querySelector('#emociones-rostro');
-  const contexto = lienzo.getContext('2d');
-  const respuestas = [];
-  let laminas;
-  let activa = false;
-  let desde = null;
-  let exposicion;
+  const data = JSON.parse(document.querySelector('#emociones-datos').textContent);
+  const form_data = document.querySelector('#emociones-form');
+  const startTest = document.querySelector('#emociones-iniciar');
+  const roundContainer = document.querySelector('#emociones-ronda');
+  const options = document.querySelector('#emociones-opciones');
+  const progress = document.querySelector('#emociones-avance');
+  const state = document.querySelector('#emociones-estado');
+  const retryButton = document.querySelector('#emociones-reintentar');
+  const restart = document.querySelector('#emociones-reiniciar');
+  const canvas = document.querySelector('#emociones-rostro');
+  const context = canvas.getContext('2d');
+  const answers = [];
+  let sheets;
+  let isRunning = false;
+  let offset = null;
+  let exposure;
 
-  function informar(texto) {
-    estado.hidden = false;
-    estado.textContent = texto;
+  function announce(message_text) {
+    state.hidden = false;
+    state.textContent = message_text;
   }
 
-  async function cargar() {
-    if (!contexto) {
-      informar(t('Este navegador no puede dibujar los estímulos de la prueba.'));
+  async function loadAssets() {
+    if (!context) {
+      announce(t("This browser cannot display the test shapes."));
       return;
     }
-    informar(t('Cargando rostros…'));
+    announce(t("Loading faces…"));
     try {
-      laminas = Object.fromEntries(await Promise.all(Object.entries(datos.laminas).map(async ([nombre, url]) => {
-        const imagen = new Image();
-        imagen.src = url;
-        await imagen.decode();
-        return [nombre, imagen];
+      sheets = Object.fromEntries(await Promise.all(Object.entries(data.laminas).map(async ([fileName, url]) => {
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        return [fileName, image];
       })));
-      estado.hidden = true;
-      iniciar.disabled = false;
+      state.hidden = true;
+      startTest.disabled = false;
     } catch {
-      informar(t('No se pudieron cargar los rostros. Vuelve a abrir la prueba.'));
-      reiniciar.hidden = false;
+      announce(t("The faces did not load. Reopen the test."));
+      restart.hidden = false;
     }
   }
 
-  function mostrar() {
-    if (!activa) return;
-    const { lamina, casilla } = datos.ensayos[respuestas.length];
-    const imagen = laminas[lamina];
-    const ancho = imagen.naturalWidth / 4;
-    const alto = imagen.naturalHeight / 3;
-    avance.textContent = t('Rostro {actual} de {total}', { actual: respuestas.length + 1, total: datos.ensayos.length });
-    contexto.drawImage(imagen, casilla % 4 * ancho, Math.floor(casilla / 4) * alto, ancho, alto,
-      0, 0, lienzo.width, lienzo.width);
-    contexto.fillStyle = '#071229';
-    contexto.fillRect(0, lienzo.width, lienzo.width, lienzo.height - lienzo.width);
-    contexto.fillStyle = '#f0f6ff';
-    contexto.font = '600 19px sans-serif';
-    contexto.textAlign = 'center';
-    contexto.textBaseline = 'middle';
-    contexto.fillText(t('Imagen generada por IA'), lienzo.width / 2, (lienzo.width + lienzo.height) / 2);
-    exposicion = setTimeout(() => {
-      contexto.clearRect(0, 0, lienzo.width, lienzo.height);
-      opciones.disabled = false;
-      desde = performance.now();
-      opciones.querySelector('button').focus({ preventScroll: true });
-    }, datos.exposicion_ms);
+  function display() {
+    if (!isRunning) return;
+    const { lamina: sheet, casilla: cell } = data.ensayos[answers.length];
+    const image = sheets[sheet];
+    const width = image.naturalWidth / 4;
+    const height = image.naturalHeight / 3;
+    progress.textContent = t("Face {actual} of {total}", { actual: answers.length + 1, total: data.ensayos.length });
+    context.drawImage(image, cell % 4 * width, Math.floor(cell / 4) * height, width, height,
+      0, 0, canvas.width, canvas.width);
+    context.fillStyle = '#071229';
+    context.fillRect(0, canvas.width, canvas.width, canvas.height - canvas.width);
+    context.fillStyle = '#f0f6ff';
+    context.font = '600 19px sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(t("AI-generated image"), canvas.width / 2, (canvas.width + canvas.height) / 2);
+    exposure = setTimeout(() => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      options.disabled = false;
+      offset = performance.now();
+      options.querySelector('button').focus({ preventScroll: true });
+    }, data.exposicion_ms);
   }
 
-  async function guardar() {
-    reintentar.hidden = true;
-    informar(t('Guardando los resultados…'));
+  async function save() {
+    retryButton.hidden = true;
+    announce(t("Saving results…"));
     try {
-      const cuerpo = new FormData(formulario);
-      cuerpo.set('respuestas', JSON.stringify(respuestas));
-      const respuesta = await fetch(formulario.action, { method: 'POST', body: cuerpo, redirect: 'error' });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.url) {
-        window.location.replace(resultado.url);
+      const payload = new FormData(form_data);
+      payload.set('respuestas', JSON.stringify(answers));
+      const reply = await fetch(form_data.action, { method: 'POST', body: payload, redirect: 'error' });
+      const resultData = await reply.json();
+      if (reply.ok && resultData.url) {
+        window.location.replace(resultData.url);
         return;
       }
-      informar(resultado.error || t('No se pudieron guardar los resultados.'));
+      announce(resultData.error || t("The results could not be saved."));
     } catch {
-      informar(t('No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.'));
+      announce(t("Saving could not be confirmed. You can retry without repeating the test."));
     }
-    reintentar.hidden = false;
-    reintentar.focus();
+    retryButton.hidden = false;
+    retryButton.focus();
   }
 
-  iniciar.addEventListener('click', () => {
-    activa = true;
-    iniciar.hidden = true;
-    ronda.hidden = false;
-    requestAnimationFrame(mostrar);
+  startTest.addEventListener('click', () => {
+    isRunning = true;
+    startTest.hidden = true;
+    roundContainer.hidden = false;
+    requestAnimationFrame(display);
   });
-  opciones.addEventListener('click', evento => {
-    const boton = evento.target.closest('[data-emocion]');
-    if (!boton || !activa || desde === null) return;
-    respuestas.push({ emocion: boton.dataset.emocion, tiempo_ms: performance.now() - desde });
-    desde = null;
-    opciones.disabled = true;
-    if (respuestas.length < datos.ensayos.length) {
-      requestAnimationFrame(mostrar);
+  options.addEventListener('click', event => {
+    const button = event.target.closest('[data-emocion]');
+    if (!button || !isRunning || offset === null) return;
+    answers.push({ emocion: button.dataset.emocion, tiempo_ms: performance.now() - offset });
+    offset = null;
+    options.disabled = true;
+    if (answers.length < data.ensayos.length) {
+      requestAnimationFrame(display);
     } else {
-      activa = false;
-      ronda.hidden = true;
-      guardar();
+      isRunning = false;
+      roundContainer.hidden = true;
+      save();
     }
   });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden || !activa) return;
-    activa = false;
-    clearTimeout(exposicion);
-    ronda.hidden = true;
-    informar(t('La prueba se interrumpió al salir de la pestaña. Inicia otra ronda para medir tus tiempos.'));
-    reiniciar.hidden = false;
+    if (!document.hidden || !isRunning) return;
+    isRunning = false;
+    clearTimeout(exposure);
+    roundContainer.hidden = true;
+    announce(t("The test stopped when you left the tab. Start a new round to measure your times."));
+    restart.hidden = false;
   });
-  reintentar.addEventListener('click', guardar);
-  cargar();
+  retryButton.addEventListener('click', save);
+  loadAssets();
 })();

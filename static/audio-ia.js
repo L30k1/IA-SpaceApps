@@ -1,145 +1,145 @@
 (() => {
   const { t, locale } = window.mediSpaceLanguage;
-  const sintesis = window.speechSynthesis;
-  const vozLocal = Boolean(sintesis && window.SpeechSynthesisUtterance);
-  let usarNube = false;
-  let ultimoAudio;
+  const speechSynthesis = window.speechSynthesis;
+  const localVoiceAvailable = Boolean(speechSynthesis && window.SpeechSynthesisUtterance);
+  let useCloud = false;
+  let lastAudio;
 
   class ErrorAudio extends Error {}
 
-  async function obtenerAudio(url, csrf, canal, texto, signal) {
-    const peticion = new AbortController();
-    const cancelar = () => peticion.abort();
-    signal.addEventListener('abort', cancelar, { once: true });
-    const tiempo = setTimeout(cancelar, 12000);
+  async function fetchAudio(url, csrf, channel, message_text, signal) {
+    const requestController = new AbortController();
+    const cancelRequest = () => requestController.abort();
+    signal.addEventListener('abort', cancelRequest, { once: true });
+    const elapsedMs = setTimeout(cancelRequest, 12000);
     try {
-      const respuesta = await fetch(url, {
+      const reply = await fetch(url, {
         method: 'POST',
-        body: new URLSearchParams({ csrf, canal, texto, usar_nube: '1' }),
-        signal: peticion.signal,
+        body: new URLSearchParams({ csrf, canal: channel, texto: message_text, usar_nube: '1' }),
+        signal: requestController.signal,
       });
-      if (!respuesta.ok) {
-        const datos = await respuesta.json().catch(() => null);
-        if (typeof datos?.error === 'string') throw new ErrorAudio(datos.error);
-        throw new ErrorAudio(t('No se pudo obtener el audio de ElevenLabs.'));
+      if (!reply.ok) {
+        const data = await reply.json().catch(() => null);
+        if (typeof data?.error === 'string') throw new ErrorAudio(data.error);
+        throw new ErrorAudio(t("Could not retrieve the audio from ElevenLabs."));
       }
-      if (!respuesta.headers.get('Content-Type')?.startsWith('audio/mpeg')) throw new ErrorAudio(t('No se pudo obtener el audio de ElevenLabs.'));
-      const audio = await respuesta.blob();
-      if (!audio.size) throw new ErrorAudio(t('No se pudo obtener el audio de ElevenLabs.'));
-      ultimoAudio = { texto, canal, audio };
+      if (!reply.headers.get('Content-Type')?.startsWith('audio/mpeg')) throw new ErrorAudio(t("Could not retrieve the audio from ElevenLabs."));
+      const audio = await reply.blob();
+      if (!audio.size) throw new ErrorAudio(t("Could not retrieve the audio from ElevenLabs."));
+      lastAudio = { texto: message_text, canal: channel, audio };
       return audio;
     } finally {
-      clearTimeout(tiempo);
-      signal.removeEventListener('abort', cancelar);
+      clearTimeout(elapsedMs);
+      signal.removeEventListener('abort', cancelRequest);
     }
   }
 
-  function crear(panel, canal) {
-    const eleccion = panel.querySelector('[data-voz-elevenlabs]');
-    const diagnostico = panel.querySelector('[data-voz-diagnostico]');
-    if (eleccion) {
-      eleccion.checked = usarNube;
-      eleccion.addEventListener('change', () => { usarNube = eleccion.checked; });
+  function create(panel, channel) {
+    const providerOption = panel.querySelector('[data-voz-elevenlabs]');
+    const diagnostic = panel.querySelector('[data-voz-diagnostico]');
+    if (providerOption) {
+      providerOption.checked = useCloud;
+      providerOption.addEventListener('change', () => { useCloud = providerOption.checked; });
     }
-    let lectura;
+    let playback;
 
-    function detener() {
-      const enCurso = lectura;
-      lectura = null;
-      enCurso?.abort();
+    function stop() {
+      const ongoing = playback;
+      playback = null;
+      ongoing?.abort();
     }
 
-    function leer(texto, terminado) {
-      detener();
-      if (diagnostico) diagnostico.textContent = '';
-      const turno = new AbortController();
-      const { signal } = turno;
-      lectura = turno;
-      function fin(exito) {
-        if (lectura !== turno) return;
-        detener();
-        terminado(exito);
+    function play(message_text, onFinished) {
+      stop();
+      if (diagnostic) diagnostic.textContent = '';
+      const turn = new AbortController();
+      const { signal } = turn;
+      playback = turn;
+      function end(success) {
+        if (playback !== turn) return;
+        stop();
+        onFinished(success);
       }
 
-      function hablarLocal() {
+      function playLocalVoice() {
         if (signal.aborted) return;
-        if (!vozLocal) {
-          fin(false);
+        if (!localVoiceAvailable) {
+          end(false);
           return;
         }
-        const frase = new window.SpeechSynthesisUtterance(texto);
-        frase.lang = locale;
-        const voces = sintesis.getVoices().filter(voz => voz.localService && voz.lang.split('-')[0].toLowerCase() === locale.split('-')[0]);
-        const voz = voces.find(opcion => opcion.lang.toLowerCase() === locale.toLowerCase()) || voces[0];
-        if (voz) frase.voice = voz;
-        frase.onend = () => fin(true);
-        frase.onerror = () => fin(false);
-        signal.addEventListener('abort', () => sintesis.cancel(), { once: true });
+        const utterance = new window.SpeechSynthesisUtterance(message_text);
+        utterance.lang = locale;
+        const voices = speechSynthesis.getVoices().filter(voice => voice.localService && voice.lang.split('-')[0].toLowerCase() === locale.split('-')[0]);
+        const voice = voices.find(option => option.lang.toLowerCase() === locale.toLowerCase()) || voices[0];
+        if (voice) utterance.voice = voice;
+        utterance.onend = () => end(true);
+        utterance.onerror = () => end(false);
+        signal.addEventListener('abort', () => speechSynthesis.cancel(), { once: true });
         try {
-          sintesis.speak(frase);
+          speechSynthesis.speak(utterance);
         } catch {
-          fin(false);
+          end(false);
         }
       }
 
-      function respaldar(mensaje) {
-        diagnostico.textContent = vozLocal ? mensaje + ' ' + t('Se usará la voz del navegador.') : mensaje;
-        hablarLocal();
+      function fallback(message) {
+        diagnostic.textContent = localVoiceAvailable ? message + ' ' + t("The browser voice will be used.") : message;
+        playLocalVoice();
       }
 
-      async function hablarEnNube() {
+      async function playCloudVoice() {
         try {
           const csrf = panel.closest('form').elements.csrf.value;
-          const guardado = ultimoAudio?.texto === texto && ultimoAudio.canal === canal ? ultimoAudio.audio : null;
-          const datos = guardado ?? await obtenerAudio(eleccion.dataset.vozElevenlabs, csrf, canal, texto, signal);
+          const stored = lastAudio?.texto === message_text && lastAudio.canal === channel ? lastAudio.audio : null;
+          const data = stored ?? await fetchAudio(providerOption.dataset.vozElevenlabs, csrf, channel, message_text, signal);
           if (signal.aborted) return;
           const audio = new Audio();
-          const url = URL.createObjectURL(datos);
+          const url = URL.createObjectURL(data);
           audio.src = url;
-          let urlActiva = true;
-          function liberar() {
+          let urlActive = true;
+          function releaseAudio() {
             audio.pause();
             URL.revokeObjectURL(url);
           }
-          signal.addEventListener('abort', liberar, { once: true });
-          audio.addEventListener('ended', () => fin(true), { once: true, signal });
-          audio.addEventListener('error', usarRespaldo, { once: true, signal });
+          signal.addEventListener('abort', releaseAudio, { once: true });
+          audio.addEventListener('ended', () => end(true), { once: true, signal });
+          audio.addEventListener('error', useFallback, { once: true, signal });
           try {
             await audio.play();
           } catch (error) {
-            if (signal.aborted || !urlActiva) return;
+            if (signal.aborted || !urlActive) return;
             if (error.name === 'NotAllowedError') {
-              diagnostico.textContent = t('El navegador bloqueó la reproducción automática. Pulsa Escuchar última respuesta.');
-              fin(false);
+              diagnostic.textContent = t("The browser blocked autoplay. Select Play latest reply.");
+              end(false);
             } else {
-              usarRespaldo();
+              useFallback();
             }
           }
-          function usarRespaldo() {
-            if (signal.aborted || !urlActiva) return;
-            urlActiva = false;
-            audio.removeEventListener('error', usarRespaldo);
-            signal.removeEventListener('abort', liberar);
-            liberar();
-            respaldar(t('El navegador no pudo reproducir el audio de ElevenLabs.'));
+          function useFallback() {
+            if (signal.aborted || !urlActive) return;
+            urlActive = false;
+            audio.removeEventListener('error', useFallback);
+            signal.removeEventListener('abort', releaseAudio);
+            releaseAudio();
+            fallback(t("The browser could not play the ElevenLabs audio."));
           }
         } catch (error) {
           if (signal.aborted) return;
-          respaldar(error instanceof ErrorAudio ? error.message : t('No se pudo obtener el audio de ElevenLabs.'));
+          fallback(error instanceof ErrorAudio ? error.message : t("Could not retrieve the audio from ElevenLabs."));
         }
       }
 
-      if (eleccion?.checked) hablarEnNube();
-      else hablarLocal();
+      if (providerOption?.checked) playCloudVoice();
+      else playLocalVoice();
     }
     return {
-      disponible: vozLocal || Boolean(eleccion),
-      get enCurso() { return Boolean(lectura); },
-      get nubeElegida() { return Boolean(eleccion?.checked); },
-      detener,
-      leer,
+      available: localVoiceAvailable || Boolean(providerOption),
+      get playing() { return Boolean(playback); },
+      get cloudSelected() { return Boolean(providerOption?.checked); },
+      stop,
+      play,
     };
   }
 
-  window.crearAudioIA = crear;
+  window.createAiAudio = create;
 })();

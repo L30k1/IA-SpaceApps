@@ -26,7 +26,7 @@ def existing_server():
                 return True
     except (OSError, URLError):
         pass
-    raise RuntimeError("Otro programa está usando el puerto 5000. Ciérralo y vuelve a abrir MediSpace.")
+    raise RuntimeError("Another program is using port 5000. Close it and open MediSpace again.")
 
 
 def launch():
@@ -47,7 +47,7 @@ def launch():
         if isinstance(exc, ImportError):
             messagebox.showerror(
                 "MediSpace",
-                "Faltan dependencias de Python. Ejecuta python -m pip install -r requirements.txt.",
+                "Python dependencies are missing. Run python -m pip install -r requirements.txt.",
                 parent=window,
             )
         else:
@@ -58,7 +58,7 @@ def launch():
     if not os.getenv("GEMINI_API_KEY"):
         key = simpledialog.askstring(
             "MediSpace",
-            "Pega tu clave de IA para habilitar los chequeos. Déjala vacía para consultar el historial.",
+            "Enter your AI key to enable checkups. Leave it blank to view the history.",
             show="*",
             parent=window,
         )
@@ -71,8 +71,8 @@ def launch():
     try:
         server = make_server(HOST, PORT, create_app(), threaded=True)
     except (Exception, SystemExit) as exc:
-        detail = "Comprueba que el puerto 5000 esté libre." if isinstance(exc, SystemExit) else str(exc)
-        messagebox.showerror("MediSpace", f"MediSpace no pudo iniciar.\n{detail}", parent=window)
+        detail = "Check that port 5000 is available." if isinstance(exc, SystemExit) else str(exc)
+        messagebox.showerror("MediSpace", f"MediSpace could not start.\n{detail}", parent=window)
         window.destroy()
         return
 
@@ -87,9 +87,9 @@ def launch():
 
     panel = ttk.Frame(window, padding=20)
     panel.grid()
-    ttk.Label(panel, text="MediSpace está en ejecución").grid(pady=(0, 10))
-    ttk.Button(panel, text="Abrir MediSpace", command=lambda: webbrowser.open(URL)).grid(sticky="ew")
-    ttk.Button(panel, text="Detener MediSpace", command=stop).grid(sticky="ew", pady=(8, 0))
+    ttk.Label(panel, text="MediSpace is running").grid(pady=(0, 10))
+    ttk.Button(panel, text="Open MediSpace", command=lambda: webbrowser.open(URL)).grid(sticky="ew")
+    ttk.Button(panel, text="Stop MediSpace", command=stop).grid(sticky="ew", pady=(8, 0))
     window.protocol("WM_DELETE_WINDOW", stop)
     window.deiconify()
     window.after_idle(lambda: webbrowser.open(URL))

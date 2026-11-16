@@ -1,44 +1,44 @@
-{% import '_grafica_estadistica.html' as graficas %}
-{% set nombres = {'frecuencia_cardiaca': t('Frecuencia cardíaca'), 'spo2': t('Saturación de oxígeno (SpO₂)'), 'temperatura': t('Temperatura')} %}
+{% import '_grafica_estadistica.html' as charts %}
+{% set names = {'frecuencia_cardiaca': t('Frecuencia cardíaca'), 'spo2': t("Oxygen saturation (SpO₂)"), 'temperatura': t('Temperatura')} %}
 <div class="estadisticas-monitoreo">
-  <h2>{{ t('Estadísticas del monitoreo') }}</h2>
-  {% if mediciones_historicas %}
-  <p>{{ t('Mediciones de los chequeos guardados en tu expediente.') }}</p>
+  <h2>{{ t("Monitoring statistics") }}</h2>
+  {% if historical_measurements %}
+  <p>{{ t("Measurements from the checkups saved in your record.") }}</p>
   {% else %}
-  <p>{{ t('Cuando guardes un chequeo con mediciones, aquí aparecerán tus estadísticas.') }}</p>
+  <p>{{ t("Statistics will appear here after you save a checkup with measurements.") }}</p>
   {% endif %}
 
   <div class="estadisticas-resumen">
-    {% for tipo in signos %}
-    {% set dato = estadisticas[tipo] %}
-    <section class="info-card" aria-labelledby="estadistica-{{ tipo }}">
-      <h3 id="estadistica-{{ tipo }}">{{ nombres[tipo] }}</h3>
-      {% if dato %}
-      {{ graficas.cifras(dato) }}
-      {{ graficas.grafica(dato, nombres[tipo]) }}
+    {% for kind in signos %}
+    {% set reading = statistics_view[kind] %}
+    <section class="info-card" aria-labelledby="estadistica-{{ kind }}">
+      <h3 id="estadistica-{{ kind }}">{{ names[kind] }}</h3>
+      {% if reading %}
+      {{ charts.cifras(reading) }}
+      {{ charts.grafica(reading, names[kind]) }}
       {% else %}
-      <p>{{ t('Sin mediciones registradas.') }}</p>
+      <p>{{ t("No measurements recorded.") }}</p>
       {% endif %}
     </section>
     {% endfor %}
   </div>
 
-  {% if mediciones_historicas %}
+  {% if historical_measurements %}
   <section class="info-card" aria-labelledby="estadisticas-por-chequeo">
-    <h3 id="estadisticas-por-chequeo">{{ t('Mediciones por chequeo') }}</h3>
+    <h3 id="estadisticas-por-chequeo">{{ t("Measurements by checkup") }}</h3>
     <div class="estadisticas-tabla" role="region" aria-labelledby="estadisticas-por-chequeo" tabindex="0">
       <table aria-labelledby="estadisticas-por-chequeo">
         <thead>
           <tr>
-            <th scope="col">{{ t('Fecha') }}</th>
-            {% for etiqueta, unidad in signos.values() %}<th scope="col">{{ t(etiqueta) }} ({{ t(unidad) }})</th>{% endfor %}
+            <th scope="col">{{ t("Date") }}</th>
+            {% for label, unit in signos.values() %}<th scope="col">{{ t(label) }} ({{ t(unit) }})</th>{% endfor %}
           </tr>
         </thead>
         <tbody>
-          {% for registro in mediciones_historicas %}
+          {% for entry in historical_measurements %}
           <tr>
-            <th scope="row"><a href="{{ url_for('summary', registro=registro.clave) }}">{{ registro.fecha_hora | hora_utc }}</a></th>
-            {% for tipo in signos %}<td>{{ registro.mediciones[tipo] | join(', ') if tipo in registro.mediciones else '—' }}</td>{% endfor %}
+            <th scope="row"><a href="{{ url_for('summary', registro=entry.clave) }}">{{ entry.fecha_hora | utc_time }}</a></th>
+            {% for kind in signos %}<td>{{ entry.mediciones[kind] | join(', ') if kind in entry.mediciones else '—' }}</td>{% endfor %}
           </tr>
           {% endfor %}
         </tbody>

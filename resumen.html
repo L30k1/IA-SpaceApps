@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ t('MediSpace - Resultados, Alertas e Historial') }}</title>
+  <title>{{ t("MediSpace · Results and history") }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/resumen.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <script src="{{ url_for('idioma_script') }}" defer></script>
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <!--{% if false %}-->
   <main class="app-frame">
     <section class="main-area">
       <h1>MediSpace</h1>
-      <p>Inicia el servidor con <code>python main.py</code> para usar los formularios y navegar.</p>
-      <p><a href="http://127.0.0.1:5000/">Abrir MediSpace</a></p>
+      <p>Start the server with <code>python main.py</code> to use the forms and navigate the app.</p>
+      <p><a href="http://127.0.0.1:5000/">Open MediSpace</a></p>
     </section>
   </main>
   <template>
@@ -27,7 +27,7 @@
       <a class="nav-icon" href="{{ url_for('profile') }}" aria-label="Dashboard">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
       </a>
-      <div class="nav-icon active" title="{{ t('Resultados e Historial') }}">
+      <div class="nav-icon active" title="{{ t("Results and history") }}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       </div>
     </aside>
@@ -39,28 +39,28 @@
           <span class="marca-texto">Crew Health Assistant</span>
         </div>
         <div class="mission-meta">
-          <div><strong>{{ expediente.astronauta.nombre }}</strong></div>
+          <div><strong>{{ medical_record.astronauta.nombre }}</strong></div>
           <div id="utc-clock">{{ utc_clock }}</div>
         </div>
 
-        <a class="step-pill enlace-perfil-movil" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill enlace-perfil-movil" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
         {% include '_selector_idioma.html' %}
       </header>
 
-      {% macro mediciones(registro) %}
-        {% for medida in registro.mediciones %}
-        <li>{{ t(signos[medida.tipo][0]) if medida.tipo in signos else medida.tipo }}: {{ medida.valor }} {{ t(medida.unidad) }}</li>
+      {% macro measurements(entry) %}
+        {% for measured_value in entry.mediciones %}
+        <li>{{ t(signos[measured_value.tipo][0]) if measured_value.tipo in signos else measured_value.tipo }}: {{ measured_value.valor }} {{ t(measured_value.unidad) }}</li>
         {% else %}
-        <li>{{ t('Sin mediciones registradas') }}</li>
+        <li>{{ t("No measurements recorded") }}</li>
         {% endfor %}
       {% endmacro %}
-      <nav class="step-pills" aria-label="{{ t('Resumen del chequeo') }}">
-        <a class="step-pill{{ ' active' if view == 'resultados' else '' }}" href="{{ url_for('summary', registro=latest.clave if latest else none) }}">{{ t('Resultados') }}</a>
+      <nav class="step-pills" aria-label="{{ t("Checkup summary") }}">
+        <a class="step-pill{{ ' active' if view == 'resultados' else '' }}" href="{{ url_for('summary', registro=latest.clave if latest else none) }}">{{ t("Results") }}</a>
         {% if latest and (latest.evaluacion_ia or latest.estado in ['ALERTA', 'INDETERMINADO']) %}
-        <a class="step-pill{{ ' active' if view == 'alertas' else '' }}" href="{{ url_for('summary', vista='alertas', registro=latest.clave) }}">{{ t('Seguimiento') }}</a>
+        <a class="step-pill{{ ' active' if view == 'alertas' else '' }}" href="{{ url_for('summary', vista='alertas', registro=latest.clave) }}">{{ t("Follow-up") }}</a>
         {% endif %}
-        <a class="step-pill{{ ' active' if view == 'historial' else '' }}" href="{{ url_for('summary', vista='historial') }}">{{ t('Historial clínico') }}</a>
-        <a class="step-pill{{ ' active' if view == 'estadisticas' else '' }}" href="{{ url_for('summary', vista='estadisticas') }}"{% if view == 'estadisticas' %} aria-current="page"{% endif %}>{{ t('Estadísticas') }}</a>
+        <a class="step-pill{{ ' active' if view == 'historial' else '' }}" href="{{ url_for('summary', vista='historial') }}">{{ t("Clinical history") }}</a>
+        <a class="step-pill{{ ' active' if view == 'estadisticas' else '' }}" href="{{ url_for('summary', vista='estadisticas') }}"{% if view == 'estadisticas' %} aria-current="page"{% endif %}>{{ t("Statistics") }}</a>
       </nav>
 
       <section class="view active">
@@ -71,75 +71,75 @@
         {% if view == 'estadisticas' %}
         {% include '_estadisticas_monitoreo.html' %}
         {% elif view == 'historial' %}
-        <h2 class="history-heading">{{ t('Historial clínico de') }} {{ expediente.astronauta.nombre }}</h2>
+        <h2 class="history-heading">{{ t("Clinical history for") }} {{ medical_record.astronauta.nombre }}</h2>
         <div class="file-actions">
-          <a class="step-pill" href="{{ url_for('editar_expediente') }}">{{ t('Editar expediente JSON') }}</a>
-          <a class="step-pill" href="{{ url_for('download_expediente') }}">{{ t('Descargar expediente JSON') }}</a>
+          <a class="step-pill" href="{{ url_for('editar_expediente') }}">{{ t("Edit JSON record") }}</a>
+          <a class="step-pill" href="{{ url_for('download_expediente') }}">{{ t("Download JSON record") }}</a>
         </div>
         {% include '_datos_expediente.html' %}
         <h3>{{ t('Chequeos') }}</h3>
-        {% for registro in records %}
+        {% for entry in records %}
         <article class="info-card">
-          <h3><a href="{{ url_for('summary', registro=registro.clave) }}">{{ registro.fecha_hora | hora_utc }}</a></h3>
-          <p>{{ registro.motivo or t('Motivo sin registrar') }}{% if registro.mision_id %} · {{ registro.mision_id }}{% endif %}{% if registro.fase %} · {{ fases[registro.fase] }}{% endif %}</p>
-          <ul>{{ mediciones(registro) }}</ul>
-          {% if registro.evaluacion and registro.evaluacion.estado_revision %}
-          <p>{{ t('Revisión:') }} {{ registro.evaluacion.estado_revision }}</p>
+          <h3><a href="{{ url_for('summary', registro=entry.clave) }}">{{ entry.fecha_hora | utc_time }}</a></h3>
+          <p>{{ entry.motivo or t("No reason recorded") }}{% if entry.mision_id %} · {{ entry.mision_id }}{% endif %}{% if entry.fase %} · {{ fases[entry.fase] }}{% endif %}</p>
+          <ul>{{ measurements(entry) }}</ul>
+          {% if entry.evaluacion and entry.evaluacion.estado_revision %}
+          <p>{{ t("Review:") }} {{ entry.evaluacion.estado_revision }}</p>
           {% endif %}
         </article>
         {% else %}
-        <p>{{ t('Sin chequeos guardados.') }}</p>
+        <p>{{ t("No checkups saved.") }}</p>
         {% endfor %}
-        <a class="btn-primary" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="btn-primary" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
         {% elif not latest %}
         <div class="info-card">
-          <h2>{{ t('Sin chequeos guardados') }}</h2>
+          <h2>{{ t("No checkups saved") }}</h2>
           <form method="post" action="{{ url_for('checkup') }}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
-            <button class="btn-primary" type="submit" name="iniciar" value="1">{{ t('Iniciar chequeo') }}</button>
+            <button class="btn-primary" type="submit" name="iniciar" value="1">{{ t("Start checkup") }}</button>
           </form>
         </div>
         {% elif view == 'alertas' %}
         <div class="status-banner{{ ' alert' if latest.estado == 'ALERTA' else '' }}">
           <div>
-            <h2>{{ etiquetas_resultado.get(latest.estado, t('Sin seguimiento registrado')) }}</h2>
+            <h2>{{ etiquetas_resultado.get(latest.estado, t("No follow-up recorded")) }}</h2>
           </div>
         </div>
         {% if not latest.evaluacion_ia and latest.estado == 'ALERTA' %}
-        <p>{{ t('Este chequeo se guardó antes de habilitar la evaluación de IA.') }}</p>
+        <p>{{ t("This checkup was saved before AI assessments were available.") }}</p>
         {% endif %}
         {% include '_seguimiento_alerta.html' %}
-        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">{{ t('Ver historial') }}</a>
+        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">{{ t("View history") }}</a>
         {% else %}
         <div class="status-banner{{ ' alert' if latest.estado == 'ALERTA' else '' }}">
           <div>
-            <h2>{{ t('Resultados del chequeo') }}</h2>
-            <p>{{ latest.fecha_hora | hora_utc }}{% if latest.estado in etiquetas_resultado %} · {{ etiquetas_resultado[latest.estado] }}{% endif %}</p>
+            <h2>{{ t("Checkup results") }}</h2>
+            <p>{{ latest.fecha_hora | utc_time }}{% if latest.estado in etiquetas_resultado %} · {{ etiquetas_resultado[latest.estado] }}{% endif %}</p>
           </div>
         </div>
         <div class="two-cols">
           <div class="info-card">
-            <h3>{{ t('Datos del chequeo') }}</h3>
+            <h3>{{ t("Checkup details") }}</h3>
             <ul>
-              <li>{{ t('Misión:') }} {{ latest.mision_id or t('Sin registrar') }}</li>
-              <li>{{ t('Fase:') }} {{ fases.get(latest.fase, t('Sin registrar')) }}</li>
-              <li>{{ t('Motivo:') }} {{ latest.motivo or t('Sin registrar') }}</li>
-              <li>{{ t('Actividad:') }} {{ latest.actividad or t('Sin registrar') }}</li>
+              <li>{{ t("Mission:") }} {{ latest.mision_id or t("Not recorded") }}</li>
+              <li>{{ t("Phase:") }} {{ fases.get(latest.fase, t("Not recorded")) }}</li>
+              <li>{{ t("Reason:") }} {{ latest.motivo or t("Not recorded") }}</li>
+              <li>{{ t("Activity:") }} {{ latest.actividad or t("Not recorded") }}</li>
             </ul>
           </div>
           <div class="info-card">
-            <h3>{{ t('Mediciones') }}</h3>
-            <ul>{{ mediciones(latest) }}</ul>
+            <h3>{{ t("Measurements") }}</h3>
+            <ul>{{ measurements(latest) }}</ul>
             {% if latest.contexto_fc is string and latest.contexto_fc in contextos_fc %}
-            <p>{{ t('Contexto del pulso:') }} {{ t(contextos_fc[latest.contexto_fc]) }}</p>
+            <p>{{ t("Heart rate context:") }} {{ t(contextos_fc[latest.contexto_fc]) }}</p>
             {% endif %}
             {% if latest.clave.startswith('app-') and latest.comparacion_referencias %}
-            <h3>{{ t('Comparación con tus rangos personales') }}</h3>
+            <h3>{{ t("Comparison with your personal ranges") }}</h3>
             <ul>
               {% set etiquetas_comparacion = {'inferior': 'Por debajo del rango personal', 'superior': 'Por encima del rango personal', 'dentro': 'Dentro del rango personal'} %}
-              {% for tipo, comparacion in latest.comparacion_referencias.items() %}
-              <li><strong>{{ t(signos[tipo][0]) }}</strong> · {{ t(etiquetas_comparacion[comparacion.posicion]) }}
-                ({{ comparacion.minimo }}–{{ comparacion.maximo }} {{ t(comparacion.unidad) }})
+              {% for kind, comparison in latest.comparacion_referencias.items() %}
+              <li><strong>{{ t(signos[kind][0]) }}</strong> · {{ t(etiquetas_comparacion[comparison.posicion]) }}
+                ({{ comparison.minimo }}–{{ comparison.maximo }} {{ t(comparison.unidad) }})
               </li>
               {% endfor %}
             </ul>
@@ -149,29 +149,29 @@
         {% include '_seguimiento_alerta.html' %}
         {% if latest.evaluacion %}
         <div class="info-card">
-          <h3>{{ t('Evaluación y seguimiento') }}</h3>
+          <h3>{{ t("Assessment and follow-up") }}</h3>
           <ul>
-            <li>{{ t('Revisión:') }} {{ latest.evaluacion.estado_revision or t('Sin registrar') }}</li>
-            <li>{{ t('Acción:') }} {{ latest.evaluacion.accion_acordada or t('Sin registrar') }}</li>
-            <li>{{ t('Fecha de seguimiento:') }} {{ latest.evaluacion.fecha_seguimiento or t('Sin registrar') }}</li>
+            <li>{{ t("Review:") }} {{ latest.evaluacion.estado_revision or t("Not recorded") }}</li>
+            <li>{{ t("Action:") }} {{ latest.evaluacion.accion_acordada or t("Not recorded") }}</li>
+            <li>{{ t("Follow-up date:") }} {{ latest.evaluacion.fecha_seguimiento or t("Not recorded") }}</li>
           </ul>
         </div>
         {% endif %}
         {% if latest.conversacion %}
         <div class="info-card">
-          <h3>{{ t('Conversación del chequeo') }}</h3>
+          <h3>{{ t("Checkup conversation") }}</h3>
           <ul>
             {% for message in latest.conversacion %}
-            <li><strong>{{ t('Asistente') if message.role == 'ai' else t('Tú') }}</strong> {{ message.text | respuesta_ia if message.role == 'ai' else message.text }}</li>
+            <li><strong>{{ t("Assistant") if message.role == 'ai' else t("You") }}</strong> {{ message.text | ai_reply if message.role == 'ai' else message.text }}</li>
             {% endfor %}
           </ul>
         </div>
         {% endif %}
         <details class="info-card">
-          <summary>{{ t('Consultar antecedentes del expediente') }}</summary>
+          <summary>{{ t("View medical background") }}</summary>
           {% include '_datos_expediente.html' %}
         </details>
-        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">{{ t('Ver historial') }}</a>
+        <a class="btn-primary" href="{{ url_for('summary', vista='historial') }}">{{ t("View history") }}</a>
         {% endif %}
       </section>
     </div>

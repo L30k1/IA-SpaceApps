@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ t('MediSpace - Acceso') }}</title>
+  <title>{{ t("MediSpace · Sign in") }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/index.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <script src="{{ url_for('idioma_script') }}" defer></script>
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <!--{% if false %}-->
   <main class="app-frame">
     <section class="main-area">
       <h1>MediSpace</h1>
-      <p>Inicia el servidor con <code>python main.py</code> para usar los formularios y navegar.</p>
-      <p><a href="http://127.0.0.1:5000/">Abrir MediSpace</a></p>
+      <p>Start the server with <code>python main.py</code> to use the forms and navigate the app.</p>
+      <p><a href="http://127.0.0.1:5000/">Open MediSpace</a></p>
     </section>
   </main>
   <template>
@@ -24,7 +24,7 @@
 
   <div class="app-frame">
     
-    <!-- PANTALLA 1: REGISTRO E INICIO DE SESIÓN -->
+    <!-- SCREEN 1: REGISTRATION AND SIGN-IN -->
     <section id="view-auth" class="view active">
         {% include '_selector_idioma.html' %}
       <div class="marca-encabezado">
@@ -36,42 +36,42 @@
         <input type="hidden" name="csrf" value="{{ csrf }}">
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(message) }}</p>{% endfor %}
         {% if error %}<p class="form-error" role="alert">{{ t(error) }}</p>{% endif %}
-        <h1>{{ t('Crear cuenta') if mode == 'register' else t('Iniciar sesión') }}</h1>
-        <label for="input-nombre">{{ t('Nombre completo') }}</label>
+        <h1>{{ t("Create account") if mode == 'register' else t("Sign in") }}</h1>
+        <label for="input-nombre">{{ t("Full name") }}</label>
         <div class="input-group">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
-          <input type="text" id="input-nombre" name="nombre" aria-label="{{ t('Nombre completo') }}" value="{{ nombre }}" autocomplete="name" placeholder="{{ t('Nombre completo') }}" required />
+          <input type="text" id="input-nombre" name="nombre" aria-label="{{ t("Full name") }}" value="{{ full_name }}" autocomplete="name" placeholder="{{ t("Full name") }}" required />
         </div>
-        <label for="input-id">{{ t('ID del astronauta') }}</label>
+        <label for="input-id">{{ t("Astronaut ID") }}</label>
         <div class="input-group">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 9h6m-6 5h6"/><circle cx="7" cy="10" r="1.5"/><path d="M4.5 16a2.5 2.5 0 0 1 5 0"/></svg>
-          <input type="text" id="input-id" name="astronauta_id" aria-label="{{ t('ID del astronauta') }}" value="{{ identificador }}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="{{ t('ID del astronauta') }}" required />
+          <input type="text" id="input-id" name="astronauta_id" aria-label="{{ t("Astronaut ID") }}" value="{{ identifier }}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="{{ t("Astronaut ID") }}" required />
         </div>
 
-        <label for="input-password">{{ t('Contraseña') }}</label>
+        <label for="input-password">{{ t("Password") }}</label>
         <div class="input-group">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input type="password" id="input-password" name="password" aria-label="{{ t('Contraseña') }}" maxlength="128" {% if mode == 'register' %}minlength="8"{% endif %} autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" placeholder="{{ t('Contraseña') }}" required />
+          <input type="password" id="input-password" name="password" aria-label="{{ t("Password") }}" maxlength="128" {% if mode == 'register' %}minlength="8"{% endif %} autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" placeholder="{{ t("Password") }}" required />
         </div>
 
         {% if mode == 'register' %}
         <div class="historial-carga">
-          <label for="expediente">{{ t('Historial médico (.json)') }}</label>
-          <p id="ayuda-expediente">{{ t('El nombre y el ID deben coincidir con los del archivo.') }}</p>
+          <label for="expediente">{{ t("Medical history (.json)") }}</label>
+          <p id="ayuda-expediente">{{ t("Your name and ID must match the file.") }}</p>
           <input id="expediente" name="expediente" type="file" accept=".json,application/json" aria-describedby="ayuda-expediente" required>
-          <button type="button" id="elegir-expediente-local" class="file-action" aria-describedby="ayuda-expediente" hidden>{{ t('Elegir historial JSON y permitir su actualización') }}</button>
+          <button type="button" id="elegir-expediente-local" class="file-action" aria-describedby="ayuda-expediente" hidden>{{ t("Choose a JSON record and allow updates") }}</button>
           <p id="estado-expediente-local" role="status" hidden></p>
-          <a class="historial-enlace" href="{{ url_for('preparar_historial') }}">{{ t('Crear un historial médico JSON') }}</a>
+          <a class="historial-enlace" href="{{ url_for('preparar_historial') }}">{{ t("Create a medical history JSON file") }}</a>
         </div>
         {% endif %}
 
-        <button type="submit" class="btn-primary" id="btn-auth-submit">{{ t('Crear cuenta') if mode == 'register' else t('Iniciar sesión') }} →</button>
+        <button type="submit" class="btn-primary" id="btn-auth-submit">{{ t("Create account") if mode == 'register' else t("Sign in") }} →</button>
 
         <div class="auth-switch">
           {% if mode == 'register' %}
-          <span>{{ t('¿Ya tienes cuenta?') }}</span> <a href="{{ url_for('index') }}">{{ t('Iniciar sesión') }}</a>
+          <span>{{ t("Already have an account?") }}</span> <a href="{{ url_for('index') }}">{{ t("Sign in") }}</a>
           {% else %}
-          <span>{{ t('¿No tienes cuenta?') }}</span> <a href="{{ url_for('index', mode='register') }}">{{ t('Crear cuenta') }}</a>
+          <span>{{ t("Need an account?") }}</span> <a href="{{ url_for('index', mode='register') }}">{{ t("Create account") }}</a>
           {% endif %}
         </div>
       </form>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ t('MediSpace - Evaluación y Análisis de IA') }}</title>
+  <title>{{ t("MediSpace · AI health checkup") }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/resumen.css">
   <link rel="stylesheet" href="css/chequeo.css">
@@ -14,15 +14,15 @@
   <script src="{{ url_for('chat_ui_script') }}" defer></script>
   <script src="{{ url_for('voz_chat_script') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <!--{% if false %}-->
   <main class="app-frame">
     <section class="main-area">
       <h1>MediSpace</h1>
-      <p>Inicia el servidor con <code>python main.py</code> para usar los formularios y navegar.</p>
-      <p><a href="http://127.0.0.1:5000/">Abrir MediSpace</a></p>
+      <p>Start the server with <code>python main.py</code> to use the forms and navigate the app.</p>
+      <p><a href="http://127.0.0.1:5000/">Open MediSpace</a></p>
     </section>
   </main>
   <template>
@@ -33,53 +33,53 @@
       <header class="top-header">
         <div class="marca-encabezado">
           {% include '_marca.html' %}
-          <div class="marca-texto">{{ expediente.astronauta.nombre }}</div>
+          <div class="marca-texto">{{ medical_record.astronauta.nombre }}</div>
         </div>
-        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
         {% include '_selector_idioma.html' %}
       </header>
 
       {% from '_chat_mensajes.html' import historial_chat %}
-      <h1>{{ t('Evaluación de salud') }}</h1>
+      <h1>{{ t("Health checkup") }}</h1>
       <section class="info-card chat-ia" data-chat-voz="medico"{% if draft and draft['revision'] == 0 %} data-voz-inicial{% endif %}>
         {% for message in get_flashed_messages() %}<p class="form-error" role="alert">{{ t(message) }}</p>{% endfor %}
-        {% if bloqueado %}
-        <p role="status">{{ t(bloqueado) }}</p>
+        {% if blocked_message %}
+        <p role="status">{{ t(blocked_message) }}</p>
         {% else %}
         <form class="chat-formulario" method="post" action="{{ url_for('checkup') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="turn" value="{{ draft['id'] }}:{{ draft['revision'] }}">
-          <p>{{ t('La IA recibe tus respuestas y las mediciones que ingreses para preparar el seguimiento.') }}</p>
+          <p>{{ t("The AI receives your responses and the measurements you enter to prepare follow-up.") }}</p>
           <fieldset class="telemetry-strip">
-            <legend class="telemetry-title">{{ t('📡 Telemetría') }}</legend>
+            <legend class="telemetry-title">{{ t("Vitals") }}</legend>
             <label>{{ t('FC (lpm)') }} <input type="number" name="hr" value="{{ vitals.hr if vitals.hr is not none else '' }}" min="1" max="999"></label>
-            <label>{{ t('¿Cuándo mediste el pulso?') }}
+            <label>{{ t("When was your pulse measured?") }}
               <select name="contexto_fc">
-                <option value="">{{ t('Sin especificar') }}</option>
-                {% for clave, nombre in contextos_fc.items() %}
-                <option value="{{ clave }}"{% if details.contexto_fc == clave %} selected{% endif %}>{{ t(nombre) }}</option>
+                <option value="">{{ t("Not specified") }}</option>
+                {% for lookup_key, full_name in contextos_fc.items() %}
+                <option value="{{ lookup_key }}"{% if details.contexto_fc == lookup_key %} selected{% endif %}>{{ t(full_name) }}</option>
                 {% endfor %}
               </select>
             </label>
             <label>SpO₂ (%) <input type="number" name="spo2" value="{{ vitals.spo2 if vitals.spo2 is not none else '' }}" min="0" max="100"></label>
-            <label>{{ t('Temp (°C)') }} <input type="number" name="temp" value="{{ vitals.temp if vitals.temp is not none else '' }}" min="0.1" max="99.9" step="any"></label>
+            <label>{{ t("Temperature (°C)") }} <input type="number" name="temp" value="{{ vitals.temp if vitals.temp is not none else '' }}" min="0.1" max="99.9" step="any"></label>
           </fieldset>
 
           <fieldset class="telemetry-strip checkup-context">
-            <legend class="telemetry-title">{{ t('Datos del chequeo') }}</legend>
-            <label>{{ t('Misión') }}
+            <legend class="telemetry-title">{{ t("Checkup details") }}</legend>
+            <label>{{ t("Mission") }}
               <select name="mision_id">
-                <option value="">{{ t('Sin especificar') }}</option>
-                {% for mision in expediente.misiones %}
-                <option value="{{ mision.id }}"{% if mision.id == details.mision_id %} selected{% endif %}>{{ mision.id }}</option>
+                <option value="">{{ t("Not specified") }}</option>
+                {% for mission in medical_record.misiones %}
+                <option value="{{ mission.id }}"{% if mission.id == details.mision_id %} selected{% endif %}>{{ mission.id }}</option>
                 {% endfor %}
               </select>
             </label>
             <label>{{ t('Fase') }}
               <select name="fase">
-                <option value="">{{ t('Sin especificar') }}</option>
-                {% for clave, etiqueta in fases.items() %}
-                <option value="{{ clave }}"{% if clave == details.fase %} selected{% endif %}>{{ etiqueta }}</option>
+                <option value="">{{ t("Not specified") }}</option>
+                {% for lookup_key, label in fases.items() %}
+                <option value="{{ lookup_key }}"{% if lookup_key == details.fase %} selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
             </label>
@@ -92,12 +92,12 @@
           {% if error %}<p class="form-error" role="alert">{{ t(error) }}</p>{% endif %}
           {% include '_voz_chat.html' %}
           <div class="chat-compositor">
-            <label class="campo-diario">{{ t('Tu mensaje') }}
+            <label class="campo-diario">{{ t("Your message") }}
               <textarea name="answer" maxlength="1000" rows="2" data-voz-mensaje>{{ answer }}</textarea>
             </label>
-            <button type="submit" class="chat-enviar" name="accion" value="enviar">{{ t('Enviar') }}</button>
+            <button type="submit" class="chat-enviar" name="accion" value="enviar">{{ t("Send") }}</button>
           </div>
-          <button type="submit" class="step-pill chat-finalizar" name="accion" value="finalizar">{{ t('Finalizar chequeo') }}</button>
+          <button type="submit" class="step-pill chat-finalizar" name="accion" value="finalizar">{{ t("Finish checkup") }}</button>
         </form>
         {% endif %}
       </section>

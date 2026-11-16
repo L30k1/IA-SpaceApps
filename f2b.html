@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,56 +11,56 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('f2b_script') }}" defer></script>
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario cognicion">
       <header class="top-header">
         <div class="marca-encabezado">{% include '_marca.html' %}</div>
-        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
         {% include '_selector_idioma.html' %}
       </header>
-      <h1>{{ t('Pruebas cognitivas') }}</h1>
+      <h1>{{ t("Cognitive tests") }}</h1>
       {% include '_navegacion_cognitiva.html' %}
       <section class="info-card" aria-labelledby="f2b-titulo">
         <h2 id="f2b-titulo">Fractal 2-Back (F2B)</h2>
-        <p>{{ t('Pulsa la barra espaciadora o toca el cuadro solo si la figura coincide con la que viste dos posiciones atrás.') }}</p>
-        <p>{{ t('Por ejemplo, en A → B → A, responde al ver la segunda A.') }}</p>
-        <p>{{ t('Verás {cantidad} figuras, cada una durante 1,75 segundos.', cantidad=datos.secuencia | length) }}</p>
+        <p>{{ t("Press the space bar or tap the panel only if the figure matches the one you saw two positions earlier.") }}</p>
+        <p>{{ t("For example, in A → B → A, respond when you see the second A.") }}</p>
+        <p>{{ t("You will see {cantidad} figures, each displayed for 1.75 seconds.", cantidad=data.secuencia | length) }}</p>
         <form id="f2b-form" method="post" action="{{ url_for('prueba_f2b') }}" hidden>
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <input type="hidden" name="registro_id" value="{{ registro_id }}">
+          <input type="hidden" name="registro_id" value="{{ entry_id }}">
         </form>
-        <button class="step-pill prueba-inicio" id="f2b-iniciar" type="button" disabled>{{ t('Iniciar prueba') }}</button>
-        <noscript><p>{{ t('Activa JavaScript para ver las figuras y medir los tiempos en el navegador.') }}</p></noscript>
+        <button class="step-pill prueba-inicio" id="f2b-iniciar" type="button" disabled>{{ t("Start test") }}</button>
+        <noscript><p>{{ t("Enable JavaScript to display the shapes and measure your response times.") }}</p></noscript>
         <div class="f2b-ronda" id="f2b-ronda" hidden>
           <p id="f2b-avance"></p>
           <button class="f2b-responder" id="f2b-responder" type="button" aria-keyshortcuts="Space">
             <canvas width="288" height="288" aria-hidden="true"></canvas>
-            <span>{{ t('Marcar coincidencia') }}</span>
+            <span>{{ t("Mark a match") }}</span>
           </button>
           <p class="f2b-confirmacion" id="f2b-confirmacion" role="status"
-             data-mensaje="{{ t('Respuesta registrada') }}"></p>
+             data-mensaje="{{ t("Response recorded") }}"></p>
         </div>
         <p id="f2b-estado" role="status" hidden></p>
-        <button class="step-pill prueba-inicio" id="f2b-reintentar" type="button" hidden>{{ t('Reintentar guardado') }}</button>
-        <a class="step-pill prueba-inicio" id="f2b-reiniciar" href="{{ url_for('prueba_f2b') }}" hidden>{{ t('Iniciar otra ronda') }}</a>
-        <script id="f2b-datos" type="application/json">{{ datos | tojson }}</script>
+        <button class="step-pill prueba-inicio" id="f2b-reintentar" type="button" hidden>{{ t("Retry saving") }}</button>
+        <a class="step-pill prueba-inicio" id="f2b-reiniciar" href="{{ url_for('prueba_f2b') }}" hidden>{{ t("Start another round") }}</a>
+        <script id="f2b-datos" type="application/json">{{ data | tojson }}</script>
       </section>
-      {% if actual %}
+      {% if selected_entry %}
       <section class="info-card" id="f2b-guardado" aria-labelledby="f2b-guardado-titulo">
-        <h2 id="f2b-guardado-titulo">{{ t('Resultado guardado') }}</h2>
-        <p>{{ actual.fecha_hora | hora_utc }}</p>
+        <h2 id="f2b-guardado-titulo">{{ t("Results saved") }}</h2>
+        <p>{{ selected_entry.fecha_hora | utc_time }}</p>
         <dl class="datos-diario">
-          <div><dt>{{ t('Coincidencias detectadas') }}</dt><dd>{{ actual.aciertos }} / {{ coincidencias }}</dd></div>
-          <div><dt>{{ t('Omisiones') }}</dt><dd>{{ actual.omisiones }}</dd></div>
-          <div><dt>{{ t('Falsas alarmas') }}</dt><dd>{{ actual.falsas_alarmas }}</dd></div>
-          <div><dt>{{ t('Mediana de reacción en aciertos') }}</dt>
-            <dd>{{ (actual.mediana_aciertos_ms | round | int) ~ ' ms' if actual.mediana_aciertos_ms is not none else '—' }}</dd>
+          <div><dt>{{ t("Matches detected") }}</dt><dd>{{ selected_entry.aciertos }} / {{ matches }}</dd></div>
+          <div><dt>{{ t('Omisiones') }}</dt><dd>{{ selected_entry.omisiones }}</dd></div>
+          <div><dt>{{ t('Falsas alarmas') }}</dt><dd>{{ selected_entry.falsas_alarmas }}</dd></div>
+          <div><dt>{{ t("Median reaction time for hits") }}</dt>
+            <dd>{{ (selected_entry.mediana_aciertos_ms | round | int) ~ ' ms' if selected_entry.mediana_aciertos_ms is not none else '—' }}</dd>
           </div>
         </dl>
-        <a class="diario-link" href="{{ url_for('historial_cognitivo') }}">{{ t('Historial de pruebas cognitivas') }}</a>
+        <a class="diario-link" href="{{ url_for('historial_cognitivo') }}">{{ t("Cognitive test history") }}</a>
       </section>
       {% include '_archivo_local.html' %}
       <script src="{{ url_for('expediente_local_script') }}" defer></script>
