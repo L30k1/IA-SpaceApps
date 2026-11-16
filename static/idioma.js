@@ -1,6 +1,6 @@
 (() => {
   const english = document.documentElement.lang === 'en';
-  const messages = {
+  const englishByLegacyMessage = {
     "El archivo no contiene un identificador de expediente válido.": "The file does not contain a valid medical record ID.",
     "Revisa los registros del archivo original antes de actualizarlo.": "Review the entries in the original file before updating it.",
     "El archivo supera el tamaño admitido.": "The file exceeds the size limit.",
@@ -86,9 +86,15 @@
     "Reconocimiento diferido": "Delayed recognition",
     "Reconocimiento inmediato": "Immediate recognition"
   };
+  const spanishByEnglishMessage = new Map();
+  for (const [spanish, english] of Object.entries(englishByLegacyMessage)) {
+    spanishByEnglishMessage.set(english, spanishByEnglishMessage.has(english) ? english : spanish);
+  }
 
   function t(text, fields = {}) {
-    const message = english && Object.hasOwn(messages, text) ? messages[text] : text;
+    const message = english
+      ? (Object.hasOwn(englishByLegacyMessage, text) ? englishByLegacyMessage[text] : text)
+      : (spanishByEnglishMessage.get(text) ?? text);
     return message.replace(/\{(\w+)\}/g, (placeholder, key) => fields[key] ?? placeholder);
   }
 

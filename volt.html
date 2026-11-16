@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t('Aprendizaje visual de objetos (VOLT) · MediSpace') }}</title>
+  <title>{{ t("Visual Object Learning Test (VOLT) · MediSpace") }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
@@ -11,63 +11,63 @@
   <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('volt_script') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario cognicion">
       <header class="top-header">
         <div class="marca-encabezado">{% include '_marca.html' %}</div>
-        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
 
         {% include '_selector_idioma.html' %}
       </header>
-      <h1>{{ t('Pruebas cognitivas') }}</h1>
+      <h1>{{ t("Cognitive tests") }}</h1>
       {% include '_navegacion_cognitiva.html' %}
       <section class="info-card" aria-labelledby="volt-titulo">
-        <h2 id="volt-titulo">{{ t('Aprendizaje visual de objetos (VOLT)') }}</h2>
-        {% for mensaje in get_flashed_messages() %}<p role="alert">{{ t(mensaje) }}</p>{% endfor %}
+        <h2 id="volt-titulo">{{ t("Visual Object Learning Test (VOLT)") }}</h2>
+        {% for message in get_flashed_messages() %}<p role="alert">{{ t(message) }}</p>{% endfor %}
         <form id="volt-form" method="post" action="{{ url_for('prueba_volt') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          {% if borrador %}<input type="hidden" name="registro_id" value="{{ borrador.id }}">{% endif %}
-          {% if fase is none %}
-          <p>{{ t('Memoriza {figuras} figuras tridimensionales. Verás cada una durante {segundos} segundos. Después, identifica las que recuerdas entre {total} figuras. El reconocimiento diferido comienza 15 minutos después de terminar el inmediato.', figuras=figuras, segundos=exposicion, total=figuras * 2) }}</p>
-          <button class="step-pill" name="accion" value="iniciar" type="submit">{{ t('Iniciar prueba') }}</button>
-          {% elif fase == 'espera' %}
-          <p>{{ t('Completaste el reconocimiento inmediato. Puedes realizar otras tareas y regresar a esta página para continuar.') }}</p>
-          <p id="volt-espera" data-segundos="{{ espera }}">{% if espera %}{{ t('El reconocimiento diferido se habilitará al cumplirse 15 minutos. Puedes recargar esta página para comprobarlo.') }}{% else %}{{ t('Ya puedes iniciar el reconocimiento diferido.') }}{% endif %}</p>
-          <button class="step-pill" id="volt-diferido" name="accion" value="abrir_diferido" type="submit"{% if espera %} disabled{% endif %}>{{ t('Iniciar reconocimiento diferido') }}</button>
-          <a class="step-pill" href="{{ url_for('pruebas_cognitivas') }}">{{ t('Ir a Praxis Motora') }}</a>
+          {% if active_draft %}<input type="hidden" name="registro_id" value="{{ active_draft.id }}">{% endif %}
+          {% if phase is none %}
+          <p>{{ t("Memorize {figuras} three-dimensional shapes. You will see each for {segundos} seconds. Then identify the shapes you remember from a set of {total}. Delayed recognition begins 15 minutes after immediate recognition ends.", figuras=shapes, segundos=exposure, total=shapes * 2) }}</p>
+          <button class="step-pill" name="accion" value="iniciar" type="submit">{{ t("Start test") }}</button>
+          {% elif phase == 'espera' %}
+          <p>{{ t("You completed immediate recognition. You can do other tasks and return to this page to continue.") }}</p>
+          <p id="volt-espera" data-segundos="{{ wait_seconds }}">{% if wait_seconds %}{{ t("Delayed recognition becomes available after 15 minutes. Refresh this page to check.") }}{% else %}{{ t("You can now start delayed recognition.") }}{% endif %}</p>
+          <button class="step-pill" id="volt-diferido" name="accion" value="abrir_diferido" type="submit"{% if wait_seconds %} disabled{% endif %}>{{ t("Start delayed recognition") }}</button>
+          <a class="step-pill" href="{{ url_for('pruebas_cognitivas') }}">{{ t("Go to Motor Praxis") }}</a>
           {% else %}
-          <p id="volt-estado" role="status">{% if fase == 'aprendizaje' %}{{ t('Observa cada figura y memoriza su forma. Empieza cuando estés listo.') }}{% else %}{{ t('Marca si cada figura pertenece al grupo que memorizaste al inicio.') }}{% endif %}</p>
-          <button class="step-pill" id="volt-comenzar" type="button" disabled>{% if fase == 'aprendizaje' %}{{ t('Comenzar aprendizaje') }}{% else %}{{ t('Mostrar primera figura') }}{% endif %}</button>
-          <canvas id="volt-figura" class="volt-figura" width="440" height="300" aria-label="{{ t('Estímulo geométrico tridimensional') }}" hidden></canvas>
+          <p id="volt-estado" role="status">{% if phase == 'aprendizaje' %}{{ t("Look at each shape and memorize it. Start when you are ready.") }}{% else %}{{ t("Indicate whether each shape belongs to the original set.") }}{% endif %}</p>
+          <button class="step-pill" id="volt-comenzar" type="button" disabled>{% if phase == 'aprendizaje' %}{{ t("Start learning") }}{% else %}{{ t("Show first shape") }}{% endif %}</button>
+          <canvas id="volt-figura" class="volt-figura" width="440" height="300" aria-label="{{ t("Three-dimensional shape") }}" hidden></canvas>
           <div id="volt-opciones" class="volt-opciones" hidden>
-            <button class="step-pill" type="button" data-vista="si">{{ t('Sí, la vi al inicio') }}</button>
-            <button class="step-pill" type="button" data-vista="no">{{ t('No, es nueva') }}</button>
+            <button class="step-pill" type="button" data-vista="si">{{ t("Yes, I saw it before") }}</button>
+            <button class="step-pill" type="button" data-vista="no">{{ t("No, it is new") }}</button>
           </div>
-          <button class="step-pill" id="volt-reintentar" type="button" hidden>{{ t('Reintentar guardado') }}</button>
-          <script id="volt-estimulos" type="application/json">{{ {'aprendizaje': aprendizaje, 'reconocimiento': reconocimiento, 'exposicion': exposicion, 'fase': fase} | tojson }}</script>
+          <button class="step-pill" id="volt-reintentar" type="button" hidden>{{ t("Retry saving") }}</button>
+          <script id="volt-estimulos" type="application/json">{{ {'aprendizaje': learning, 'reconocimiento': recognition_round, 'exposicion': exposure, 'fase': phase} | tojson }}</script>
           {% endif %}
-          {% if borrador %}<button class="step-pill" name="accion" value="cancelar" type="submit">{{ t('Descartar sesión') }}</button>{% endif %}
+          {% if active_draft %}<button class="step-pill" name="accion" value="cancelar" type="submit">{{ t("Discard session") }}</button>{% endif %}
         </form>
-        <noscript><p>{{ t('Activa JavaScript para ver las figuras y medir los tiempos en el navegador.') }}</p></noscript>
+        <noscript><p>{{ t("Enable JavaScript to display the shapes and measure your response times.") }}</p></noscript>
       </section>
 
-      {% if actual %}
+      {% if selected_entry %}
       <section class="info-card" id="volt-guardado" aria-labelledby="volt-guardado-titulo">
-        <h2 id="volt-guardado-titulo">{{ t('Resultado guardado') }}</h2>
-        <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">{{ t('Ver avance de la misión') }}</a>
-        <p>{{ actual.fecha_hora | hora_utc }} {{ t('· Intervalo de') }} {{ '%.1f' | format(actual.intervalo_segundos / 60) }} min</p>
-        {% for fase, nombre in [('inmediato', t('Reconocimiento inmediato')), ('diferido', t('Reconocimiento diferido'))] %}
-        {% set resultado = actual[fase] %}
+        <h2 id="volt-guardado-titulo">{{ t("Results saved") }}</h2>
+        <a class="diario-link" href="{{ url_for('profile', _anchor='calendario-mision') }}">{{ t("View mission progress") }}</a>
+        <p>{{ selected_entry.fecha_hora | utc_time }} {{ t("· Interval:") }} {{ '%.1f' | format(selected_entry.intervalo_segundos / 60) }} min</p>
+        {% for phase, full_name in [('inmediato', t('Reconocimiento inmediato')), ('diferido', t("Delayed recognition"))] %}
+        {% set outcome = selected_entry[phase] %}
         <details open>
-          <summary>{{ nombre }}</summary>
+          <summary>{{ full_name }}</summary>
           <dl class="datos-diario">
-            <div><dt>{{ t('Aciertos') }}</dt><dd>{{ resultado.correctas }} / {{ figuras * 2 }}</dd></div>
-            <div><dt>{{ t('Figuras reconocidas') }}</dt><dd>{{ resultado.reconocidas }} / {{ figuras }}</dd></div>
-            <div><dt>{{ t('Falsos positivos') }}</dt><dd>{{ resultado.falsos_positivos }} / {{ figuras }}</dd></div>
-            <div><dt>{{ t('Tiempo medio de respuesta') }}</dt><dd>{{ resultado.promedio_ms | round | int }} ms</dd></div>
+            <div><dt>{{ t("Correct answers") }}</dt><dd>{{ outcome.correctas }} / {{ shapes * 2 }}</dd></div>
+            <div><dt>{{ t("Recognized shapes") }}</dt><dd>{{ outcome.reconocidas }} / {{ shapes }}</dd></div>
+            <div><dt>{{ t('Falsos positivos') }}</dt><dd>{{ outcome.falsos_positivos }} / {{ shapes }}</dd></div>
+            <div><dt>{{ t("Average response time") }}</dt><dd>{{ outcome.promedio_ms | round | int }} ms</dd></div>
           </dl>
         </details>
         {% endfor %}
@@ -75,12 +75,12 @@
       {% include '_archivo_local.html' %}
       <script src="{{ url_for('expediente_local_script') }}" defer></script>
       {% endif %}
-      {% if registros %}
+      {% if entries %}
       <section class="info-card" aria-labelledby="volt-historial-titulo">
-        <h2 id="volt-historial-titulo">{{ t('Historial de aprendizaje visual de objetos') }}</h2>
+        <h2 id="volt-historial-titulo">{{ t("Visual object learning history") }}</h2>
         <ul>
-          {% for registro in registros %}
-          <li><a class="diario-link" href="{{ url_for('prueba_volt', registro=registro.id, _anchor='volt-guardado') }}">{{ registro.fecha_hora | hora_utc }} · {{ registro.inmediato.correctas }} / {{ figuras * 2 }} {{ t('inmediato ·') }} {{ registro.diferido.correctas }} / {{ figuras * 2 }} {{ t('diferido') }}</a></li>
+          {% for entry in entries %}
+          <li><a class="diario-link" href="{{ url_for('prueba_volt', registro=entry.id, _anchor='volt-guardado') }}">{{ entry.fecha_hora | utc_time }} · {{ entry.inmediato.correctas }} / {{ shapes * 2 }} {{ t("immediate ·") }} {{ entry.diferido.correctas }} / {{ shapes * 2 }} {{ t('diferido') }}</a></li>
           {% endfor %}
         </ul>
       </section>

@@ -1,42 +1,42 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t('Editar expediente JSON') }} · MediSpace</title>
+  <title>{{ t("Edit JSON record") }} · MediSpace</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='historial-formulario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame expediente-formulario">
       <header>
         <div class="marca-encabezado">{% include '_marca.html' %}</div>
-        <a class="historial-enlace" href="{{ url_for('summary', vista='historial') }}">{{ t('Volver al historial clínico') }}</a>
+        <a class="historial-enlace" href="{{ url_for('summary', vista='historial') }}">{{ t("Back to clinical history") }}</a>
         {% include '_selector_idioma.html' %}
       </header>
-      <h1>{{ t('Editar expediente JSON') }}</h1>
+      <h1>{{ t("Edit JSON record") }}</h1>
       {% for aviso in get_flashed_messages() %}<p role="status">{{ t(aviso) }}</p>{% endfor %}
       {% if error %}<p class="form-error" role="alert">{{ t(error) }}</p>{% endif %}
       <form class="expediente-panel" action="{{ url_for('editar_expediente') }}" method="post">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        {% if configurar %}
-        <p>{{ t('Tu expediente se creó antes de que existiera la llave de edición. Confirma la contraseña de tu cuenta para definirla.') }}</p>
+        {% if configure %}
+        <p>{{ t("Your record predates editing keys. Confirm your account password to set one.") }}</p>
         <div class="expediente-cuadricula">
-          <label>{{ t('Contraseña de la cuenta') }}
+          <label>{{ t("Account password") }}
             <input type="password" name="password" maxlength="128" autocomplete="current-password" required>
           </label>
           {% include '_campos_llave_edicion.html' %}
         </div>
-        <button class="btn-primary" type="submit" name="accion" value="configurar">{{ t('Configurar llave y abrir editor') }}</button>
+        <button class="btn-primary" type="submit" name="accion" value="configurar">{{ t("Set key and open editor") }}</button>
         {% else %}
-        <p>{{ t('Usa la llave que elegiste al preparar el historial médico.') }}</p>
-        <label>{{ t('Llave de edición') }}
+        <p>{{ t("Use the key you chose when preparing the medical history.") }}</p>
+        <label>{{ t("Editing key") }}
           <input type="password" name="llave_edicion" maxlength="128" autocomplete="current-password" required>
         </label>
-        <button class="btn-primary" type="submit" name="accion" value="desbloquear">{{ t('Abrir editor') }}</button>
+        <button class="btn-primary" type="submit" name="accion" value="desbloquear">{{ t("Open editor") }}</button>
         {% endif %}
       </form>
   </main>

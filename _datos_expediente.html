@@ -2,41 +2,41 @@
   <section class="info-card">
     <h3>{{ t('Misiones') }}</h3>
     <ul>
-      {% for mision in expediente.misiones %}
-      <li>{{ mision.id }}{% if mision.fecha_inicio %} {{ t('· Inicio:') }} {{ mision.fecha_inicio }}{% endif %}{% if mision.fecha_fin %} {{ t('· Fin:') }} {{ mision.fecha_fin }}{% endif %}</li>
+      {% for mission in medical_record.misiones %}
+      <li>{{ mission.id }}{% if mission.fecha_inicio %} {{ t("· Start:") }} {{ mission.fecha_inicio }}{% endif %}{% if mission.fecha_fin %} {{ t("· End:") }} {{ mission.fecha_fin }}{% endif %}</li>
       {% else %}
-      <li>{{ t('Sin misiones registradas') }}</li>
+      <li>{{ t("No missions recorded") }}</li>
       {% endfor %}
     </ul>
   </section>
   <section class="info-card">
     <h3>{{ t('Alergias') }}</h3>
-    {% if expediente.estado_alergias %}<p>{{ expediente.estado_alergias }}</p>{% endif %}
+    {% if medical_record.estado_alergias %}<p>{{ medical_record.estado_alergias }}</p>{% endif %}
     <ul>
-      {% for alergia in expediente.alergias %}
+      {% for alergia in medical_record.alergias %}
       <li>{{ alergia.sustancia }}{% if alergia.reaccion %} · {{ alergia.reaccion }}{% endif %}{% if alergia.confirmacion %} · {{ alergia.confirmacion }}{% endif %}</li>
       {% else %}
-      <li>{{ t('Sin registros de alergias') }}</li>
+      <li>{{ t("No allergy records") }}</li>
       {% endfor %}
     </ul>
   </section>
   <section class="info-card">
     <h3>{{ t('Antecedentes') }}</h3>
     <ul>
-      {% for antecedente in expediente.antecedentes %}
+      {% for antecedente in medical_record.antecedentes %}
       <li>{{ antecedente.condicion }}{% if antecedente.fecha_inicio %} · {{ antecedente.fecha_inicio }}{% endif %}{% if antecedente.estado %} · {{ antecedente.estado }}{% endif %}</li>
       {% else %}
-      <li>{{ t('Sin antecedentes registrados') }}</li>
+      <li>{{ t("No medical history recorded") }}</li>
       {% endfor %}
     </ul>
   </section>
   <section class="info-card">
     <h3>{{ t('Medicamentos') }}</h3>
     <ul>
-      {% for medicamento in expediente.medicamentos %}
-      <li>{{ medicamento.nombre }}{% if medicamento.dosis is defined and medicamento.dosis is not none %} · {{ medicamento.dosis }} {{ medicamento.unidad or '' }}{% endif %}{% if medicamento.via %} · {{ medicamento.via }}{% endif %}{% if medicamento.frecuencia %} · {{ medicamento.frecuencia }}{% endif %}{% if medicamento.estado %} · {{ medicamento.estado }}{% endif %}</li>
+      {% for medication in medical_record.medicamentos %}
+      <li>{{ medication.nombre }}{% if medication.dosis is defined and medication.dosis is not none %} · {{ medication.dosis }} {{ medication.unidad or '' }}{% endif %}{% if medication.via %} · {{ medication.via }}{% endif %}{% if medication.frecuencia %} · {{ medication.frecuencia }}{% endif %}{% if medication.estado %} · {{ medication.estado }}{% endif %}</li>
       {% else %}
-      <li>{{ t('Sin medicamentos registrados') }}</li>
+      <li>{{ t("No medications recorded") }}</li>
       {% endfor %}
     </ul>
   </section>

@@ -1,181 +1,181 @@
 (() => {
   const { t } = window.mediSpaceLanguage;
-  const reloj = document.querySelector('#volt-espera');
-  if (reloj) {
-    const boton = document.querySelector('#volt-diferido');
-    const fin = Date.now() + Number(reloj.dataset.segundos) * 1000;
-    function actualizarEspera() {
-      const restante = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
-      if (restante === 0) {
-        reloj.textContent = t('Ya puedes iniciar el reconocimiento diferido.');
-        boton.disabled = false;
+  const countdown = document.querySelector('#volt-espera');
+  if (countdown) {
+    const button = document.querySelector('#volt-diferido');
+    const end = Date.now() + Number(countdown.dataset.segundos) * 1000;
+    function updateCountdown() {
+      const remainingTime = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      if (remainingTime === 0) {
+        countdown.textContent = t("You can now start delayed recognition.");
+        button.disabled = false;
         return;
       }
-      const minutos = Math.floor(restante / 60);
-      const segundos = String(restante % 60).padStart(2, '0');
-      reloj.textContent = t('Tiempo restante: {tiempo}', { tiempo: `${minutos}:${segundos}` });
-      setTimeout(actualizarEspera, 1000);
+      const minutes_count = Math.floor(remainingTime / 60);
+      const seconds = String(remainingTime % 60).padStart(2, '0');
+      countdown.textContent = t("Time remaining: {tiempo}", { tiempo: `${minutes_count}:${seconds}` });
+      setTimeout(updateCountdown, 1000);
     }
-    actualizarEspera();
+    updateCountdown();
   }
 
-  const datos = document.querySelector('#volt-estimulos');
-  if (!datos) return;
-  const { aprendizaje, reconocimiento, exposicion, fase } = JSON.parse(datos.textContent);
-  const formulario = document.querySelector('#volt-form');
-  const estado = document.querySelector('#volt-estado');
-  const comenzar = document.querySelector('#volt-comenzar');
-  const lienzo = document.querySelector('#volt-figura');
-  const contexto = lienzo.getContext('2d');
-  const opciones = document.querySelector('#volt-opciones');
-  const reintentar = document.querySelector('#volt-reintentar');
-  if (!contexto) {
-    estado.textContent = t('Este navegador no puede dibujar los estímulos de la prueba.');
+  const data = document.querySelector('#volt-estimulos');
+  if (!data) return;
+  const { aprendizaje: learning, reconocimiento: recognition_round, exposicion: exposure, fase: phase } = JSON.parse(data.textContent);
+  const form_data = document.querySelector('#volt-form');
+  const state = document.querySelector('#volt-estado');
+  const startRound = document.querySelector('#volt-comenzar');
+  const canvas = document.querySelector('#volt-figura');
+  const context = canvas.getContext('2d');
+  const options = document.querySelector('#volt-opciones');
+  const retryButton = document.querySelector('#volt-reintentar');
+  if (!context) {
+    state.textContent = t("This browser cannot display the test shapes.");
     return;
   }
 
-  const respuestas = [];
-  let figuraAprendida = 0;
-  let aprendizajeActivo = false;
-  let tiempoExpuesto = 0;
-  let inicioExposicion = null;
-  let temporizador;
-  let presentado = null;
-  let pausa = null;
+  const answers = [];
+  let learnedShape = 0;
+  let learningActive = false;
+  let exposureTime = 0;
+  let exposureStartedAt = null;
+  let timer;
+  let presentedAt = null;
+  let pauseTime = null;
 
   const vertices = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
-  const caras = [
+  const faces = [
     { indices: [1, 3, 7, 5], color: '#247ab4' },
     { indices: [2, 3, 7, 6], color: '#3897ca' },
     { indices: [4, 5, 7, 6], color: '#92d6f4' },
   ];
 
-  function dibujar(figura) {
-    const cubos = [...figura].sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
-    const proyectados = cubos.map(([x, y, z]) => vertices.map(([dx, dy, dz]) => [
+  function draw(shape) {
+    const cubes = [...shape].sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
+    const projected = cubes.map(([x, y, z]) => vertices.map(([dx, dy, dz]) => [
       (x + dx - y - dy) * 21,
       (x + dx + y + dy - 2 * (z + dz)) * 12,
     ]));
-    const puntos = proyectados.flat();
-    const xs = puntos.map(([x]) => x);
-    const ys = puntos.map(([, y]) => y);
-    const margenX = (lienzo.width - Math.min(...xs) - Math.max(...xs)) / 2;
-    const margenY = (lienzo.height - Math.min(...ys) - Math.max(...ys)) / 2;
-    contexto.clearRect(0, 0, lienzo.width, lienzo.height);
-    contexto.lineWidth = 1.5;
-    contexto.strokeStyle = '#0a2642';
-    for (const cubo of proyectados) {
-      for (const cara of caras) {
-        contexto.beginPath();
-        const [x, y] = cubo[cara.indices[0]];
-        contexto.moveTo(x + margenX, y + margenY);
-        for (const indice of cara.indices.slice(1)) {
-          const [px, py] = cubo[indice];
-          contexto.lineTo(px + margenX, py + margenY);
+    const points = projected.flat();
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    const marginX = (canvas.width - Math.min(...xs) - Math.max(...xs)) / 2;
+    const marginY = (canvas.height - Math.min(...ys) - Math.max(...ys)) / 2;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.lineWidth = 1.5;
+    context.strokeStyle = '#0a2642';
+    for (const cube of projected) {
+      for (const face of faces) {
+        context.beginPath();
+        const [x, y] = cube[face.indices[0]];
+        context.moveTo(x + marginX, y + marginY);
+        for (const index_score of face.indices.slice(1)) {
+          const [px, py] = cube[index_score];
+          context.lineTo(px + marginX, py + marginY);
         }
-        contexto.closePath();
-        contexto.fillStyle = cara.color;
-        contexto.fill();
-        contexto.stroke();
+        context.closePath();
+        context.fillStyle = face.color;
+        context.fill();
+        context.stroke();
       }
     }
   }
 
-  function mostrarReconocimiento() {
-    estado.textContent = t('{fase}. Figura {actual} de {total}.', {
-      fase: fase === 'diferido' ? t('Reconocimiento diferido') : t('Reconocimiento inmediato'),
-      actual: respuestas.length + 1, total: reconocimiento.length,
+  function showRecognition() {
+    state.textContent = t("{fase}. Shape {actual} of {total}.", {
+      fase: phase === 'diferido' ? t("Delayed recognition") : t("Immediate recognition"),
+      actual: answers.length + 1, total: recognition_round.length,
     });
-    dibujar(reconocimiento[respuestas.length]);
-    opciones.hidden = false;
-    presentado = performance.now();
+    draw(recognition_round[answers.length]);
+    options.hidden = false;
+    presentedAt = performance.now();
   }
 
-  function continuarExposicion() {
+  function resumeExposure() {
     if (document.hidden) return;
-    inicioExposicion = performance.now();
-    temporizador = setTimeout(() => {
-      inicioExposicion = null;
-      tiempoExpuesto = 0;
-      figuraAprendida += 1;
-      if (figuraAprendida < aprendizaje.length) {
-        mostrarAprendizaje();
+    exposureStartedAt = performance.now();
+    timer = setTimeout(() => {
+      exposureStartedAt = null;
+      exposureTime = 0;
+      learnedShape += 1;
+      if (learnedShape < learning.length) {
+        displayLearningPhase();
       } else {
-        aprendizajeActivo = false;
-        requestAnimationFrame(mostrarReconocimiento);
+        learningActive = false;
+        requestAnimationFrame(showRecognition);
       }
-    }, exposicion * 1000 - tiempoExpuesto);
+    }, exposure * 1000 - exposureTime);
   }
 
-  function mostrarAprendizaje() {
-    estado.textContent = t('Aprendizaje. Figura {actual} de {total}.', { actual: figuraAprendida + 1, total: aprendizaje.length });
-    dibujar(aprendizaje[figuraAprendida]);
-    continuarExposicion();
+  function displayLearningPhase() {
+    state.textContent = t("Learning phase. Shape {actual} of {total}.", { actual: learnedShape + 1, total: learning.length });
+    draw(learning[learnedShape]);
+    resumeExposure();
   }
 
-  async function guardar() {
-    reintentar.hidden = true;
-    estado.textContent = t('Guardando respuestas…');
+  async function save() {
+    retryButton.hidden = true;
+    state.textContent = t("Saving responses…");
     try {
-      const datosEnvio = new FormData(formulario);
-      datosEnvio.set('accion', fase === 'diferido' ? 'diferido' : 'inmediato');
-      datosEnvio.set('respuestas', JSON.stringify(respuestas));
-      const respuesta = await fetch(formulario.action, { method: 'POST', body: datosEnvio, redirect: 'error' });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.url) {
-        window.location.replace(resultado.url);
+      const submission = new FormData(form_data);
+      submission.set('accion', phase === 'diferido' ? 'diferido' : 'inmediato');
+      submission.set('respuestas', JSON.stringify(answers));
+      const reply = await fetch(form_data.action, { method: 'POST', body: submission, redirect: 'error' });
+      const resultData = await reply.json();
+      if (reply.ok && resultData.url) {
+        window.location.replace(resultData.url);
         return;
       }
-      estado.textContent = resultado.error || t('No se pudieron guardar las respuestas.');
+      state.textContent = resultData.error || t("The responses could not be saved.");
     } catch {
-      estado.textContent = t('No se pudo confirmar el guardado. Puedes reintentar sin responder otra vez.');
+      state.textContent = t("Saving could not be confirmed. You can retry without answering again.");
     }
-    reintentar.hidden = false;
-    reintentar.focus();
+    retryButton.hidden = false;
+    retryButton.focus();
   }
 
-  comenzar.addEventListener('click', () => {
-    comenzar.hidden = true;
-    lienzo.hidden = false;
-    if (aprendizaje.length) {
+  startRound.addEventListener('click', () => {
+    startRound.hidden = true;
+    canvas.hidden = false;
+    if (learning.length) {
       requestAnimationFrame(() => {
-        aprendizajeActivo = true;
-        mostrarAprendizaje();
+        learningActive = true;
+        displayLearningPhase();
       });
     } else {
-      requestAnimationFrame(mostrarReconocimiento);
+      requestAnimationFrame(showRecognition);
     }
   });
 
-  opciones.addEventListener('click', (evento) => {
-    const opcion = evento.target.closest('button[data-vista]');
-    if (!opcion || presentado === null || document.hidden) return;
-    respuestas.push({ vista: opcion.dataset.vista === 'si', tiempo_ms: performance.now() - presentado });
-    presentado = null;
-    if (respuestas.length < reconocimiento.length) {
-      requestAnimationFrame(mostrarReconocimiento);
+  options.addEventListener('click', (event) => {
+    const option = event.target.closest('button[data-vista]');
+    if (!option || presentedAt === null || document.hidden) return;
+    answers.push({ vista: option.dataset.vista === 'si', tiempo_ms: performance.now() - presentedAt });
+    presentedAt = null;
+    if (answers.length < recognition_round.length) {
+      requestAnimationFrame(showRecognition);
     } else {
-      lienzo.hidden = true;
-      opciones.hidden = true;
-      guardar();
+      canvas.hidden = true;
+      options.hidden = true;
+      save();
     }
   });
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      if (inicioExposicion !== null) {
-        clearTimeout(temporizador);
-        tiempoExpuesto += performance.now() - inicioExposicion;
-        inicioExposicion = null;
+      if (exposureStartedAt !== null) {
+        clearTimeout(timer);
+        exposureTime += performance.now() - exposureStartedAt;
+        exposureStartedAt = null;
       }
-      if (presentado !== null) pausa = performance.now();
+      if (presentedAt !== null) pauseTime = performance.now();
     } else {
-      if (aprendizajeActivo && inicioExposicion === null) continuarExposicion();
-      if (pausa !== null && presentado !== null) presentado += performance.now() - pausa;
-      pausa = null;
+      if (learningActive && exposureStartedAt === null) resumeExposure();
+      if (pauseTime !== null && presentedAt !== null) presentedAt += performance.now() - pauseTime;
+      pauseTime = null;
     }
   });
 
-  reintentar.addEventListener('click', guardar);
-  comenzar.disabled = false;
+  retryButton.addEventListener('click', save);
+  startRound.disabled = false;
 })();

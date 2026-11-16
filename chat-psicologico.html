@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t('Emergencia por voz') if emergencia else t('Chat de apoyo') }} · MediSpace</title>
+  <title>{{ t("Emergency voice chat") if emergency else t("Support chat") }} · MediSpace</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
@@ -11,9 +11,9 @@
   <script src="{{ url_for('idioma_script') }}" defer></script>
   <script src="{{ url_for('audio_ia_script') }}" defer></script>
   <script src="{{ url_for('chat_ui_script') }}" defer></script>
-  <script src="{{ url_for('voz_emergencia_script' if emergencia else 'voz_chat_script') }}" defer></script>
+  <script src="{{ url_for('voz_emergencia_script' if emergency else 'voz_chat_script') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame">
@@ -21,65 +21,65 @@
       <header class="top-header">
         <div class="marca-encabezado">
           {% include '_marca.html' %}
-          <div class="marca-texto">{{ expediente.astronauta.nombre }}</div>
+          <div class="marca-texto">{{ medical_record.astronauta.nombre }}</div>
         </div>
-        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
 
         {% include '_selector_idioma.html' %}
       </header>
       {% from '_chat_mensajes.html' import historial_chat %}
-      <h1>{{ t('Emergencia por voz con IA') if emergencia else t('Atención psicológica') }}</h1>
-      {% if not emergencia %}{% include '_navegacion_psicologica.html' %}{% endif %}
-      <section class="info-card chat-ia{{ ' chat-emergencia' if emergencia else '' }}" aria-labelledby="chat-title"{% if emergencia %} data-emergencia{% else %} data-chat-voz="psicologico"{% endif %}>
-        <h2 id="chat-title">{{ t('Modo manos libres') if emergencia else t('Chat de apoyo con IA') }}</h2>
-        {% if emergencia %}
-        <p class="chat-aviso-emergencia">{{ t('Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación. Este chat no envía avisos al equipo.') }}</p>
-        <p>{{ t('Describe qué pasó, dónde ocurrió y quién necesita ayuda.') }}</p>
+      <h1>{{ t("Emergency AI voice chat") if emergency else t("Psychological support") }}</h1>
+      {% if not emergency %}{% include '_navegacion_psicologica.html' %}{% endif %}
+      <section class="info-card chat-ia{{ ' chat-emergencia' if emergency else '' }}" aria-labelledby="chat-title"{% if emergency %} data-emergencia{% else %} data-chat-voz="psicologico"{% endif %}>
+        <h2 id="chat-title">{{ t("Hands-free mode") if emergency else t("AI support chat") }}</h2>
+        {% if emergency %}
+        <p class="chat-aviso-emergencia">{{ t("If you or someone else is in immediate danger, contact your mission emergency team or local emergency services. This chat does not alert the team.") }}</p>
+        <p>{{ t("Describe what happened, where it happened, and who needs help.") }}</p>
         {% else %}
-        <p>{{ t('Habla sobre lo que te preocupa o cómo estás viviendo tu turno. Para atención profesional, acude al equipo de salud.') }}</p>
-        <p>{{ t('Si tú u otra persona están en peligro inmediato, contacta al equipo de emergencia de la misión o a los servicios de emergencia de tu ubicación.') }}</p>
+        <p>{{ t("Talk about what is worrying you or how your shift is going. For professional care, contact your health team.") }}</p>
+        <p>{{ t("If you or someone else is in immediate danger, contact your mission emergency team or local emergency services.") }}</p>
         {% endif %}
         {% for aviso in get_flashed_messages() %}<p role="status">{{ t(aviso) }}</p>{% endfor %}
         {% if error %}<p class="diario-error" role="alert">{{ t(error) }}</p>{% endif %}
-        {% if mensajes and not emergencia %}
+        {% if turns and not emergency %}
         <details class="chat-limpiar">
-          <summary>{{ t('Borrar conversación') }}</summary>
+          <summary>{{ t("Clear conversation") }}</summary>
           <form method="post" action="{{ url_for('chat_psicologico') }}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <input type="hidden" name="revision" value="{{ revision }}">
-            <p>{{ t('El chat quedará vacío. La conversación anterior seguirá guardada en la base de datos.') }}</p>
-            <button class="step-pill" type="submit" name="accion" value="limpiar">{{ t('Borrar conversación') }}</button>
+            <p>{{ t("This will clear the chat. The previous conversation will stay saved in the database.") }}</p>
+            <button class="step-pill" type="submit" name="accion" value="limpiar">{{ t("Clear conversation") }}</button>
           </form>
         </details>
         {% endif %}
-        {% if ia_disponible %}
-        <form class="chat-formulario" method="post" action="{{ url_for('chat_psicologico', modo='emergencia' if emergencia else none) }}">
+        {% if ai_available %}
+        <form class="chat-formulario" method="post" action="{{ url_for('chat_psicologico', modo='emergencia' if emergency else none) }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="revision" value="{{ revision }}">
-          {% if emergencia %}
+          {% if emergency %}
           <div class="voz-chat" data-voz-emergencia>
-            <p id="aviso-emergencia">{{ t('Cada pausa envía lo que dijiste. El micrófono se reanuda al terminar la respuesta de la IA. El navegador puede usar su servicio de transcripción.') }}</p>
+            <p id="aviso-emergencia">{{ t("Each pause sends what you said. The microphone resumes after the AI reply. Your browser may use its transcription service.") }}</p>
             <div class="voz-chat-controles">
-              <button type="button" data-emergencia-mic aria-pressed="false" aria-describedby="aviso-emergencia" hidden>{{ t('Activar micrófono') }}</button>
-              <button type="button" data-voz-escuchar hidden>{{ t('Escuchar última respuesta') }}</button>
+              <button type="button" data-emergencia-mic aria-pressed="false" aria-describedby="aviso-emergencia" hidden>{{ t("Turn on microphone") }}</button>
+              <button type="button" data-voz-escuchar hidden>{{ t("Play latest reply") }}</button>
             </div>
             {% include '_voz_elevenlabs.html' %}
-            <p data-voz-estado role="status">{{ t('También puedes escribir tu mensaje.') }}</p>
+            <p data-voz-estado role="status">{{ t("You can also type a message.") }}</p>
           </div>
           {% endif %}
-          {{ historial_chat(mensajes) }}
-          {% if not emergencia %}{% include '_voz_chat.html' %}{% endif %}
+          {{ historial_chat(turns) }}
+          {% if not emergency %}{% include '_voz_chat.html' %}{% endif %}
           <div class="chat-compositor">
-            <label class="campo-diario">{{ t('Tu mensaje') }}
-              <textarea name="mensaje" maxlength="2000" rows="2" required data-voz-mensaje>{{ texto }}</textarea>
+            <label class="campo-diario">{{ t("Your message") }}
+              <textarea name="mensaje" maxlength="2000" rows="2" required data-voz-mensaje>{{ message_text }}</textarea>
             </label>
-            <button class="chat-enviar" type="submit">{{ t('Enviar') }}</button>
+            <button class="chat-enviar" type="submit">{{ t("Send") }}</button>
           </div>
-          <p>{{ t('El proveedor de IA recibe tu mensaje y los turnos recientes. MediSpace guarda la conversación') }} {{ t('en tu cuenta') }}.</p>
+          <p>{{ t("The AI provider receives your message and recent turns. MediSpace saves the conversation") }} {{ t("in your account") }}.</p>
         </form>
         {% else %}
-        {{ historial_chat(mensajes) }}
-        <p role="status">{{ t('El chat estará disponible cuando se configure la IA en el servidor.') }}</p>
+        {{ historial_chat(turns) }}
+        <p role="status">{{ t("The chat will be available once AI is configured on the server.") }}</p>
         {% endif %}
       </section>
     </div>

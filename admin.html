@@ -1,53 +1,59 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t('Administración') }} · MediSpace</title>
+  <title>{{ t("Administration") }} · MediSpace</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='perfil.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
-  {% macro datos(valor, profundidad=0) %}
-    {% if valor is mapping and valor and profundidad < 10 %}
+  {% macro data(value, profundidad=0) %}
+    {% if value is mapping and value and profundidad < 10 %}
     <dl class="admin-datos">
-      {% for campo, contenido in valor.items() %}
-        {% if campo|lower not in ('es_admin', 'password_hash', 'clave_edicion_hash', 'password', 'contraseña', 'contrasena', 'llave_edicion', 'confirmar_llave') %}
+      {% for field_name, content_blob in value.items() %}
+        {% if field_name|lower not in ('es_admin', 'password_hash', 'clave_edicion_hash', 'password', 'contraseña', 'contrasena', 'llave_edicion', 'confirmar_llave') %}
         <div>
-          <dt>{{ t(campo) | replace('_', ' ') }}</dt>
-          <dd>{{ datos(contenido, profundidad + 1) }}</dd>
+          <dt>{{ t(field_name) | replace('_', ' ') }}</dt>
+          <dd>
+            {% if content_blob is string and field_name in ('rol', 'tipo', 'fase', 'posicion', 'contexto_fc', 'emocion', 'intensidad', 'protocolo') %}
+            {{ t(content_blob) }}
+            {% else %}
+            {{ data(content_blob, profundidad + 1) }}
+            {% endif %}
+          </dd>
         </div>
         {% endif %}
       {% endfor %}
     </dl>
-    {% elif valor is sequence and valor is not string and valor and profundidad < 10 %}
+    {% elif value is sequence and value is not string and value and profundidad < 10 %}
     <ol class="admin-valores">
-      {% for elemento in valor %}<li>{{ datos(elemento, profundidad + 1) }}</li>{% endfor %}
+      {% for elemento in value %}<li>{{ data(elemento, profundidad + 1) }}</li>{% endfor %}
     </ol>
-    {% elif valor is boolean %}
-    {{ t('Sí') if valor else t('No') }}
-    {% elif (valor is string and valor) or valor is number %}
-    <span class="admin-valor">{{ valor }}</span>
+    {% elif value is boolean %}
+    {{ t("Yes") if value else t('No') }}
+    {% elif (value is string and value) or value is number %}
+    <span class="admin-valor">{{ value }}</span>
     {% else %}
     <span class="admin-secundario">—</span>
     {% endif %}
   {% endmacro %}
 
-  {% macro expedientes_guardados(registros) %}
-    {% for registro in registros %}
+  {% macro expedientes_guardados(entries) %}
+    {% for entry in entries %}
     <details class="admin-registro">
       <summary>
-        {{ t('Registro {numero}', numero=loop.index) }}
-        {% if registro is mapping and registro.fecha_hora %}
-        <span>{{ registro.fecha_hora }}</span>
+        {{ t("Entry {numero}", numero=loop.index) }}
+        {% if entry is mapping and entry.fecha_hora %}
+        <span>{{ entry.fecha_hora }}</span>
         {% endif %}
-        {% if registro is mapping and registro.resultado and registro.resultado is string %}
-        <span>{{ etiquetas_resultado.get(registro.resultado, registro.resultado) }}</span>
+        {% if entry is mapping and entry.resultado and entry.resultado is string %}
+        <span>{{ etiquetas_resultado.get(entry.resultado, entry.resultado) }}</span>
         {% endif %}
       </summary>
-      {{ datos(registro) }}
+      {{ data(entry) }}
     </details>
     {% endfor %}
   {% endmacro %}
@@ -56,94 +62,94 @@
     <div class="main-area admin-contenido">
       <header class="top-header">
         <div class="marca-encabezado">{% include '_marca.html' %}</div>
-        <a class="admin-enlace" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="admin-enlace" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
         {% include '_selector_idioma.html' %}
       </header>
-      {% for mensaje in get_flashed_messages() %}<p class="admin-panel" role="status">{{ t(mensaje) }}</p>{% endfor %}
+      {% for message in get_flashed_messages() %}<p class="admin-panel" role="status">{{ t(message) }}</p>{% endfor %}
 
-      {% if cuenta is defined %}
-      <a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t('Volver a las cuentas') }}</a>
+      {% if account is defined %}
+      <a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t("Back to accounts") }}</a>
       <div class="admin-titulo">
-        <h1>{{ cuenta.name }}</h1>
-        <p>{{ t('ID del astronauta') }} · {{ cuenta.astronauta_id or '—' }}
-          {% if cuenta.es_admin %}<span class="admin-rol">{{ t('Administrador') }}</span>{% endif %}
+        <h1>{{ account.name }}</h1>
+        <p>{{ t("Astronaut ID") }} · {{ account.astronauta_id or '—' }}
+          {% if account.es_admin %}<span class="admin-rol">{{ t("Administrator") }}</span>{% endif %}
         </p>
-        {% if cuenta.email and not cuenta.email.startswith('astronauta:') %}<p>{{ cuenta.email }}</p>{% endif %}
+        {% if account.email and not account.email.startswith('astronauta:') %}<p>{{ account.email }}</p>{% endif %}
       </div>
-      <nav class="admin-secciones" aria-label="{{ t('Secciones de la cuenta') }}">
-        {% for clave, nombre in secciones.items() %}
-        <a href="{{ url_for('admin_cuenta', user_id=cuenta.id, seccion=clave) }}"
-           {% if clave == seccion %}aria-current="page"{% endif %}>{{ t(nombre) }}</a>
+      <nav class="admin-secciones" aria-label="{{ t("Account sections") }}">
+        {% for lookup_key, full_name in sections.items() %}
+        <a href="{{ url_for('admin_cuenta', user_id=account.id, seccion=lookup_key) }}"
+           {% if lookup_key == section %}aria-current="page"{% endif %}>{{ t(full_name) }}</a>
         {% endfor %}
       </nav>
-      {% for nombre, registros in grupos %}
+      {% for full_name, entries in groups %}
       <section class="admin-panel" aria-labelledby="grupo-{{ loop.index }}">
-        <h2 id="grupo-{{ loop.index }}">{{ t(nombre) }}
-          {% if registros is sequence and registros is not string and registros is not mapping %}
-          <span class="admin-cantidad">{{ registros | length }}</span>
+        <h2 id="grupo-{{ loop.index }}">{{ t(full_name) }}
+          {% if entries is sequence and entries is not string and entries is not mapping %}
+          <span class="admin-cantidad">{{ entries | length }}</span>
           {% endif %}
         </h2>
-        {% if not registros %}
-        <p class="admin-secundario">{{ t('Sin registros guardados.') }}</p>
-        {% elif seccion == 'chats' %}
+        {% if not entries %}
+        <p class="admin-secundario">{{ t("No saved records.") }}</p>
+        {% elif section == 'chats' %}
         <ol class="admin-turnos">
-          {% for mensaje in registros %}
+          {% for message in entries %}
           <li>
-            <strong>{{ t('IA') if mensaje.role == 'ai' else t('Astronauta') }}</strong>
-            <p>{{ mensaje.text | respuesta_ia if mensaje.role == 'ai' else mensaje.text }}</p>
+            <strong>{{ t("AI") if message.role == 'ai' else t('Astronauta') }}</strong>
+            <p>{{ message.text | ai_reply if message.role == 'ai' else message.text }}</p>
           </li>
           {% endfor %}
         </ol>
-        {% elif registros is mapping %}
-        {{ datos(registros) }}
+        {% elif entries is mapping %}
+        {{ data(entries) }}
         {% else %}
-        {{ expedientes_guardados(registros) }}
+        {{ expedientes_guardados(entries) }}
         {% endif %}
       </section>
       {% else %}
-      <p class="admin-panel admin-secundario">{{ t('Sin registros guardados.') }}</p>
+      <p class="admin-panel admin-secundario">{{ t("No saved records.") }}</p>
       {% endfor %}
-      {% if puede_eliminar %}
+      {% if can_delete %}
       <details class="admin-panel admin-eliminacion">
-        <summary>{{ t('Eliminar cuenta') }}</summary>
-        <p>{{ t('Se eliminarán de MediSpace la cuenta de {nombre}, su expediente, sus resultados y sus conversaciones. Esta acción es irreversible.', nombre=cuenta.name) }}</p>
-        <form method="post" action="{{ url_for('admin_eliminar_cuenta', user_id=cuenta.id) }}">
+        <summary>{{ t("Delete account") }}</summary>
+        <p>{{ t("MediSpace will delete {nombre}'s account, medical record, results, and conversations. This action is irreversible.", nombre=account.name) }}</p>
+        <form method="post" action="{{ url_for('admin_eliminar_cuenta', user_id=account.id) }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button type="submit" name="confirmar" value="1">{{ t('Eliminar cuenta definitivamente') }}</button>
+          <button type="submit" name="confirmar" value="1">{{ t("Permanently delete account") }}</button>
         </form>
       </details>
       {% endif %}
       {% else %}
       <div class="admin-titulo">
-        <h1>{{ t('Administración') }}</h1>
-        <p>{{ t('Cuentas registradas') }}</p>
+        <h1>{{ t("Administration") }}</h1>
+        <p>{{ t("Registered accounts") }}</p>
       </div>
       <form class="admin-filtro" method="get" action="{{ url_for('admin_cuentas') }}">
-        <label for="astronauta-id">{{ t('Buscar por ID del astronauta') }}</label>
-        <input id="astronauta-id" name="astronauta_id" type="search" value="{{ identificador }}" autocomplete="off">
-        <button type="submit">{{ t('Buscar') }}</button>
-        {% if identificador %}<a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t('Ver todas') }}</a>{% endif %}
+        <label for="astronauta-id">{{ t("Search by astronaut ID") }}</label>
+        <input id="astronauta-id" name="astronauta_id" type="search" value="{{ identifier }}" autocomplete="off">
+        <button type="submit">{{ t("Search") }}</button>
+        {% if identifier %}<a class="admin-enlace" href="{{ url_for('admin_cuentas') }}">{{ t("View all") }}</a>{% endif %}
       </form>
       <ul class="admin-lista">
-        {% for fila in cuentas %}
+        {% for row_data in accounts %}
         <li>
-          <a class="admin-cuenta" href="{{ url_for('admin_cuenta', user_id=fila.id) }}">
-            <div><strong>{{ fila.name }}</strong><p>{{ t('ID del astronauta') }} · {{ fila.astronauta_id or '—' }}</p></div>
-            {% if fila.es_admin %}<span class="admin-rol">{{ t('Administrador') }}</span>{% endif %}
+          <a class="admin-cuenta" href="{{ url_for('admin_cuenta', user_id=row_data.id) }}">
+            <div><strong>{{ row_data.name }}</strong><p>{{ t("Astronaut ID") }} · {{ row_data.astronauta_id or '—' }}</p></div>
+            {% if row_data.es_admin %}<span class="admin-rol">{{ t("Administrator") }}</span>{% endif %}
           </a>
         </li>
         {% else %}
-        <li class="admin-panel admin-secundario">{{ t('No se encontraron cuentas.') }}</li>
+        <li class="admin-panel admin-secundario">{{ t("No accounts found.") }}</li>
         {% endfor %}
       </ul>
-      {% if pagina > 1 or siguiente %}
-      <nav class="admin-secciones" aria-label="{{ t('Páginas de cuentas') }}">
-        {% if pagina > 1 %}
-        <a href="{{ url_for('admin_cuentas', pagina=pagina - 1, astronauta_id=identificador or none) }}">{{ t('Anterior') }}</a>
+      {% if page_number > 1 or has_next %}
+      <nav class="admin-secciones" aria-label="{{ t("Account pages") }}">
+        {% if page_number > 1 %}
+        <a href="{{ url_for('admin_cuentas', pagina=page_number - 1, astronauta_id=identifier or none) }}">{{ t("Previous") }}</a>
         {% endif %}
-        <span>{{ t('Página {numero}', numero=pagina) }}</span>
-        {% if siguiente %}
-        <a href="{{ url_for('admin_cuentas', pagina=pagina + 1, astronauta_id=identificador or none) }}">{{ t('Siguiente') }}</a>
+        <span>{{ t("Page {numero}", numero=page_number) }}</span>
+        {% if has_next %}
+        <a href="{{ url_for('admin_cuentas', pagina=page_number + 1, astronauta_id=identifier or none) }}">{{ t("Next") }}</a>
         {% endif %}
       </nav>
       {% endif %}

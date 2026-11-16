@@ -1,19 +1,19 @@
 {% if latest.evaluacion_ia %}
-{% set evaluacion = latest.evaluacion_ia %}
+{% set assessment = latest.evaluacion_ia %}
 <div class="info-card">
   <h3>{{ t('Evaluación de IA') }}</h3>
-  <p>{{ t('El equipo médico debe revisar estas sugerencias de seguimiento.') }}</p>
-  <p>{{ evaluacion.resumen | respuesta_ia }}</p>
+  <p>{{ t("The medical team should review these follow-up suggestions.") }}</p>
+  <p>{{ assessment.resumen | ai_reply }}</p>
   <ul>
-    {% for motivo in evaluacion.motivos %}
-    <li>{{ motivo | respuesta_ia }}</li>
+    {% for reason in assessment.motivos %}
+    <li>{{ reason | ai_reply }}</li>
     {% endfor %}
   </ul>
-  {% if evaluacion.acciones %}
-  <h3>{{ t('Recomendaciones y acciones de seguimiento') }}</h3>
+  {% if assessment.acciones %}
+  <h3>{{ t("Follow-up recommendations and actions") }}</h3>
   <ol class="acciones-alerta">
-    {% for paso in evaluacion.acciones %}
-    <li><strong>{{ paso.recomendacion | respuesta_ia }}</strong><br>{{ paso.accion | respuesta_ia }}</li>
+    {% for paso in assessment.acciones %}
+    <li><strong>{{ paso.recomendacion | ai_reply }}</strong><br>{{ paso.accion | ai_reply }}</li>
     {% endfor %}
   </ol>
   {% endif %}

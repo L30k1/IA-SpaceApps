@@ -1,29 +1,29 @@
 <!DOCTYPE html>
-<html lang="{{ idioma }}">
+<html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t('Historial de pruebas cognitivas · MediSpace') }}</title>
+  <title>{{ t("Cognitive test history · MediSpace") }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='resumen.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='diario.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='interfaz.css') }}">
-  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', nombre='medispace-emblema.jpeg') }}">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('imagen_marca', full_name='medispace-emblema.jpeg') }}">
 </head>
 <body>
   <main class="app-frame">
     <div class="main-area diario">
       <header class="top-header">
         <div class="marca-encabezado">{% include '_marca.html' %}</div>
-        <a class="step-pill" href="{{ url_for('profile') }}">{{ t('Volver al perfil') }}</a>
+        <a class="step-pill" href="{{ url_for('profile') }}">{{ t("Back to profile") }}</a>
 
         {% include '_selector_idioma.html' %}
       </header>
-      <h1>{{ t('Historial de pruebas cognitivas') }}</h1>
+      <h1>{{ t("Cognitive test history") }}</h1>
       {% include '_navegacion_cognitiva.html' %}
-      {% import '_grafica_estadistica.html' as graficas %}
+      {% import '_grafica_estadistica.html' as charts %}
       <div class="estadisticas-monitoreo">
-        {% for prueba in historial %}
+        {% for prueba in record_history %}
         <section class="estadisticas-monitoreo" aria-labelledby="historial-{{ prueba.destino }}">
           <h2 id="historial-{{ prueba.destino }}">{{ t(prueba.nombre) }}</h2>
           {% if prueba.registros %}
@@ -31,21 +31,21 @@
             {% for serie in prueba.series %}
             <div class="info-card">
               <h3>{{ t(serie.etiqueta) }}</h3>
-              {{ graficas.cifras(serie, t('Rondas')) }}
-              {{ graficas.grafica(serie, serie.etiqueta) }}
+              {{ charts.cifras(serie, t("Rounds")) }}
+              {{ charts.grafica(serie, serie.etiqueta) }}
             </div>
             {% endfor %}
           </div>
           <details class="info-card">
-            <summary>{{ t('Ver rondas guardadas (') }}{{ prueba.registros | length }})</summary>
+            <summary>{{ t("View saved rounds (") }}{{ prueba.registros | length }})</summary>
             <ul>
-              {% for registro in prueba.registros %}
-              <li><a class="diario-link" href="{{ url_for(prueba.destino, registro=registro.id, _anchor=prueba.ancla) }}">{{ registro.fecha_hora | hora_utc }}</a></li>
+              {% for entry in prueba.registros %}
+              <li><a class="diario-link" href="{{ url_for(prueba.destino, registro=entry.id, _anchor=prueba.ancla) }}">{{ entry.fecha_hora | utc_time }}</a></li>
               {% endfor %}
             </ul>
           </details>
           {% else %}
-          <div class="info-card"><p>{{ t('Sin rondas guardadas.') }} <a class="diario-link" href="{{ url_for(prueba.destino) }}">{{ t('Abrir prueba') }}</a></p></div>
+          <div class="info-card"><p>{{ t("No rounds saved.") }} <a class="diario-link" href="{{ url_for(prueba.destino) }}">{{ t("Open test") }}</a></p></div>
           {% endif %}
         </section>
         {% endfor %}

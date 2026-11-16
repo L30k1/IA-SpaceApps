@@ -1,128 +1,128 @@
 (() => {
   const { t } = window.mediSpaceLanguage;
-  const datos = JSON.parse(document.querySelector('#lot-datos').textContent);
-  const formulario = document.querySelector('#lot-form');
-  const iniciar = document.querySelector('#lot-iniciar');
-  const diagrama = document.querySelector('#lot-diagrama');
-  const estado = document.querySelector('#lot-estado');
-  const controles = document.querySelector('#lot-controles');
-  const opciones = document.querySelectorAll('#lot-opciones button');
-  const confirmar = document.querySelector('#lot-confirmar');
-  const reintentar = document.querySelector('#lot-reintentar');
-  const contexto = diagrama.getContext('2d');
-  if (!contexto) {
-    estado.hidden = false;
-    estado.textContent = t('Este navegador no puede dibujar las líneas de la prueba.');
+  const data = JSON.parse(document.querySelector('#lot-datos').textContent);
+  const form_data = document.querySelector('#lot-form');
+  const startTest = document.querySelector('#lot-iniciar');
+  const diagram = document.querySelector('#lot-diagrama');
+  const state = document.querySelector('#lot-estado');
+  const controls = document.querySelector('#lot-controles');
+  const options = document.querySelectorAll('#lot-opciones button');
+  const confirmAction = document.querySelector('#lot-confirmar');
+  const retryButton = document.querySelector('#lot-reintentar');
+  const context = diagram.getContext('2d');
+  if (!context) {
+    state.hidden = false;
+    state.textContent = t("This browser cannot display the test lines.");
     return;
   }
 
-  const respuestas = [];
-  const seleccionadas = new Set();
-  let inicioPar = null;
+  const answers = [];
+  const selections = new Set();
+  let trialStartedAt = null;
 
-  function punto(x, y, angulo, distancia) {
-    const radianes = angulo * Math.PI / 180;
-    return [x + Math.cos(radianes) * distancia, y - Math.sin(radianes) * distancia];
+  function point(x, y, angle, distance) {
+    const radians = angle * Math.PI / 180;
+    return [x + Math.cos(radians) * distance, y - Math.sin(radians) * distance];
   }
 
-  function linea(origen, destino, color, ancho) {
-    contexto.beginPath();
-    contexto.moveTo(...origen);
-    contexto.lineTo(...destino);
-    contexto.strokeStyle = color;
-    contexto.lineWidth = ancho;
-    contexto.stroke();
+  function line(origin, destination, color, width) {
+    context.beginPath();
+    context.moveTo(...origin);
+    context.lineTo(...destination);
+    context.strokeStyle = color;
+    context.lineWidth = width;
+    context.stroke();
   }
 
-  function dibujar() {
-    contexto.clearRect(0, 0, diagrama.width, diagrama.height);
-    const par = datos.rondas[respuestas.length];
-    par.forEach((angulo, indice) => {
-      const x = 145 + indice * 190;
-      linea(punto(x, 64, angulo, -38), punto(x, 64, angulo, 38), '#e0f2fe', 4);
+  function draw() {
+    context.clearRect(0, 0, diagram.width, diagram.height);
+    const pair = data.rondas[answers.length];
+    pair.forEach((angle, index_score) => {
+      const x = 145 + index_score * 190;
+      line(point(x, 64, angle, -38), point(x, 64, angle, 38), '#e0f2fe', 4);
     });
-    contexto.font = '600 19px Inter, sans-serif';
-    contexto.textAlign = 'center';
-    contexto.textBaseline = 'middle';
-    datos.angulos.forEach((angulo, indice) => {
-      const numero = indice + 1;
-      const seleccionada = seleccionadas.has(numero);
-      const color = seleccionada ? '#fbbf24' : '#7dd3fc';
-      linea([240, 282], punto(240, 282, angulo, 140), color, seleccionada ? 4 : 2);
-      contexto.fillStyle = seleccionada ? color : '#f0f6ff';
-      contexto.fillText(numero, ...punto(240, 282, angulo, 160));
+    context.font = '600 19px Inter, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    data.angulos.forEach((angle, index_score) => {
+      const number = index_score + 1;
+      const selected = selections.has(number);
+      const color = selected ? '#fbbf24' : '#7dd3fc';
+      line([240, 282], point(240, 282, angle, 140), color, selected ? 4 : 2);
+      context.fillStyle = selected ? color : '#f0f6ff';
+      context.fillText(number, ...point(240, 282, angle, 160));
     });
   }
 
-  function actualizarSeleccion() {
-    opciones.forEach((boton) => {
-      const elegida = seleccionadas.has(Number(boton.dataset.linea));
-      boton.setAttribute('aria-pressed', String(elegida));
-      boton.disabled = !elegida && seleccionadas.size === 2;
+  function updateSelection() {
+    options.forEach((button) => {
+      const chosenFile = selections.has(Number(button.dataset.linea));
+      button.setAttribute('aria-pressed', String(chosenFile));
+      button.disabled = !chosenFile && selections.size === 2;
     });
-    confirmar.disabled = seleccionadas.size !== 2;
+    confirmAction.disabled = selections.size !== 2;
   }
 
-  function mostrarPar() {
-    seleccionadas.clear();
-    actualizarSeleccion();
-    dibujar();
-    estado.textContent = t('Par {actual} de {total}. Selecciona dos líneas.', { actual: respuestas.length + 1, total: datos.rondas.length });
-    inicioPar = performance.now();
-    opciones[0].focus();
+  function showPair() {
+    selections.clear();
+    updateSelection();
+    draw();
+    state.textContent = t("Pair {actual} of {total}. Select two lines.", { actual: answers.length + 1, total: data.rondas.length });
+    trialStartedAt = performance.now();
+    options[0].focus();
   }
 
-  async function guardar() {
-    reintentar.hidden = true;
-    estado.textContent = t('Guardando los resultados…');
+  async function save() {
+    retryButton.hidden = true;
+    state.textContent = t("Saving results…");
     try {
-      const datosEnvio = new FormData(formulario);
-      datosEnvio.set('respuestas', JSON.stringify(respuestas));
-      const respuesta = await fetch(formulario.action, { method: 'POST', body: datosEnvio, redirect: 'error' });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.url) {
-        window.location.replace(resultado.url);
+      const submission = new FormData(form_data);
+      submission.set('respuestas', JSON.stringify(answers));
+      const reply = await fetch(form_data.action, { method: 'POST', body: submission, redirect: 'error' });
+      const resultData = await reply.json();
+      if (reply.ok && resultData.url) {
+        window.location.replace(resultData.url);
         return;
       }
-      estado.textContent = resultado.error || t('No se pudieron guardar los resultados.');
+      state.textContent = resultData.error || t("The results could not be saved.");
     } catch {
-      estado.textContent = t('No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.');
+      state.textContent = t("Saving could not be confirmed. You can retry without repeating the test.");
     }
-    reintentar.hidden = false;
-    reintentar.focus();
+    retryButton.hidden = false;
+    retryButton.focus();
   }
 
-  iniciar.addEventListener('click', () => {
-    iniciar.hidden = true;
-    estado.hidden = false;
-    diagrama.hidden = false;
-    controles.hidden = false;
-    requestAnimationFrame(mostrarPar);
+  startTest.addEventListener('click', () => {
+    startTest.hidden = true;
+    state.hidden = false;
+    diagram.hidden = false;
+    controls.hidden = false;
+    requestAnimationFrame(showPair);
   });
 
-  opciones.forEach((boton) => boton.addEventListener('click', () => {
-    if (inicioPar === null) return;
-    const numero = Number(boton.dataset.linea);
-    if (seleccionadas.has(numero)) seleccionadas.delete(numero);
-    else if (seleccionadas.size < 2) seleccionadas.add(numero);
-    actualizarSeleccion();
-    dibujar();
+  options.forEach((button) => button.addEventListener('click', () => {
+    if (trialStartedAt === null) return;
+    const number = Number(button.dataset.linea);
+    if (selections.has(number)) selections.delete(number);
+    else if (selections.size < 2) selections.add(number);
+    updateSelection();
+    draw();
   }));
 
-  confirmar.addEventListener('click', () => {
-    if (inicioPar === null || seleccionadas.size !== 2) return;
-    respuestas.push({ lineas: [...seleccionadas], tiempo_ms: performance.now() - inicioPar });
-    inicioPar = null;
-    confirmar.disabled = true;
-    if (respuestas.length < datos.rondas.length) {
-      requestAnimationFrame(mostrarPar);
+  confirmAction.addEventListener('click', () => {
+    if (trialStartedAt === null || selections.size !== 2) return;
+    answers.push({ lineas: [...selections], tiempo_ms: performance.now() - trialStartedAt });
+    trialStartedAt = null;
+    confirmAction.disabled = true;
+    if (answers.length < data.rondas.length) {
+      requestAnimationFrame(showPair);
     } else {
-      diagrama.hidden = true;
-      controles.hidden = true;
-      guardar();
+      diagram.hidden = true;
+      controls.hidden = true;
+      save();
     }
   });
 
-  reintentar.addEventListener('click', guardar);
-  iniciar.disabled = false;
+  retryButton.addEventListener('click', save);
+  startTest.disabled = false;
 })();

@@ -1,114 +1,114 @@
 const { t, locale } = window.mediSpaceLanguage;
-const inicio = document.querySelector('#praxis-inicio');
-const estado = document.querySelector('#praxis-estado');
-const tablero = document.querySelector('#praxis-tablero');
-const objetivo = document.querySelector('#praxis-objetivo');
+const start = document.querySelector('#praxis-inicio');
+const state = document.querySelector('#praxis-estado');
+const board = document.querySelector('#praxis-tablero');
+const targetSquare = document.querySelector('#praxis-objetivo');
 const resultados = document.querySelector('#praxis-resultados');
-const listaTiempos = document.querySelector('#praxis-tiempos');
-const formulario = document.querySelector('#praxis-envio');
-const reintentar = document.querySelector('#praxis-reintentar');
-const totalObjetivos = Number(formulario.dataset.objetivos);
-const ladoInicial = 76;
-const reduccion = 2;
-const tiempos = [];
-const formato = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-let rondaActiva = false;
-let aparicion = null;
-let cuadroPendiente = 0;
+const responseTimes = document.querySelector('#praxis-tiempos');
+const form_data = document.querySelector('#praxis-envio');
+const retryButton = document.querySelector('#praxis-reintentar');
+const targetCount = Number(form_data.dataset.objetivos);
+const initialSize = 76;
+const scaleFactor = 2;
+const times = [];
+const format = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+let roundActive = false;
+let shownAt = null;
+let pendingFrame = 0;
 
-function milisegundos(tiempo) {
-  return `${formato.format(tiempo)} ms`;
+function milliseconds(elapsedMs) {
+  return `${format.format(elapsedMs)} ms`;
 }
 
-function mostrarObjetivo() {
-  cuadroPendiente = requestAnimationFrame(() => {
-    cuadroPendiente = 0;
-    objetivo.style.setProperty('--lado', `${ladoInicial - tiempos.length * reduccion}px`);
-    objetivo.style.setProperty('--x', Math.random());
-    objetivo.style.setProperty('--y', Math.random());
-    objetivo.hidden = false;
-    aparicion = performance.now();
+function showTarget() {
+  pendingFrame = requestAnimationFrame(() => {
+    pendingFrame = 0;
+    targetSquare.style.setProperty('--lado', `${initialSize - times.length * scaleFactor}px`);
+    targetSquare.style.setProperty('--x', Math.random());
+    targetSquare.style.setProperty('--y', Math.random());
+    targetSquare.hidden = false;
+    shownAt = performance.now();
   });
 }
 
-function terminarRonda() {
-  cancelAnimationFrame(cuadroPendiente);
-  cuadroPendiente = 0;
-  rondaActiva = false;
-  aparicion = null;
-  tablero.hidden = true;
-  objetivo.hidden = true;
+function finishRound() {
+  cancelAnimationFrame(pendingFrame);
+  pendingFrame = 0;
+  roundActive = false;
+  shownAt = null;
+  board.hidden = true;
+  targetSquare.hidden = true;
 }
 
-function mostrarResultados() {
-  const promedio = tiempos.reduce((suma, tiempo) => suma + tiempo, 0) / totalObjetivos;
-  document.querySelector('#praxis-promedio').textContent = milisegundos(promedio);
-  document.querySelector('#praxis-mejor').textContent = milisegundos(Math.min(...tiempos));
-  listaTiempos.replaceChildren(...tiempos.map((tiempo) => {
+function showResults() {
+  const promedio = times.reduce((totalSum, elapsedMs) => totalSum + elapsedMs, 0) / targetCount;
+  document.querySelector('#praxis-promedio').textContent = milliseconds(promedio);
+  document.querySelector('#praxis-mejor').textContent = milliseconds(Math.min(...times));
+  responseTimes.replaceChildren(...times.map((elapsedMs) => {
     const item = document.createElement('li');
-    item.textContent = milisegundos(tiempo);
+    item.textContent = milliseconds(elapsedMs);
     return item;
   }));
   resultados.hidden = false;
-  terminarRonda();
-  guardarResultados();
+  finishRound();
+  saveResults();
 }
 
-async function guardarResultados() {
-  reintentar.hidden = true;
-  estado.textContent = t('Guardando los resultados…');
+async function saveResults() {
+  retryButton.hidden = true;
+  state.textContent = t("Saving results…");
   try {
-    const datos = new FormData(formulario);
-    datos.set('tiempos_ms', JSON.stringify(tiempos));
-    const respuesta = await fetch(formulario.action, { method: 'POST', body: datos, redirect: 'error' });
-    const resultado = await respuesta.json();
-    if (!respuesta.ok || !resultado.url) {
-      estado.textContent = resultado.error || t('No se pudieron guardar los resultados.');
+    const data = new FormData(form_data);
+    data.set('tiempos_ms', JSON.stringify(times));
+    const reply = await fetch(form_data.action, { method: 'POST', body: data, redirect: 'error' });
+    const resultData = await reply.json();
+    if (!reply.ok || !resultData.url) {
+      state.textContent = resultData.error || t("The results could not be saved.");
     } else {
-      window.location.replace(resultado.url);
+      window.location.replace(resultData.url);
       return;
     }
   } catch {
-    estado.textContent = t('No se pudo confirmar el guardado. Puedes reintentar sin repetir la prueba.');
+    state.textContent = t("Saving could not be confirmed. You can retry without repeating the test.");
   }
-  reintentar.hidden = false;
-  reintentar.focus();
+  retryButton.hidden = false;
+  retryButton.focus();
 }
 
-reintentar.addEventListener('click', guardarResultados);
+retryButton.addEventListener('click', saveResults);
 
-inicio.addEventListener('click', () => {
-  tiempos.length = 0;
-  rondaActiva = true;
-  inicio.hidden = true;
+start.addEventListener('click', () => {
+  times.length = 0;
+  roundActive = true;
+  start.hidden = true;
   resultados.hidden = true;
-  tablero.hidden = false;
-  estado.hidden = false;
-  estado.textContent = t('Objetivos completados: {actual} de {total}', { actual: 0, total: totalObjetivos });
-  mostrarObjetivo();
+  board.hidden = false;
+  state.hidden = false;
+  state.textContent = t("Targets completed: {actual} of {total}", { actual: 0, total: targetCount });
+  showTarget();
 });
 
-objetivo.addEventListener('click', (evento) => {
-  if (aparicion === null || evento.detail === 0) return;
-  tiempos.push(performance.now() - aparicion);
-  aparicion = null;
-  objetivo.hidden = true;
-  if (tiempos.length === totalObjetivos) {
-    mostrarResultados();
+targetSquare.addEventListener('click', (event) => {
+  if (shownAt === null || event.detail === 0) return;
+  times.push(performance.now() - shownAt);
+  shownAt = null;
+  targetSquare.hidden = true;
+  if (times.length === targetCount) {
+    showResults();
     return;
   }
-  estado.textContent = t('Objetivos completados: {actual} de {total}', { actual: tiempos.length, total: totalObjetivos });
-  mostrarObjetivo();
+  state.textContent = t("Targets completed: {actual} of {total}", { actual: times.length, total: targetCount });
+  showTarget();
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && rondaActiva) {
-    terminarRonda();
-    estado.textContent = t('La prueba se interrumpió al salir de la pestaña. Inicia otra ronda para medir tus tiempos.');
-    inicio.textContent = t('Repetir prueba');
-    inicio.hidden = false;
-    inicio.focus();
+  if (document.hidden && roundActive) {
+    finishRound();
+    state.textContent = t("The test stopped when you left the tab. Start a new round to measure your times.");
+    start.textContent = t("Repeat test");
+    start.hidden = false;
+    start.focus();
   }
 });
 
-inicio.disabled = false;
+start.disabled = false;

@@ -2,49 +2,49 @@ from random import Random
 from statistics import median
 
 
-CAMPO_F2B = "fractal_2_back"
-VERSION_F2B = "medispace-f2b-1"
-ESTIMULOS_F2B = 62
-COINCIDENCIAS_F2B = 15
-EXPOSICION_F2B_MS = 1750
-FIGURAS_F2B = tuple(range(12))
+F2B_FIELD = "fractal_2_back"
+F2B_VERSION = "medispace-f2b-1"
+F2B_STIMULUS_COUNT = 62
+F2B_MATCHES = 15
+F2B_EXPOSURE_MS = 1750
+F2B_SHAPE_COUNT = tuple(range(12))
 
 
-def secuencia_f2b(identificador):
-    rng = Random(identificador)
-    objetivos = set(rng.sample(range(2, ESTIMULOS_F2B), COINCIDENCIAS_F2B))
-    secuencia = rng.sample(FIGURAS_F2B, 2)
-    for indice in range(2, ESTIMULOS_F2B):
-        anterior = secuencia[indice - 2]
-        secuencia.append(anterior if indice in objetivos else rng.choice([f for f in FIGURAS_F2B if f != anterior]))
-    return secuencia
+def f2b_sequence(identifier):
+    rng = Random(identifier)
+    targets_count = set(rng.sample(range(2, F2B_STIMULUS_COUNT), F2B_MATCHES))
+    sequence = rng.sample(F2B_SHAPE_COUNT, 2)
+    for index_score in range(2, F2B_STIMULUS_COUNT):
+        previous = sequence[index_score - 2]
+        sequence.append(previous if index_score in targets_count else rng.choice([f for f in F2B_SHAPE_COUNT if f != previous]))
+    return sequence
 
 
-def puntuar_f2b(identificador, respuestas):
-    if not isinstance(respuestas, list) or len(respuestas) != ESTIMULOS_F2B:
-        raise ValueError("La ronda de Fractal 2-Back está incompleta.")
-    secuencia = secuencia_f2b(identificador)
-    tiempos_aciertos = []
-    falsas_alarmas = 0
-    tiempos = []
-    for indice, tiempo in enumerate(respuestas):
-        if tiempo is None:
-            tiempos.append(None)
+def score_f2b(identifier, answers):
+    if not isinstance(answers, list) or len(answers) != F2B_STIMULUS_COUNT:
+        raise ValueError("The Fractal 2-Back round is incomplete.")
+    sequence = f2b_sequence(identifier)
+    correct_times = []
+    false_alarms = 0
+    response_times = []
+    for index_score, duration_ms in enumerate(answers):
+        if duration_ms is None:
+            response_times.append(None)
             continue
-        if type(tiempo) not in (int, float) or not 0 <= tiempo < EXPOSICION_F2B_MS:
-            raise ValueError("Un tiempo de respuesta de Fractal 2-Back está fuera del intervalo permitido.")
-        tiempo = min(round(tiempo, 3), EXPOSICION_F2B_MS - 0.001)
-        tiempos.append(tiempo)
-        if indice >= 2 and secuencia[indice] == secuencia[indice - 2]:
-            tiempos_aciertos.append(tiempo)
+        if type(duration_ms) not in (int, float) or not 0 <= duration_ms < F2B_EXPOSURE_MS:
+            raise ValueError("A Fractal 2-Back response time is outside the allowed window.")
+        duration_ms = min(round(duration_ms, 3), F2B_EXPOSURE_MS - 0.001)
+        response_times.append(duration_ms)
+        if index_score >= 2 and sequence[index_score] == sequence[index_score - 2]:
+            correct_times.append(duration_ms)
         else:
-            falsas_alarmas += 1
-    aciertos = len(tiempos_aciertos)
+            false_alarms += 1
+    correct_count = len(correct_times)
     return {
-        "aciertos": aciertos,
-        "omisiones": COINCIDENCIAS_F2B - aciertos,
-        "falsas_alarmas": falsas_alarmas,
-        "rechazos_correctos": ESTIMULOS_F2B - COINCIDENCIAS_F2B - falsas_alarmas,
-        "mediana_aciertos_ms": round(median(tiempos_aciertos), 3) if aciertos else None,
-        "respuestas_ms": tiempos,
+        "aciertos": correct_count,
+        "omisiones": F2B_MATCHES - correct_count,
+        "falsas_alarmas": false_alarms,
+        "rechazos_correctos": F2B_STIMULUS_COUNT - F2B_MATCHES - false_alarms,
+        "mediana_aciertos_ms": round(median(correct_times), 3) if correct_count else None,
+        "respuestas_ms": response_times,
     }

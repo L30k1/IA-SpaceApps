@@ -71,7 +71,7 @@ body {
 .mission-meta { text-align: right; font-size: 0.82rem; color: var(--text-muted); }
 .mission-meta strong { color: var(--text-main); }
 
-/* Navegación superior de pasos (7 -> 8 -> 9) */
+/* Step navigation (7 -> 8 -> 9) */
 .step-pills {
   display: flex;
   flex-wrap: wrap;
@@ -97,7 +97,7 @@ body {
 .view { display: none; flex: 1; flex-direction: column; justify-content: space-between; }
 .view.active { display: flex; }
 
-/* BANNERS DE ESTADO (PANTALLAS 7 Y 8) */
+/* STATUS BANNERS (SCREENS 7 AND 8) */
 .status-banner {
   display: flex;
   align-items: center;

@@ -1,25 +1,25 @@
 (() => {
   const { t } = window.mediSpaceLanguage;
 
-  function desplazar(conversacion) {
-    if (conversacion) conversacion.scrollTop = conversacion.scrollHeight;
+  function scrollToLatest(conversation) {
+    if (conversation) conversation.scrollTop = conversation.scrollHeight;
   }
 
-  function agregar(conversacion, turno, pendiente = false) {
+  function appendMessage(conversation, turn, pending = false) {
     const item = document.createElement('li');
-    const autor = document.createElement('strong');
-    const texto = document.createElement('p');
-    const esUsuario = turno.role === 'user';
-    item.className = esUsuario ? 'chat-turno chat-turno-usuario' : 'chat-turno';
-    if (pendiente) item.classList.add('chat-turno-pendiente');
-    autor.textContent = esUsuario ? t('Tú') : t('IA');
-    texto.textContent = turno.text;
-    if (!esUsuario) texto.setAttribute('data-voz-respuesta', '');
-    item.append(autor, texto);
-    conversacion.append(item);
-    desplazar(conversacion);
+    const speaker = document.createElement('strong');
+    const message_text = document.createElement('p');
+    const isUser = turn.role === 'user';
+    item.className = isUser ? 'chat-turno chat-turno-usuario' : 'chat-turno';
+    if (pending) item.classList.add('chat-turno-pendiente');
+    speaker.textContent = isUser ? t("You") : t("AI");
+    message_text.textContent = turn.text;
+    if (!isUser) message_text.setAttribute('data-voz-respuesta', '');
+    item.append(speaker, message_text);
+    conversation.append(item);
+    scrollToLatest(conversation);
     return item;
   }
 
-  window.interfazChat = { agregar, desplazar };
+  window.mediSpaceChat = { appendMessage, scrollToLatest };
 })();

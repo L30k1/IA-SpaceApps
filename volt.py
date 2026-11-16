@@ -4,100 +4,100 @@ from statistics import mean
 from uuid import uuid4
 
 
-CAMPO_VOLT = "memoria_visual"
-VERSION_VOLT = "medispace-volt-1"
-FIGURAS = 10
-EXPOSICION = 5
-ESPERA = timedelta(minutes=15)
+VOLT_FIELD = "memoria_visual"
+VOLT_VERSION = "medispace-volt-1"
+SHAPE_COUNT = 10
+EXPOSURE_SECONDS = 5
+DELAY = timedelta(minutes=15)
 
 
-def estimulos(identificador):
-    """Crea diez familias de figuras, cada una con dos distractores parecidos."""
-    rng = Random(identificador)
-    ejes = range(3)
-    originales, distractores, distractores_diferidos = [], [], []
-    usados = set()
-    while len(originales) < FIGURAS:
-        base = {(0, 0, 0)}
-        while len(base) < 7:
-            vecino = list(rng.choice(sorted(base)))
-            vecino[rng.randrange(3)] += rng.choice((-1, 1))
-            base.add(tuple(vecino))
+def make_stimuli(identifier):
+    """Create ten families of shapes, each with two similar distractors."""
+    rng = Random(identifier)
+    axes = range(3)
+    original_items, distractors, delayed_distractors = [], [], []
+    used_indices = set()
+    while len(original_items) < SHAPE_COUNT:
+        baseline = {(0, 0, 0)}
+        while len(baseline) < 7:
+            neighbor = list(rng.choice(sorted(baseline)))
+            neighbor[rng.randrange(3)] += rng.choice((-1, 1))
+            baseline.add(tuple(neighbor))
 
-        familia = []
-        for eje in ejes:
-            extremo = list(max(sorted(base), key=lambda punto: (punto[eje], sum(punto))))
-            extremo[eje] += 1
-            forma = base | {tuple(extremo)}
-            minimos = [min(punto[i] for punto in forma) for i in ejes]
-            familia.append(tuple(sorted(tuple(punto[i] - minimos[i] for i in ejes) for punto in forma)))
-        if len(set(familia)) != 3 or usados.intersection(familia):
+        family = []
+        for axis in axes:
+            boundary = list(max(sorted(baseline), key=lambda point: (point[axis], sum(point))))
+            boundary[axis] += 1
+            shape = baseline | {tuple(boundary)}
+            minimums = [min(point[i] for point in shape) for i in axes]
+            family.append(tuple(sorted(tuple(point[i] - minimums[i] for i in axes) for point in shape)))
+        if len(set(family)) != 3 or used_indices.intersection(family):
             continue
-        usados.update(familia)
-        rng.shuffle(familia)
-        originales.append(familia[0])
-        distractores.append(familia[1])
-        distractores_diferidos.append(familia[2])
+        used_indices.update(family)
+        rng.shuffle(family)
+        original_items.append(family[0])
+        distractors.append(family[1])
+        delayed_distractors.append(family[2])
 
-    def reconocimiento(nuevos):
-        ensayos = [(forma, True) for forma in originales] + [(forma, False) for forma in nuevos]
-        rng.shuffle(ensayos)
-        return ensayos
+    def recognition_round(new_items):
+        trials = [(shape, True) for shape in original_items] + [(shape, False) for shape in new_items]
+        rng.shuffle(trials)
+        return trials
 
-    return originales, reconocimiento(distractores), reconocimiento(distractores_diferidos)
+    return original_items, recognition_round(distractors), recognition_round(delayed_distractors)
 
 
-def puntuar(respuestas, ensayos):
-    if not isinstance(respuestas, list) or len(respuestas) != FIGURAS * 2:
-        raise ValueError("Completa las respuestas de las 20 figuras.")
-    registros = []
-    for respuesta, (_, esperada) in zip(respuestas, ensayos):
-        if not isinstance(respuesta, dict) or type(respuesta.get("vista")) is not bool:
-            raise ValueError("Cada figura debe tener una respuesta válida.")
-        tiempo = respuesta.get("tiempo_ms")
-        if type(tiempo) not in (int, float) or not 0 <= tiempo <= 2**53 - 1:
-            raise ValueError("Cada figura debe tener un tiempo válido en milisegundos.")
-        registros.append({"vista": respuesta["vista"], "esperada": esperada, "tiempo_ms": round(tiempo, 3)})
+def score(answers, trials):
+    if not isinstance(answers, list) or len(answers) != SHAPE_COUNT * 2:
+        raise ValueError("Answer all 20 shapes.")
+    entries = []
+    for reply, (_, expected_answer) in zip(answers, trials):
+        if not isinstance(reply, dict) or type(reply.get("vista")) is not bool:
+            raise ValueError("Each shape needs a valid answer.")
+        duration_ms = reply.get("tiempo_ms")
+        if type(duration_ms) not in (int, float) or not 0 <= duration_ms <= 2**53 - 1:
+            raise ValueError("Each shape needs a valid response time in milliseconds.")
+        entries.append({"vista": reply["vista"], "esperada": expected_answer, "tiempo_ms": round(duration_ms, 3)})
     return {
-        "correctas": sum(r["vista"] == r["esperada"] for r in registros),
-        "reconocidas": sum(r["vista"] and r["esperada"] for r in registros),
-        "falsos_positivos": sum(r["vista"] and not r["esperada"] for r in registros),
-        "promedio_ms": round(mean(r["tiempo_ms"] for r in registros), 3),
-        "respuestas": registros,
+        "correctas": sum(r["vista"] == r["esperada"] for r in entries),
+        "reconocidas": sum(r["vista"] and r["esperada"] for r in entries),
+        "falsos_positivos": sum(r["vista"] and not r["esperada"] for r in entries),
+        "promedio_ms": round(mean(r["tiempo_ms"] for r in entries), 3),
+        "respuestas": entries,
     }
 
 
-def avanzar(borrador, registros, accion, identificador, respuestas, ahora):
-    if accion == "iniciar":
-        return borrador or {"id": uuid4().hex, "fase": "aprendizaje", "inicio": ahora.isoformat()}, None, None
-    if accion == "diferido" and any(r["id"] == identificador for r in registros):
-        return borrador, None, identificador
-    if borrador is None or borrador["id"] != identificador:
-        raise ValueError("Esta prueba ya no está activa. Vuelve a la página de aprendizaje visual de objetos.")
-    fase = borrador["fase"]
-    if accion == "cancelar":
+def advance_test(active_draft, entries, action, identifier, answers, current_time):
+    if action == "iniciar":
+        return active_draft or {"id": uuid4().hex, "fase": "aprendizaje", "inicio": current_time.isoformat()}, None, None
+    if action == "diferido" and any(r["id"] == identifier for r in entries):
+        return active_draft, None, identifier
+    if active_draft is None or active_draft["id"] != identifier:
+        raise ValueError("This test is no longer active. Return to the Visual Object Learning Test page.")
+    phase = active_draft["fase"]
+    if action == "cancelar":
         return None, None, None
-    if accion == "inmediato":
-        if fase != "aprendizaje":
-            return borrador, None, None
-        if (ahora - datetime.fromisoformat(borrador["inicio"])).total_seconds() < FIGURAS * EXPOSICION:
-            raise ValueError("Completa primero la fase de aprendizaje.")
+    if action == "inmediato":
+        if phase != "aprendizaje":
+            return active_draft, None, None
+        if (current_time - datetime.fromisoformat(active_draft["inicio"])).total_seconds() < SHAPE_COUNT * EXPOSURE_SECONDS:
+            raise ValueError("Complete the learning phase first.")
         return {
-            **borrador, "fase": "espera", "inmediato": puntuar(respuestas, estimulos(identificador)[1]),
-            "fin_inmediato": ahora.isoformat(),
+            **active_draft, "fase": "espera", "inmediato": score(answers, make_stimuli(identifier)[1]),
+            "fin_inmediato": current_time.isoformat(),
         }, None, None
-    if accion == "abrir_diferido":
-        if fase == "diferido":
-            return borrador, None, None
-        if fase != "espera" or ahora < datetime.fromisoformat(borrador["fin_inmediato"]) + ESPERA:
-            raise ValueError("Aún no termina el intervalo de 15 minutos.")
-        return {**borrador, "fase": "diferido", "inicio_diferido": ahora.isoformat()}, None, None
-    if accion == "diferido" and fase == "diferido":
-        inicio = datetime.fromisoformat(borrador["inicio_diferido"])
-        fin_inmediato = datetime.fromisoformat(borrador["fin_inmediato"])
+    if action == "abrir_diferido":
+        if phase == "diferido":
+            return active_draft, None, None
+        if phase != "espera" or current_time < datetime.fromisoformat(active_draft["fin_inmediato"]) + DELAY:
+            raise ValueError("The 15-minute interval has not passed yet.")
+        return {**active_draft, "fase": "diferido", "inicio_diferido": current_time.isoformat()}, None, None
+    if action == "diferido" and phase == "diferido":
+        start = datetime.fromisoformat(active_draft["inicio_diferido"])
+        immediate_end = datetime.fromisoformat(active_draft["fin_inmediato"])
         return None, {
-            "id": identificador, "version": VERSION_VOLT, "fecha_hora": ahora.isoformat(),
-            "intervalo_segundos": (inicio - fin_inmediato).total_seconds(),
-            "inmediato": borrador["inmediato"], "diferido": puntuar(respuestas, estimulos(identificador)[2]),
-        }, identificador
-    raise ValueError("La fase solicitada no está disponible.")
+            "id": identifier, "version": VOLT_VERSION, "fecha_hora": current_time.isoformat(),
+            "intervalo_segundos": (start - immediate_end).total_seconds(),
+            "inmediato": active_draft["inmediato"], "diferido": score(answers, make_stimuli(identifier)[2]),
+        }, identifier
+    raise ValueError("The requested phase is unavailable.")

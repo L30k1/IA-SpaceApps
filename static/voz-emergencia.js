@@ -1,212 +1,212 @@
 (() => {
   const { t, locale } = window.mediSpaceLanguage;
-  const { agregar, desplazar } = window.interfazChat;
-  const seccion = document.querySelector('[data-emergencia]');
-  const panel = seccion?.querySelector('[data-voz-emergencia]');
+  const { appendMessage, scrollToLatest } = window.mediSpaceChat;
+  const section = document.querySelector('[data-emergencia]');
+  const panel = section?.querySelector('[data-voz-emergencia]');
   if (!panel) return;
 
   const form = panel.closest('form');
-  const mensaje = form.elements.mensaje;
-  const enviar = form.querySelector('[type="submit"]');
-  const conversacion = seccion.querySelector('[data-chat-mensajes]');
-  const microfono = panel.querySelector('[data-emergencia-mic]');
-  const estado = panel.querySelector('[data-voz-estado]');
-  const botonLeer = panel.querySelector('[data-voz-escuchar]');
-  const reproductor = window.crearAudioIA(panel, 'emergencia');
-  const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const reconocimiento = Reconocimiento && window.isSecureContext ? new Reconocimiento() : null;
-  const idioma = locale;
-  const errores = {
-    'not-allowed': t('Pulsa Activar micrófono y concede permiso en el navegador. También puedes escribir.'),
-    'service-not-allowed': t('El navegador no permite el dictado. Puedes escribir tu mensaje.'),
-    'audio-capture': t('No se encontró un micrófono. Puedes escribir tu mensaje.'),
-    network: t('El servicio de dictado no está disponible. Puedes escribir tu mensaje.'),
+  const message = form.elements.mensaje;
+  const submitTurn = form.querySelector('[type="submit"]');
+  const conversation = section.querySelector('[data-chat-mensajes]');
+  const microphone = panel.querySelector('[data-emergencia-mic]');
+  const state = panel.querySelector('[data-voz-estado]');
+  const playButton = panel.querySelector('[data-voz-escuchar]');
+  const player = window.createAiAudio(panel, 'emergencia');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition_round = SpeechRecognition && window.isSecureContext ? new SpeechRecognition() : null;
+  const language = locale;
+  const errors = {
+    'not-allowed': t("Select Turn on microphone and allow access in your browser. You can also type."),
+    'service-not-allowed': t("The browser is blocking dictation. You can type your message."),
+    'audio-capture': t("A microphone could not be found. You can type your message."),
+    network: t("The dictation service is unavailable. You can type your message."),
   };
-  let activo = false;
-  let capturando = false;
-  let cerrando = false;
-  let descartado = false;
-  let enviando = false;
-  let ultima = Array.from(conversacion.querySelectorAll('[data-voz-respuesta]')).at(-1)?.textContent.trim();
-  let pausa;
-  let reintento;
-  let transcripcion = '';
+  let active = false;
+  let isCapturing = false;
+  let isClosing = false;
+  let discarded = false;
+  let isSending = false;
+  let lastReply = Array.from(conversation.querySelectorAll('[data-voz-respuesta]')).at(-1)?.textContent.trim();
+  let pauseTime;
+  let shouldRetry;
+  let transcript = '';
 
-  function cambiarMicrofono(encendido) {
-    activo = encendido;
-    microfono.textContent = encendido ? t('Detener micrófono') : t('Activar micrófono');
-    microfono.setAttribute('aria-pressed', String(encendido));
+  function toggleMicrophone(microphoneOn) {
+    active = microphoneOn;
+    microphone.textContent = microphoneOn ? t("Turn off microphone") : t("Turn on microphone");
+    microphone.setAttribute('aria-pressed', String(microphoneOn));
   }
 
-  function descartarCaptura() {
-    clearTimeout(pausa);
-    clearTimeout(reintento);
-    if (capturando) {
-      descartado = true;
-      reconocimiento.abort();
+  function discardCapture() {
+    clearTimeout(pauseTime);
+    clearTimeout(shouldRetry);
+    if (isCapturing) {
+      discarded = true;
+      recognition_round.abort();
     }
   }
 
-  function detenerVoz(aviso) {
-    cambiarMicrofono(false);
-    descartarCaptura();
-    detenerLectura();
-    estado.textContent = aviso;
+  function stopVoice(notice) {
+    toggleMicrophone(false);
+    discardCapture();
+    stopPlayback();
+    state.textContent = notice;
   }
 
-  function escuchar() {
-    if (!activo || capturando || enviando || reproductor.enCurso) return;
-    transcripcion = '';
-    descartado = false;
-    cerrando = false;
+  function playReply() {
+    if (!active || isCapturing || isSending || player.playing) return;
+    transcript = '';
+    discarded = false;
+    isClosing = false;
     try {
-      reconocimiento.start();
-      capturando = true;
-      estado.textContent = t('Activando micrófono…');
+      recognition_round.start();
+      isCapturing = true;
+      state.textContent = t("Turning on microphone…");
     } catch {
-      detenerVoz(errores['not-allowed']);
+      stopVoice(errors['not-allowed']);
     }
   }
 
-  function cerrarFrase() {
-    clearTimeout(pausa);
-    if (!capturando || cerrando || descartado) return;
-    cerrando = true;
-    reconocimiento.stop();
+  function finishUtterance() {
+    clearTimeout(pauseTime);
+    if (!isCapturing || isClosing || discarded) return;
+    isClosing = true;
+    recognition_round.stop();
   }
 
-  function detenerLectura() {
-    reproductor.detener();
-    botonLeer.textContent = t('Escuchar última respuesta');
+  function stopPlayback() {
+    player.stop();
+    playButton.textContent = t("Play latest reply");
   }
 
-  function leerRespuesta(texto, manual = false) {
-    if (!reproductor.disponible || (!activo && !manual && !reproductor.nubeElegida)) {
-      estado.textContent = t('Respuesta disponible en el chat.');
-      escuchar();
+  function playResponse(message_text, manualMode = false) {
+    if (!player.available || (!active && !manualMode && !player.cloudSelected)) {
+      state.textContent = t("The reply is available in the chat.");
+      playReply();
       return;
     }
-    descartarCaptura();
-    botonLeer.textContent = t('Detener lectura');
-    estado.textContent = activo
-      ? t('La IA está respondiendo. El micrófono está en pausa.')
-      : t('Reproduciendo la respuesta de la IA…');
-    reproductor.leer(texto, exito => {
-      botonLeer.textContent = t('Escuchar última respuesta');
-      estado.textContent = exito ? '' : t('Para oír esta respuesta, pulsa Escuchar última respuesta.');
-      escuchar();
+    discardCapture();
+    playButton.textContent = t("Stop playback");
+    state.textContent = active
+      ? t("The AI is replying. The microphone is paused.")
+      : t("Playing the AI reply…");
+    player.play(message_text, success => {
+      playButton.textContent = t("Play latest reply");
+      state.textContent = success ? '' : t("To hear this reply, select Play latest reply.");
+      playReply();
     });
   }
 
-  botonLeer.hidden = !ultima || !reproductor.disponible;
-  botonLeer.addEventListener('click', () => {
-    if (enviando) return;
-    if (reproductor.enCurso) {
-      detenerLectura();
-      escuchar();
-    } else if (ultima) leerRespuesta(ultima, true);
+  playButton.hidden = !lastReply || !player.available;
+  playButton.addEventListener('click', () => {
+    if (isSending) return;
+    if (player.playing) {
+      stopPlayback();
+      playReply();
+    } else if (lastReply) playResponse(lastReply, true);
   });
 
-  async function enviarTurno() {
-    if (enviando || !mensaje.value.trim()) return;
-    enviando = true;
-    descartarCaptura();
-    const datos = new FormData(form);
-    mensaje.readOnly = true;
-    enviar.disabled = true;
-    estado.textContent = t('Enviando a la IA…');
-    const pendiente = agregar(conversacion, { role: 'user', text: mensaje.value.trim() }, true);
-    let turnos;
+  async function sendTurn() {
+    if (isSending || !message.value.trim()) return;
+    isSending = true;
+    discardCapture();
+    const data = new FormData(form);
+    message.readOnly = true;
+    submitTurn.disabled = true;
+    state.textContent = t("Sending to the AI…");
+    const pendiente = appendMessage(conversation, { role: 'user', text: message.value.trim() }, true);
+    let new_turns;
     try {
-      const respuesta = await fetch(form.action, {
+      const reply = await fetch(form.action, {
         method: 'POST',
         headers: { Accept: 'application/json' },
-        body: datos,
+        body: data,
       });
-      const resultado = await respuesta.json();
-      if (respuesta.ok) {
-        form.elements.revision.value = resultado.revision;
-        mensaje.value = '';
-        turnos = resultado.mensajes;
+      const resultData = await reply.json();
+      if (reply.ok) {
+        form.elements.revision.value = resultData.revision;
+        message.value = '';
+        new_turns = resultData.mensajes;
       } else {
-        detenerVoz(resultado.error);
+        stopVoice(resultData.error);
       }
     } catch {
-      detenerVoz(t('No se pudo confirmar el envío. Conserva tu mensaje y revisa el chat antes de reenviarlo.'));
+      stopVoice(t("Sending could not be confirmed. Keep your message and check the chat before sending it again."));
     } finally {
       pendiente.remove();
-      enviando = false;
-      mensaje.readOnly = false;
-      enviar.disabled = false;
+      isSending = false;
+      message.readOnly = false;
+      submitTurn.disabled = false;
     }
-    if (turnos) {
-      conversacion.querySelector('#ultimo-mensaje')?.removeAttribute('id');
-      for (const turno of turnos) agregar(conversacion, turno);
-      conversacion.lastElementChild.id = 'ultimo-mensaje';
-      ultima = turnos.at(-1).text;
-      botonLeer.hidden = !reproductor.disponible;
-      leerRespuesta(ultima);
+    if (new_turns) {
+      conversation.querySelector('#ultimo-mensaje')?.removeAttribute('id');
+      for (const turn of new_turns) appendMessage(conversation, turn);
+      conversation.lastElementChild.id = 'ultimo-mensaje';
+      lastReply = new_turns.at(-1).text;
+      playButton.hidden = !player.available;
+      playResponse(lastReply);
     }
   }
-  desplazar(conversacion);
+  scrollToLatest(conversation);
 
-  form.addEventListener('submit', evento => {
-    evento.preventDefault();
-    detenerLectura();
-    enviarTurno();
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    stopPlayback();
+    sendTurn();
   });
-  mensaje.addEventListener('input', () => {
-    if (activo) detenerVoz(t('Micrófono detenido mientras escribes.'));
+  message.addEventListener('input', () => {
+    if (active) stopVoice(t("Microphone off while you type."));
   });
 
-  window.addEventListener('pagehide', () => detenerVoz(t('Micrófono detenido al salir del chat.')));
-  if (!reconocimiento) {
-    estado.textContent = t('El dictado requiere un navegador compatible y una conexión segura. Puedes escribir tu mensaje.');
+  window.addEventListener('pagehide', () => stopVoice(t("Microphone turned off when leaving the chat.")));
+  if (!recognition_round) {
+    state.textContent = t("Dictation requires a compatible browser and a secure connection. You can type your message.");
     return;
   }
 
-  reconocimiento.lang = idioma;
-  reconocimiento.continuous = true;
-  reconocimiento.interimResults = true;
-  reconocimiento.onstart = () => {
-    if (activo && !descartado) estado.textContent = t('Micrófono activo. Habla cuando quieras.');
+  recognition_round.lang = language;
+  recognition_round.continuous = true;
+  recognition_round.interimResults = true;
+  recognition_round.onstart = () => {
+    if (active && !discarded) state.textContent = t("Microphone on. Speak whenever you are ready.");
   };
-  reconocimiento.onspeechstart = () => clearTimeout(pausa);
-  reconocimiento.onspeechend = cerrarFrase;
-  reconocimiento.onresult = evento => {
-    if (descartado) return;
-    transcripcion = Array.from(evento.results, resultado => resultado[0].transcript.trim())
-      .join(' ').trim().slice(0, mensaje.maxLength);
-    if (!transcripcion) return;
-    mensaje.value = transcripcion;
-    clearTimeout(pausa);
-    if (!cerrando) pausa = setTimeout(cerrarFrase, 1100);
+  recognition_round.onspeechstart = () => clearTimeout(pauseTime);
+  recognition_round.onspeechend = finishUtterance;
+  recognition_round.onresult = event => {
+    if (discarded) return;
+    transcript = Array.from(event.results, resultData => resultData[0].transcript.trim())
+      .join(' ').trim().slice(0, message.maxLength);
+    if (!transcript) return;
+    message.value = transcript;
+    clearTimeout(pauseTime);
+    if (!isClosing) pauseTime = setTimeout(finishUtterance, 1100);
   };
-  reconocimiento.onerror = evento => {
-    if (descartado || evento.error === 'no-speech' || evento.error === 'aborted') return;
-    detenerVoz(errores[evento.error] || t('Falló el dictado. Vuelve a activar el micrófono o escribe tu mensaje.'));
+  recognition_round.onerror = event => {
+    if (discarded || event.error === 'no-speech' || event.error === 'aborted') return;
+    stopVoice(errors[event.error] || t("Dictation stopped. Turn the microphone back on or type your message."));
   };
-  reconocimiento.onend = () => {
-    capturando = false;
-    clearTimeout(pausa);
-    if (!activo) return;
-    if (transcripcion && !descartado) enviarTurno();
-    else reintento = setTimeout(escuchar, 300);
+  recognition_round.onend = () => {
+    isCapturing = false;
+    clearTimeout(pauseTime);
+    if (!active) return;
+    if (transcript && !discarded) sendTurn();
+    else shouldRetry = setTimeout(playReply, 300);
   };
 
-  function activarVoz() {
-    if (mensaje.value.trim()) {
-      estado.textContent = t('Envía o borra el borrador antes de activar el micrófono.');
+  function enableVoice() {
+    if (message.value.trim()) {
+      state.textContent = t("Send or clear your draft before turning on the microphone.");
       return;
     }
-    cambiarMicrofono(true);
-    escuchar();
+    toggleMicrophone(true);
+    playReply();
   }
 
-  microfono.hidden = false;
-  microfono.addEventListener('click', () => {
-    if (activo) detenerVoz(t('Micrófono detenido.'));
-    else activarVoz();
+  microphone.hidden = false;
+  microphone.addEventListener('click', () => {
+    if (active) stopVoice(t("Microphone off."));
+    else enableVoice();
   });
-  activarVoz();
+  enableVoice();
 })();

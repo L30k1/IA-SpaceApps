@@ -6,14 +6,14 @@ from pathlib import Path
 from shutil import rmtree
 from uuid import uuid4
 
-from database.expedientes import SIGNOS, fecha_utc
-from volt import CAMPO_VOLT, avanzar
+from database.medical_records import VITAL_SIGNS, utc_datetime
+from volt import VOLT_FIELD, advance_test
 
 
-class RegistroPrematuro(Exception):
-    def __init__(self, disponible):
-        self.disponible = disponible
-        super().__init__("El intervalo entre registros aún no ha terminado.")
+class EarlyCheckInError(Exception):
+    def __init__(self, available_at):
+        self.available_at = available_at
+        super().__init__("The required interval between check-ins has not passed yet.")
 
 
 def initialize(path):
@@ -71,129 +71,129 @@ def initialize(path):
         """)
         db.execute("BEGIN IMMEDIATE")
         db.execute("INSERT OR IGNORE INTO secuencia_usuarios VALUES (1, 0)")
-        if "clave_edicion_hash" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
+        if "clave_edicion_hash" not in {column[1] for column in db.execute("PRAGMA table_info(users)")}:
             db.execute("ALTER TABLE users ADD COLUMN clave_edicion_hash TEXT")
-        if "es_admin" not in {columna[1] for columna in db.execute("PRAGMA table_info(users)")}:
+        if "es_admin" not in {column[1] for column in db.execute("PRAGMA table_info(users)")}:
             db.execute("ALTER TABLE users ADD COLUMN es_admin INTEGER NOT NULL DEFAULT 0")
-        if "inicio_visible" not in {columna[1] for columna in db.execute("PRAGMA table_info(psych_chat)")}:
+        if "inicio_visible" not in {column[1] for column in db.execute("PRAGMA table_info(psych_chat)")}:
             db.execute("ALTER TABLE psych_chat ADD COLUMN inicio_visible INTEGER NOT NULL DEFAULT 0")
 
 
-def create_user(path, password_hash, expediente, clave_edicion_hash=None):
+def create_user(path, password_hash, medical_record, edit_key_hash=None):
     with closing(sqlite3.connect(path)) as db, db:
-        # Las sesiones existentes guardan el ID. Una cuenta nueva nunca debe reutilizarlo.
+        # Existing sessions store the ID. A new account must never reuse it.
         user_id = db.execute(
             "UPDATE secuencia_usuarios SET ultimo = MAX(ultimo, (SELECT COALESCE(MAX(id), 0) FROM users)) + 1 "
             "WHERE id = 1 RETURNING ultimo"
         ).fetchone()[0]
-        # La columna email es obligatoria en las bases SQLite existentes.
+        # Existing SQLite databases require the email column.
         db.execute(
             "INSERT INTO users (id, email, name, password_hash, clave_edicion_hash) VALUES (?, ?, ?, ?, ?)",
-            (user_id, f"astronauta:{expediente['_id']}", expediente["astronauta"]["nombre"],
-             password_hash, clave_edicion_hash),
+            (user_id, f"astronauta:{medical_record['_id']}", medical_record["astronauta"]["nombre"],
+             password_hash, edit_key_hash),
         )
         db.execute(
             "INSERT INTO expedientes (user_id, astronauta_id, contenido) VALUES (?, ?, ?)",
-            (user_id, expediente["_id"], json.dumps(expediente)),
+            (user_id, medical_record["_id"], json.dumps(medical_record)),
         )
         return user_id
 
 
-def credenciales_edicion(path, user_id):
+def edit_credentials(path, user_id):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
         return db.execute("SELECT password_hash, clave_edicion_hash FROM users WHERE id = ?", (user_id,)).fetchone()
 
 
-def configurar_llave_edicion(path, user_id, clave_hash):
+def configure_edit_key(path, user_id, key_hash):
     with closing(sqlite3.connect(path)) as db, db:
-        resultado = db.execute(
+        outcome = db.execute(
             "UPDATE users SET clave_edicion_hash = ? WHERE id = ? AND clave_edicion_hash IS NULL",
-            (clave_hash, user_id),
+            (key_hash, user_id),
         )
-        return resultado.rowcount == 1
+        return outcome.rowcount == 1
 
 
-def expediente_for_user(path, user_id):
+def medical_record_for_user(path, user_id):
     with closing(sqlite3.connect(path)) as db:
-        return read_expediente(db, user_id)
+        return read_record_row(db, user_id)
 
 
-def es_administrador(path, user_id):
+def is_administrator(path, user_id):
     with closing(sqlite3.connect(path)) as db:
         return db.execute("SELECT 1 FROM users WHERE id = ? AND es_admin = 1", (user_id,)).fetchone() is not None
 
 
-def cuentas_administracion(path, identificador, desplazamiento, limite):
+def list_admin_accounts(path, identifier, page_offset, limit_value):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
-        consulta = """
+        statement = """
             SELECT users.id, users.name, users.email, users.es_admin, expedientes.astronauta_id
             FROM users LEFT JOIN expedientes ON expedientes.user_id = users.id
         """
-        parametros = ()
-        if identificador:
-            consulta += " WHERE expedientes.astronauta_id = ?"
-            parametros = (identificador,)
-        return db.execute(consulta + " ORDER BY users.id DESC LIMIT ? OFFSET ?",
-                          (*parametros, limite, desplazamiento)).fetchall()
+        parameters = ()
+        if identifier:
+            statement += " WHERE expedientes.astronauta_id = ?"
+            parameters = (identifier,)
+        return db.execute(statement + " ORDER BY users.id DESC LIMIT ? OFFSET ?",
+                          (*parameters, limit_value, page_offset)).fetchall()
 
 
-def cuenta_administracion(path, user_id):
+def get_admin_account(path, user_id):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
-        fila = db.execute("""
+        row_data = db.execute("""
             SELECT users.id, users.name, users.email, users.es_admin, expedientes.astronauta_id,
                    expedientes.contenido
             FROM users LEFT JOIN expedientes ON expedientes.user_id = users.id
             WHERE users.id = ?
         """, (user_id,)).fetchone()
-        if fila is None:
+        if row_data is None:
             return None
-        cuenta = dict(fila)
-        cuenta["expediente"] = json.loads(cuenta.pop("contenido") or "null")
-        return cuenta
+        account = dict(row_data)
+        account["expediente"] = json.loads(account.pop("contenido") or "null")
+        return account
 
 
-def eliminar_cuenta(path, administrador, usuario):
-    if type(usuario) is not int or administrador == usuario:
+def delete_account(path, administrator, account_id):
+    if type(account_id) is not int or administrator == account_id:
         return False
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         if db.execute(
-            "SELECT 1 FROM users WHERE id = ? AND es_admin = 1", (administrador,),
+            "SELECT 1 FROM users WHERE id = ? AND es_admin = 1", (administrator,),
         ).fetchone() is None:
             return False
         db.execute("UPDATE secuencia_usuarios SET ultimo = MAX(ultimo, (SELECT MAX(id) FROM users)) WHERE id = 1")
-        if db.execute("DELETE FROM users WHERE id = ?", (usuario,)).rowcount == 0:
+        if db.execute("DELETE FROM users WHERE id = ?", (account_id,)).rowcount == 0:
             return False
         db.execute("DELETE FROM checkup_details WHERE checkup_id IN (SELECT id FROM checkups WHERE user_id = ?)",
-                   (usuario,))
-        for tabla in ("checkups", "psych_chat", "emergency_chat", "volt_drafts", "expedientes"):
-            db.execute(f"DELETE FROM {tabla} WHERE user_id = ?", (usuario,))
+                   (account_id,))
+        for table_name in ("checkups", "psych_chat", "emergency_chat", "volt_drafts", "expedientes"):
+            db.execute(f"DELETE FROM {table_name} WHERE user_id = ?", (account_id,))
 
-        # Usa el mismo bloqueo de escritura que la exportación del expediente.
-        carpeta = Path(f"{path}.expedientes").resolve() / str(usuario)
-        if carpeta.resolve() != carpeta:
-            raise OSError("La carpeta del expediente apunta fuera de la ruta esperada.")
-        if carpeta.exists():
-            rmtree(carpeta)
+        # Use the same write lock as the medical record export.
+        folder = Path(f"{path}.expedientes").resolve() / str(account_id)
+        if folder.resolve() != folder:
+            raise OSError("The medical record folder points outside the expected path.")
+        if folder.exists():
+            rmtree(folder)
         return True
 
 
-def actualizar_datos_expediente(path, user_id, aplicar):
+def update_medical_record(path, user_id, apply_edit):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, user_id)
-        if expediente is None:
+        medical_record = read_record_row(db, user_id)
+        if medical_record is None:
             return False
-        actualizado = aplicar(expediente)
+        updated_record = apply_edit(medical_record)
         db.execute("UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-                   (json.dumps(actualizado, ensure_ascii=False), user_id))
+                   (json.dumps(updated_record, ensure_ascii=False), user_id))
         return True
 
 
-def read_expediente(db, user_id):
+def read_record_row(db, user_id):
     row = db.execute("SELECT contenido FROM expedientes WHERE user_id = ?", (user_id,)).fetchone()
     return json.loads(row[0]) if row else None
 
@@ -208,142 +208,142 @@ def volt_draft(path, user_id):
         return read_volt_draft(db, user_id)
 
 
-def actualizar_volt(path, user_id, accion, identificador, respuestas, ahora):
+def update_volt(path, user_id, action, identifier, answers, current_time):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, user_id)
-        borrador = read_volt_draft(db, user_id)
-        if expediente is None:
-            raise ValueError("La cuenta no tiene un expediente activo.")
-        registros = expediente.get(CAMPO_VOLT, [])
-        siguiente, registro, completado = avanzar(borrador, registros, accion, identificador, respuestas, ahora)
-        if registro is not None:
-            expediente[CAMPO_VOLT] = [*registros, registro]
+        medical_record = read_record_row(db, user_id)
+        active_draft = read_volt_draft(db, user_id)
+        if medical_record is None:
+            raise ValueError("This account has no active medical record.")
+        entries = medical_record.get(VOLT_FIELD, [])
+        has_next, entry, completed_id = advance_test(active_draft, entries, action, identifier, answers, current_time)
+        if entry is not None:
+            medical_record[VOLT_FIELD] = [*entries, entry]
             db.execute(
                 "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-                (json.dumps(expediente, ensure_ascii=False), user_id),
+                (json.dumps(medical_record, ensure_ascii=False), user_id),
             )
-        if siguiente is None:
-            if borrador is not None:
+        if has_next is None:
+            if active_draft is not None:
                 db.execute("DELETE FROM volt_drafts WHERE user_id = ?", (user_id,))
-        elif siguiente is not borrador:
+        elif has_next is not active_draft:
             db.execute(
                 "INSERT INTO volt_drafts VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET contenido = excluded.contenido",
-                (user_id, json.dumps(siguiente)),
+                (user_id, json.dumps(has_next)),
             )
-        return completado
+        return completed_id
 
 
-def save_expediente_report(path, user_id, campo, registro, *campos):
+def save_record_result(path, user_id, field_name, entry, *fields):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, user_id)
-        if expediente is None:
+        medical_record = read_record_row(db, user_id)
+        if medical_record is None:
             return False
-        registros = expediente.setdefault(campo, [])
-        for anterior in registros:
-            if anterior["id"] == registro["id"]:
-                return all(anterior.get(nombre) == registro.get(nombre) for nombre in campos)
-        registros.append(registro)
+        entries = medical_record.setdefault(field_name, [])
+        for previous in entries:
+            if previous["id"] == entry["id"]:
+                return all(previous.get(full_name) == entry.get(full_name) for full_name in fields)
+        entries.append(entry)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-            (json.dumps(expediente, ensure_ascii=False), user_id),
+            (json.dumps(medical_record, ensure_ascii=False), user_id),
         )
         return True
 
 
-def proximo_registro(registros, intervalo):
-    ultimo = max((fecha_utc(registro["fecha_hora"]) for registro in registros), default=None)
-    return ultimo + intervalo if ultimo is not None else None
+def next_check_in(entries, interval):
+    last_item = max((utc_datetime(entry["fecha_hora"]) for entry in entries), default=None)
+    return last_item + interval if last_item is not None else None
 
 
-def save_psych_report(path, user_id, campo, registro, intervalo):
+def save_psych_report(path, user_id, field_name, entry, interval):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, user_id)
-        if expediente is None:
+        medical_record = read_record_row(db, user_id)
+        if medical_record is None:
             return False
-        registros = expediente.setdefault(campo, [])
-        if any(previo["id"] == registro["id"] for previo in registros):
+        entries = medical_record.setdefault(field_name, [])
+        if any(previous_value["id"] == entry["id"] for previous_value in entries):
             return False
-        disponible = proximo_registro(registros, intervalo)
-        if disponible is not None and fecha_utc(registro["fecha_hora"]) < disponible:
-            raise RegistroPrematuro(disponible)
-        registros.append(registro)
+        available_at = next_check_in(entries, interval)
+        if available_at is not None and utc_datetime(entry["fecha_hora"]) < available_at:
+            raise EarlyCheckInError(available_at)
+        entries.append(entry)
         db.execute(
             "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-            (json.dumps(expediente, ensure_ascii=False), user_id),
+            (json.dumps(medical_record, ensure_ascii=False), user_id),
         )
         return True
 
 
-def save_psych_followup(path, user_id, campo, registro_id, seguimiento):
+def save_psych_followup(path, user_id, field_name, entry_id, followup):
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, user_id)
-        if expediente is None:
+        medical_record = read_record_row(db, user_id)
+        if medical_record is None:
             return False
-        for registro in expediente.get(campo, []):
-            if registro["id"] == registro_id and not registro.get("seguimiento_ia"):
-                registro["seguimiento_ia"] = seguimiento
+        for entry in medical_record.get(field_name, []):
+            if entry["id"] == entry_id and not entry.get("seguimiento_ia"):
+                entry["seguimiento_ia"] = followup
                 db.execute(
                     "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-                    (json.dumps(expediente, ensure_ascii=False), user_id),
+                    (json.dumps(medical_record, ensure_ascii=False), user_id),
                 )
                 return True
         return False
 
 
-def psych_chat(path, user_id, emergencia=False, *, incluir_archivo=False):
-    tabla = "emergency_chat" if emergencia else "psych_chat"
+def psych_chat(path, user_id, emergency=False, *, include_archived=False):
+    table_name = "emergency_chat" if emergency else "psych_chat"
     with closing(sqlite3.connect(path)) as db:
-        row = db.execute(f"SELECT revision, mensajes, inicio_visible FROM {tabla} WHERE user_id = ?", (user_id,)).fetchone()
+        row = db.execute(f"SELECT revision, mensajes, inicio_visible FROM {table_name} WHERE user_id = ?", (user_id,)).fetchone()
         if row is None:
             return 0, []
-        return row[0], json.loads(row[1])[0 if incluir_archivo else row[2]:]
+        return row[0], json.loads(row[1])[0 if include_archived else row[2]:]
 
 
-def save_psych_chat(path, user_id, revision, turnos, emergencia=False):
-    tabla = "emergency_chat" if emergencia else "psych_chat"
+def save_psych_chat(path, user_id, revision, new_turns, emergency=False):
+    table_name = "emergency_chat" if emergency else "psych_chat"
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("BEGIN IMMEDIATE")
         if revision == 0:
-            actualizado = db.execute(
-                f"INSERT INTO {tabla} (user_id, revision, mensajes) SELECT id, 1, ? FROM users WHERE id = ? "
+            updated_record = db.execute(
+                f"INSERT INTO {table_name} (user_id, revision, mensajes) SELECT id, 1, ? FROM users WHERE id = ? "
                 "ON CONFLICT (user_id) DO NOTHING",
-                (json.dumps(turnos, ensure_ascii=False), user_id),
+                (json.dumps(new_turns, ensure_ascii=False), user_id),
             )
         else:
-            row = db.execute(f"SELECT mensajes FROM {tabla} WHERE user_id = ? AND revision = ?",
+            row = db.execute(f"SELECT mensajes FROM {table_name} WHERE user_id = ? AND revision = ?",
                              (user_id, revision)).fetchone()
             if row is None:
                 return False
-            contenido = json.dumps([*json.loads(row[0]), *turnos], ensure_ascii=False)
-            actualizado = db.execute(
-                f"UPDATE {tabla} SET mensajes = ?, revision = revision + 1 "
+            content_blob = json.dumps([*json.loads(row[0]), *new_turns], ensure_ascii=False)
+            updated_record = db.execute(
+                f"UPDATE {table_name} SET mensajes = ?, revision = revision + 1 "
                 "WHERE user_id = ? AND revision = ?",
-                (contenido, user_id, revision),
+                (content_blob, user_id, revision),
             )
-        return actualizado.rowcount == 1
+        return updated_record.rowcount == 1
 
 
-def limpiar_psych_chat(path, user_id, revision):
+def clear_support_chat(path, user_id, revision):
     with closing(sqlite3.connect(path)) as db, db:
-        actualizado = db.execute(
+        updated_record = db.execute(
             "UPDATE psych_chat SET inicio_visible = json_array_length(mensajes), revision = revision + 1 "
             "WHERE user_id = ? AND revision = ?", (user_id, revision),
         )
-        return actualizado.rowcount == 1
+        return updated_record.rowcount == 1
 
 
-def find_user_by_astronauta(path, astronauta_id):
+def find_user_by_astronaut_id(path, astronaut_id_value):
     with closing(sqlite3.connect(path)) as db:
         db.row_factory = sqlite3.Row
         return db.execute(
             "SELECT users.id, users.password_hash, "
             "COALESCE(json_extract(expedientes.contenido, '$.astronauta.nombre'), users.name) AS name FROM expedientes "
             "JOIN users ON users.id = expedientes.user_id WHERE expedientes.astronauta_id = ?",
-            (astronauta_id,),
+            (astronaut_id_value,),
         ).fetchone()
 
 
@@ -370,18 +370,18 @@ def get_open_checkup(path, user_id, profile):
 
 def checkup_record(record_id, finished_at, messages, vitals, details, status):
     try:
-        fecha = fecha_utc(finished_at)
+        timestamp = utc_datetime(finished_at)
     except ValueError:
-        fecha = datetime.strptime(finished_at, "%d/%m/%Y %H:%M UTC").replace(tzinfo=timezone.utc)
-    medidas = details.get("telemetria", dict(zip(("hr", "spo2", "temp"), vitals)))
+        timestamp = datetime.strptime(finished_at, "%d/%m/%Y %H:%M UTC").replace(tzinfo=timezone.utc)
+    measured_values = details.get("telemetria", dict(zip(("hr", "spo2", "temp"), vitals)))
     return {
         **{field: details.get(field) or None for field in ("mision_id", "fase", "motivo", "actividad")},
         "id": record_id,
-        "fecha_hora": fecha.isoformat(),
+        "fecha_hora": timestamp.isoformat(),
         "resultado": status,
         "mediciones": [
-            {"tipo": tipo, "valor": medidas[key], "unidad": SIGNOS[tipo][1]}
-            for tipo, key in zip(SIGNOS, ("hr", "spo2", "temp")) if medidas[key] is not None
+            {"tipo": kind, "valor": measured_values[key], "unidad": VITAL_SIGNS[kind][1]}
+            for kind, key in zip(VITAL_SIGNS, ("hr", "spo2", "temp")) if measured_values[key] is not None
         ],
         "conversacion": messages,
         **{field: details[field] for field in ("evaluacion_ia", "evaluacion", "comparacion_referencias")
@@ -403,20 +403,20 @@ def save_turn(path, draft, messages, vitals, details, status=None):
         if result.rowcount != 1:
             return False
         if finished_at:
-            expediente_row = db.execute(
+            record_row = db.execute(
                 "SELECT contenido FROM expedientes WHERE user_id = ? AND astronauta_id = ?",
                 (draft["user_id"], draft["profile"]),
             ).fetchone()
-            if expediente_row is None:
-                raise ValueError("No se encontró el expediente del chequeo.")
-            expediente = json.loads(expediente_row[0])
+            if record_row is None:
+                raise ValueError("The medical record for this checkup was not found.")
+            medical_record = json.loads(record_row[0])
             record_id = f"chequeo-{uuid4().hex}"
-            expediente["chequeos"].append(
+            medical_record["chequeos"].append(
                 checkup_record(record_id, finished_at, messages, vitals, details, status)
             )
             db.execute(
                 "UPDATE expedientes SET contenido = ? WHERE user_id = ?",
-                (json.dumps(expediente, ensure_ascii=False), draft["user_id"]),
+                (json.dumps(medical_record, ensure_ascii=False), draft["user_id"]),
             )
             details = {**details, "expediente_chequeo_id": record_id}
         db.execute(
@@ -444,13 +444,13 @@ def read_history(db, user_id, profile):
 
 
 @contextmanager
-def expediente_para_archivo(path, user_id):
+def record_for_export(path, user_id):
     with closing(sqlite3.connect(path)) as db, db:
         db.row_factory = sqlite3.Row
-        # Serializa la escritura de archivos con los cambios de SQLite.
+        # Serialize file writes with SQLite updates.
         db.execute("BEGIN IMMEDIATE")
-        expediente = read_expediente(db, user_id)
-        if expediente is None:
+        medical_record = read_record_row(db, user_id)
+        if medical_record is None:
             yield None, []
         else:
-            yield expediente, read_history(db, user_id, expediente["_id"])
+            yield medical_record, read_history(db, user_id, medical_record["_id"])
