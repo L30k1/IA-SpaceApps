@@ -10,7 +10,6 @@ MediSpace is a web app for recording and reviewing astronaut health. It brings t
 - **Psychological support.** Includes daily and weekly check-ins, a support chat, and an emergency voice chat. The emergency chat guides users to contact the team responsible for emergency response.
 - **Cognitive tests.** Includes Motor Praxis (MP), Visual Object Learning Test (VOLT), Line Orientation Test (LOT), Fractal 2-Back (F2B), and Facial Emotion Recognition (ERT). Results are saved in the history.
 - **Missions and exercise.** The profile shows the assessment schedule and the mission’s daily exercise minimum. Mission dates come from the medical record.
-- **Administration.** The `/admin` panel lets authorized accounts review records and activity or delete an account and its MediSpace data.
 
 ## Getting started on Render
 
